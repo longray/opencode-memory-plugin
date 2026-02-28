@@ -199,57 +199,67 @@ export class VectorStore {
    * Get embedding from external service
    */
   async getExternalEmbedding(text) {
-    // 优先尝试公网服务，本地服务作为后备
+    // 优先尝试公网服务（使用 MODELSCOPE_API_KEY），本地服务作为后备
     const publicEndpoints = [
-      'https://api.openai.com/v1/embeddings',  // 示例公网服务，您需要配置实际的API密钥
-      'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-embedding',  // 通义千问服务
+      'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-embedding/text-embedding',  // 通义千问 embedding 服务
     ];
 
     // 尝试公网服务
     for (const endpoint of publicEndpoints) {
       try {
-        // 示例：调用OpenAI兼容API，您需要配置正确的API密钥
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            // 'Authorization': 'Bearer YOUR_API_KEY',  // 您需要在此处配置实际的API密钥
-            // 'X-DashScope-SSE-Enable': 'disable',  // 如果使用通义千问
-          },
-          body: JSON.stringify({ 
-            input: text,
-            model: 'text-embedding-ada-002'  // 根据您使用的公网服务调整模型名称
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-
-          // 处理公网服务的不同响应格式
-          if (data && data.data && Array.isArray(data.data)) {
-            if (data.data[0] && Array.isArray(data.data[0].embedding)) {
-              return data.data[0].embedding;
-            } else if (Array.isArray(data.data[0])) {
-              return data.data[0];
-            }
-          } else if (Array.isArray(data)) {
-            return data;
-          } else if (data && Array.isArray(data.embedding)) {
-            return data.embedding;
-          } else if (data && data.embeddings && Array.isArray(data.embeddings)) {
-            return data.embeddings;
-          }
+        // 从环境变量获取 API 密钥
+        const apiKey = process.env.MODELSCOPE_API_KEY;
+        
+        if (!apiKey) {
+          console.log('MODELSCOPE_API_KEY not set, skipping public service');
         } else {
-          console.log(`Public service failed: ${response.status} ${await response.text()}`);
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,  // 使用 MODELSCOPE_API_KEY
+              'X-DashScope-SSE-Enable': 'disable',  // 确保兼容性
+            },
+            body: JSON.stringify({ 
+              model: 'gte-text-embedding-v1',  // 通义千问 embedding 模型
+              input: {
+                texts: [text]  // 通义千问API期望的格式
+              }
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+
+            // 处理通义千问服务的响应格式
+            if (data && data.output && data.output.embeddings) {
+              // 通义千问典型的返回格式
+              return data.output.embeddings[0].embedding;
+            } else if (data && data.data && Array.isArray(data.data)) {
+              if (data.data[0] && Array.isArray(data.data[0].embedding)) {
+                return data.data[0].embedding;
+              } else if (Array.isArray(data.data[0])) {
+                return data.data[0];
+              }
+            } else if (Array.isArray(data)) {
+              return data;
+            } else if (data && Array.isArray(data.embedding)) {
+              return data.embedding;
+            } else if (data && data.embeddings && Array.isArray(data.embeddings)) {
+              return data.embeddings;
+            }
+          } else {
+            console.log(`Public service failed: ${response.status} ${await response.text()}`);
+          }
         }
       } catch (error) {
         console.log(`Public service endpoint ${endpoint} failed:`, error.message);
-        // 继续试下一个公网端点
+        // 继續試下一個公網端點
       }
     }
 
-    // 如果公网服务都失败了，尝试本地服务
-    console.log('All public services failed, falling back to local service');
+    // 如果公網服務都失敗了，嘗試本地服務
+    console.log('All public services failed or not configured, falling back to local service');
     
     const response = await fetch(this.externalEndpoint, {
       method: 'POST',
@@ -270,7 +280,7 @@ export class VectorStore {
 
     const data = await response.json();
 
-    // 处理本地服务的响应格式
+    // 处理本地服務的響應格式
     if (data && data.data && Array.isArray(data.data)) {
       if (data.data[0] && Array.isArray(data.data[0].embedding)) {
         return data.data[0].embedding;
