@@ -104,37 +104,6 @@ set MODELSCOPE_API_KEY=your-modelscope-api-key
 
 **Recommendation**: Use ModelScope API for best quality with minimal resource usage.
 
-#### Local Models (Transformers.js)
-
-**Small Models (384 dimensions, fast)**
-
-| Model | Size | Quality | Speed | Best For |
-|-------|------|---------|-------|----------|
-| `Xenova/all-MiniLM-L6-v2` | 80MB | ⭐⭐ | ⚡⚡⚡ | Baseline, resource-constrained |
-| `Xenova/bge-small-en-v1.5` ⭐ | 130MB | ⭐⭐⭐⭐ | ⚡⚡ | **Best balance** (recommended) |
-| `Xenova/gte-small` | 70MB | ⭐⭐⭐⭐ | ⚡⚡⚡ | Small + fast |
-| `Xenova/e5-small-v2` | 130MB | ⭐⭐⭐ | ⚡⚡ | Question-answer tasks |
-
-**Medium Models (768 dimensions, higher quality)**
-
-| Model | Size | Quality | Speed | Best For |
-|-------|------|---------|-------|----------|
-| `Xenova/bge-base-en-v1.5` ⭐ | 400MB | ⭐⭐⭐⭐⭐ | ⚡⚡ | **Best quality** |
-| `Xenova/nomic-embed-text-v1.5` | 270MB | ⭐⭐⭐⭐ | ⚡⚡ | Long documents |
-
-**Recommendations:**
-
-- **Most users**: ModelScope API (best quality, zero local resources)
-- **Local only**: `Xenova/bge-small-en-v1.5` (best balance)
-- **Maximum quality (local)**: `Xenova/bge-base-en-v1.5` (if you have RAM)
-- **Resource-constrained**: `Xenova/all-MiniLM-L6-v2` (smallest)
-
-**Recommendations:**
-
-- **Most users**: `Xenova/bge-small-en-v1.5` (best balance)
-- **Maximum quality**: `Xenova/bge-base-en-v1.5` (if you have RAM)
-- **Resource-constrained**: `Xenova/all-MiniLM-L6-v2` (smallest)
-
 ### Indexing Configuration
 
 Controls how text is chunked for indexing.

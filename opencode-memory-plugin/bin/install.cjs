@@ -102,58 +102,15 @@ function createMemoryConfig() {
     },
     embedding: {
       enabled: true,
-      provider: 'external',  // Changed to external API service
-      endpoint: 'http://localhost:18000/embeddings',  // Default embedding service endpoint
-      model: 'local-embedding-model',  // Placeholder for external model
+      provider: 'external',
+      endpoint: 'https://api-inference.modelscope.cn/v1/embeddings',  // ModelScope Inference API
+      model: 'Qwen/Qwen3-Embedding-0.6B',  // Model used by ModelScope API
       fallbackMode: 'bm25',  // Use BM25 as fallback
       cache: {
         enabled: false  // No caching for external service
       }
     },
-    models: {
-      available: {
-        'Xenova/all-MiniLM-L6-v2': {
-          dimensions: 384,
-          size: '80MB',
-          language: 'en',
-          useCase: 'general',
-          quality: 'good',
-          speed: 'fast'
-        },
-        'Xenova/bge-small-en-v1.5': {
-          dimensions: 384,
-          size: '130MB',
-          language: 'en',
-          useCase: 'high-quality',
-          quality: 'excellent',
-          speed: 'medium'
-        },
-        'Xenova/bge-base-en-v1.5': {
-          dimensions: 768,
-          size: '400MB',
-          language: 'en',
-          useCase: 'best-quality',
-          quality: 'best',
-          speed: 'slow'
-        },
-        'Xenova/e5-small-v2': {
-          dimensions: 384,
-          size: '130MB',
-          language: 'en',
-          useCase: 'question-answer',
-          quality: 'good',
-          speed: 'medium'
-        },
-        'Xenova/nomic-embed-text-v1.5': {
-          dimensions: 768,
-          size: '270MB',
-          language: 'en',
-          useCase: 'long-documents',
-          quality: 'excellent',
-          speed: 'medium'
-        }
-      }
-    },
+
     indexing: {
       chunkSize: 400,
       chunkOverlap: 80,
