@@ -199,7 +199,58 @@ export class VectorStore {
    * Get embedding from external service
    */
   async getExternalEmbedding(text) {
-    // Using global fetch (available in Node.js 18+)
+    // 优先尝试公网服务，本地服务作为后备
+    const publicEndpoints = [
+      'https://api.openai.com/v1/embeddings',  // 示例公网服务，您需要配置实际的API密钥
+      'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-embedding',  // 通义千问服务
+    ];
+
+    // 尝试公网服务
+    for (const endpoint of publicEndpoints) {
+      try {
+        // 示例：调用OpenAI兼容API，您需要配置正确的API密钥
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // 'Authorization': 'Bearer YOUR_API_KEY',  // 您需要在此处配置实际的API密钥
+            // 'X-DashScope-SSE-Enable': 'disable',  // 如果使用通义千问
+          },
+          body: JSON.stringify({ 
+            input: text,
+            model: 'text-embedding-ada-002'  // 根据您使用的公网服务调整模型名称
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // 处理公网服务的不同响应格式
+          if (data && data.data && Array.isArray(data.data)) {
+            if (data.data[0] && Array.isArray(data.data[0].embedding)) {
+              return data.data[0].embedding;
+            } else if (Array.isArray(data.data[0])) {
+              return data.data[0];
+            }
+          } else if (Array.isArray(data)) {
+            return data;
+          } else if (data && Array.isArray(data.embedding)) {
+            return data.embedding;
+          } else if (data && data.embeddings && Array.isArray(data.embeddings)) {
+            return data.embeddings;
+          }
+        } else {
+          console.log(`Public service failed: ${response.status} ${await response.text()}`);
+        }
+      } catch (error) {
+        console.log(`Public service endpoint ${endpoint} failed:`, error.message);
+        // 继续试下一个公网端点
+      }
+    }
+
+    // 如果公网服务都失败了，尝试本地服务
+    console.log('All public services failed, falling back to local service');
+    
     const response = await fetch(this.externalEndpoint, {
       method: 'POST',
       headers: {
@@ -212,34 +263,29 @@ export class VectorStore {
         normalize: true
       })
     });
-    
+
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      throw new Error(`Both public and local services failed: HTTP ${response.status}: ${await response.text()}`);
     }
-    
+
     const data = await response.json();
-    
-    // Handle different possible response formats
-    // Note: Qwen3 returns a structure like { data: [{ embedding: [...] }] }
+
+    // 处理本地服务的响应格式
     if (data && data.data && Array.isArray(data.data)) {
-      // Common OpenAI compatible format
       if (data.data[0] && Array.isArray(data.data[0].embedding)) {
         return data.data[0].embedding;
       } else if (Array.isArray(data.data[0])) {
         return data.data[0];
       }
     } else if (Array.isArray(data)) {
-      // Raw embedding array format
       return data;
     } else if (data && Array.isArray(data.embedding)) {
-      // Alternative format with embedding property
       return data.embedding;
     } else if (data && data.embeddings && Array.isArray(data.embeddings)) {
-      // Another common format
       return data.embeddings;
     }
     
-    throw new Error('Unexpected response format from embedding service');
+    throw new Error('Unexpected response format from either public or local embedding service');
   }
 
   /**
