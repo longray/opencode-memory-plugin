@@ -77,11 +77,10 @@ The plugin supports 4 configurable search modes:
 
 | Mode | Description | Speed | Quality | Model Required |
 |------|-------------|-------|---------|----------------|
-| `hybrid` | Vector + BM25 (default) | Medium | ⭐⭐⭐⭐ | ✅ Yes |
-| `vector` | Vector-only | Medium | ⭐⭐⭐ | ✅ Yes |
+| `hybrid` | Vector + BM25 (default) | Medium | ⭐⭐⭐⭐ | ✅ Yes (External Service) |
+| `vector` | Vector-only | Medium | ⭐⭐⭐ | ✅ Yes (External Service) |
 | `bm25` | BM25-only (keywords) | Fast | ⭐⭐ | ❌ No |
 | `hash` | Hash-based (fallback) | Fast | ⭐ | ❌ No |
-
 **Default**: `hybrid` mode (70% vector + 30% BM25)
 
 ## 🧠 Available Embedding Models
@@ -96,7 +95,9 @@ The plugin supports 5 pre-configured embedding models:
 | **Xenova/gte-small** | 70MB | ⭐⭐⭐⭐ | ⚡⚡⚡ | Small + fast |
 | **Xenova/nomic-embed-text-v1.5** | 270MB | ⭐⭐⭐⭐ | ⚡⚡ | Long documents |
 
-**Default**: `Xenova/all-MiniLM-L6-v2` (80MB, fast, good quality)
+| **External API Service** | 0MB | ⭐⭐⭐⭐⭐ | ⚡⚡ | **Recommended** (localhost:18000) |
+
+**Default**: `External API Service` (0MB, customizable, high performance via localhost:18000)
 
 ## ⚙️ Configuration
 
@@ -124,12 +125,11 @@ The plugin creates a configuration file at `~/.opencode/memory/memory-config.jso
 
 **High Quality** (Best model):
 ```json
-{
   "search": { "mode": "vector" },
   "embedding": {
-    "model": "Xenova/bge-base-en-v1.5"
+    "provider": "external",
+    "endpoint": "http://localhost:18000/embeddings"
   }
-}
 ```
 
 For complete configuration guide, see [CONFIGURATION.md](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md).
@@ -175,8 +175,8 @@ rebuild_index force=true
 - `index_status` - Check system status including vector index info
 
 **Fallback Behavior:**
-- When embedding model fails to load, `vector_memory_search` falls back to keyword search
-- Model download requires network access on first use
+- When external embedding service is unavailable, `vector_memory_search` falls back to keyword search
+- Network access required to connect to external service endpoint
 
 ```bash
 # Auto-save important information
@@ -229,9 +229,13 @@ opencode-memory-plugin/
 │   ├── docker-init.sh     # Docker setup
 │   ├── uninstall.sh        # Uninstall script
 │   └── test-memory-functions.sh # Test script
+├── lib/                 # Core library files
+│   ├── vector-store.js    # Vector storage and external API integration
+│   ├── bm25.js            # BM25 keyword search algorithm
+│   └── service-validator.js # External service validation utility
 ├── bin/                 # CLI and install scripts
 │   ├── cli.cjs            # Command-line interface
-│   └── install.cjs         # NPM install hook
+│   └── install.cjs        # NPM install hook
 ├── plugin.js            # OpenCode plugin entry
 ├── index.js             # Plugin metadata
 └── package.json         # NPM package config
@@ -239,19 +243,19 @@ opencode-memory-plugin/
 
 ## 🔬 Under the Hood
 
-### Embedding Model
+### Embedding Service
 
-**Model**: all-MiniLM-L6-v2 (converted to ONNX)
-- **Dimensions**: 384
-- **File size**: ~80MB
-- **Max sequence length**: 256 tokens
-- **Inference**: Local (ONNX Runtime)
+**Provider**: External API service (connects to `http://localhost:18000/embeddings`)
+- **Dimensions**: Dynamically detected from response
+- **Latency**: ~50-100ms per request
+- **Inference**: Remote (via HTTP API)
 
 **Performance**:
-- First search: ~2-3 seconds (model loading + inference)
+- First search: ~50-100ms (network call + inference)
 - Subsequent searches: ~50-100ms per query
-- Memory usage: ~150-200MB RAM
+- Memory usage: ~50-100MB RAM (minimal as embeddings computed externally)
 
+**Default**: `External API Service` (0MB, customizable, high performance via localhost:18000)
 ### Hybrid Search Algorithm
 
 ```
@@ -260,21 +264,31 @@ final_score = 0.7 × vector_similarity + 0.3 × bm25_score
 
 This combines semantic understanding (70%) with keyword matching (30%) for optimal results.
 
+## 🌐 External Embedding Service
+
+The plugin now supports connecting to external embedding services:
+
+- **Default Provider**: External API service (connects to `http://localhost:18000/embeddings`)
+- **Customizable**: Change endpoint in configuration file
+- **Fallback**: Automatically falls back to BM25 keyword search if external service unavailable
+- **Benefits**: Offloads computation, keeps memory usage low, customizable model
+
 ## 📚 Documentation
 
 - [Configuration Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
+- [Architecture Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/ARCHITECTURE.md) - System architecture and data flows
+- [Quick Start Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/QUICK_START.md) - Getting started with external service
+- [Troubleshooting Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/TROUBLESHOOTING.md) - Deployment and troubleshooting
 - [OpenCode Docs](https://docs.opencode.ai) - Official OpenCode documentation
-- [Transformers.js Docs](https://huggingface.co/docs/transformers.js) - Embedding model documentation
-
-## 🤝 Contributing
 
 We welcome contributions! Here's how you can help:
 
 1. **Report Issues** - Open an issue on GitHub for bugs or feature requests
 2. **Submit Pull Requests** - Fork the repository and create a pull request
 3. **Improve Documentation** - Help improve README and examples
-4. **Add Features** - Add new tools or agents
-5. **Share Ideas** - Suggest improvements or new use cases
+4. **Update Documentation** - Keep docs synchronized with code changes
+5. **Add Features** - Add new tools or agents
+6. **Share Ideas** - Suggest improvements or new use cases
 
 ### Development Guidelines
 

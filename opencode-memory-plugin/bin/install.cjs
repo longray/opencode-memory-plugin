@@ -102,12 +102,12 @@ function createMemoryConfig() {
     },
     embedding: {
       enabled: true,
-      provider: 'transformers',
-      model: 'Xenova/all-MiniLM-L6-v2',
-      fallbackMode: 'hash',
+      provider: 'external',  // Changed to external API service
+      endpoint: 'http://localhost:18000/embeddings',  // Default embedding service endpoint
+      model: 'local-embedding-model',  // Placeholder for external model
+      fallbackMode: 'bm25',  // Use BM25 as fallback
       cache: {
-        enabled: true,
-        directory: path.join(HOME, '.cache', 'huggingface')
+        enabled: false  // No caching for external service
       }
     },
     models: {

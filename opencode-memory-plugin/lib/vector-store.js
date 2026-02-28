@@ -2,13 +2,17 @@
  * Vector Store Module for OpenCode Memory Plugin
  * 
  * Provides real semantic search using:
- * - @huggingface/transformers for embeddings
+ * - External embedding service API (localhost:18000)
  * - sqlite-vec for vector storage
  * - better-sqlite3 for database
  * - BM25 for fallback keyword search
  */
 
-import { pipeline, cos_sim } from '@huggingface/transformers';
+import Database from 'better-sqlite3';
+import { load as loadVec } from 'sqlite-vec';
+import fs from 'fs';
+import path from 'path';
+import { BM25Index, createBM25Index } from './bm25.js';
 import Database from 'better-sqlite3';
 import { load as loadVec } from 'sqlite-vec';
 import fs from 'fs';
@@ -19,9 +23,9 @@ const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
 const VECTOR_DB = path.join(MEMORY_DIR, 'vector-index.db');
 const CONFIG_FILE = path.join(MEMORY_DIR, 'memory-config.json');
 
-// Default embedding model
-const DEFAULT_MODEL = 'Xenova/all-MiniLM-L6-v2';
-const DEFAULT_DIMENSIONS = 384;
+// Default values for external service
+const DEFAULT_MODEL = 'external-api-service';
+let DEFAULT_DIMENSIONS = 384; // Will be updated dynamically
 
 /**
  * VectorStore class for managing embeddings and semantic search
@@ -29,11 +33,13 @@ const DEFAULT_DIMENSIONS = 384;
 export class VectorStore {
   constructor() {
     this.db = null;
-    this.extractor = null;
+    // No local extractor since using external service
     this.modelName = DEFAULT_MODEL;
     this.dimensions = DEFAULT_DIMENSIONS;
     this.initialized = false;
     this.config = null;
+    this.useExternalService = true;
+    this.externalEndpoint = 'http://localhost:18000/embeddings'; // Default endpoint
   }
 
   /**
@@ -199,23 +205,44 @@ export class VectorStore {
    * @returns {Promise<number[][]>} Array of embedding vectors
    */
   async generateEmbeddings(texts) {
-    if (!this.extractor) {
-      throw new Error('Model not initialized. Call initialize() first.');
+    if (!this.initialized) {
+      throw new Error('VectorStore not initialized. Call initialize() first.');
     }
-
+    
+    if (!this.useExternalService) {
+      if (!this.extractor) {
+        throw new Error('Local model not initialized. Call initialize() first.');
+      }
+    }
+    
     const textArray = Array.isArray(texts) ? texts : [texts];
-    const embeddings = [];
-
-    for (const text of textArray) {
-      const output = await this.extractor(text, {
-        pooling: 'mean',
-        normalize: true
-      });
-      
-      // Convert to regular array
-      embeddings.push(Array.from(output.data));
+    const embeddings = [];    
+    if (this.useExternalService) {
+      // Process each text separately to handle potential rate limiting or large payloads
+      for (const text of textArray) {
+        try {
+          const embedding = await this.getExternalEmbedding(text);
+          if (embedding.length !== this.dimensions) {
+            throw new Error(`Dimension mismatch: expected ${this.dimensions}, got ${embedding.length}`);
+          }
+          embeddings.push(embedding);
+        } catch (error) {
+          console.error('Error getting embedding for text:', error.message);
+          throw error;
+        }
+      }
+    } else {
+      for (const text of textArray) {
+        const output = await this.extractor(text, {
+          pooling: 'mean',
+          normalize: true
+        });
+        
+        // Convert to regular array
+        embeddings.push(Array.from(output.data));
+      }
     }
-
+    
     return embeddings;
   }
 

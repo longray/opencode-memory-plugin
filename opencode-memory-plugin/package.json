@@ -29,7 +29,6 @@
   ],
   "dependencies": {
     "@opencode-ai/plugin": "^1.0.0",
-    "@huggingface/transformers": "^3.8.1",
     "better-sqlite3": "^11.7.0",
     "sqlite-vec": "^0.1.1"
   },

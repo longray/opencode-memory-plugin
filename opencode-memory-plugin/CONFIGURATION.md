@@ -57,20 +57,21 @@ Controls which model to use for generating embeddings.
 {
   "embedding": {
     "enabled": true,
-    "provider": "transformers",
-    "model": "Xenova/all-MiniLM-L6-v2",
-    "fallbackMode": "hash"
-  }
-}
-```
+    "provider": "external",  // Changed to external API service
+    "endpoint": "http://localhost:18000/embeddings",  // Default embedding service endpoint
+    "model": "local-embedding-model",  // Placeholder for external model
+    "fallbackMode": "bm25",  // Use BM25 as fallback
+    "cache": {
+      "enabled": false  // No caching for external service
+    }
 
 **Options:**
 
 - `enabled`: Enable/disable embeddings (boolean)
-- `provider`: Always `"transformers"` for local models
-- `model`: Model name (see available models below)
-- `fallbackMode`: What to do if model fails (`"hash"`, `"bm25"`, or `"error"`)
-
+- `provider`: `'transformers'` for local models or `'external'` for external API service
+- `endpoint`: URL of external embedding service (only when `provider` is `'external'`)
+- `model`: Model identifier for external service (only when `provider` is `'external'`)
+- `fallbackMode`: What to do if external service fails (`"hash"`, `"bm25"`, or `"error"`)
 ### Available Embedding Models
 
 #### Small Models (384 dimensions, fast)
@@ -88,6 +89,14 @@ Controls which model to use for generating embeddings.
 |-------|------|---------|-------|----------|
 | `Xenova/bge-base-en-v1.5` ⭐ | 400MB | ⭐⭐⭐⭐⭐ | ⚡⚡ | **Best quality** |
 | `Xenova/nomic-embed-text-v1.5` | 270MB | ⭐⭐⭐⭐ | ⚡⚡ | Long documents |
+
+#### External Service (Any dimension, customizable)
+
+| Provider | Endpoint | Quality | Speed | Best For |
+|----------|----------|---------|-------|----------|
+| `external` | http://localhost:18000 | ⭐⭐⭐⭐⭐ | ⚡⚡ | Custom models, resource efficiency |
+
+**Recommendation:** Use external service for maximum flexibility and resource efficiency.
 
 **Recommendations:**
 
