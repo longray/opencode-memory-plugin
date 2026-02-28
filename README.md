@@ -85,32 +85,46 @@ The plugin supports 4 configurable search modes:
 
 ## 🧠 Available Embedding Models
 
-The plugin supports 5 pre-configured embedding models:
+The plugin supports multiple embedding options:
+
+### External API Services (Recommended) ⭐
+
+| Provider | Model | Dimensions | Size | Quality | Speed |
+|----------|-------|------------|------|---------|-------|
+| **ModelScope API** | Qwen3-Embedding-0.6B | 1024 | 0MB | ⭐⭐⭐⭐⭐ | ⚡⚡ |
+| Custom | Your choice | Variable | 0MB | ⭐⭐⭐⭐ | ⚡⚡ |
+
+**Setup ModelScope API:**
+```bash
+export MODELSCOPE_API_KEY='your-api-key-here'
+```
+
+### Local Models (Transformers.js)
 
 | Model | Size | Quality | Speed | Best For |
 |-------|------|---------|-------|----------|
-| **Xenova/all-MiniLM-L6-v2** | 80MB | ⭐⭐ | ⚡⚡⚡ | Baseline (default) |
 | **Xenova/bge-small-en-v1.5** ⭐ | 130MB | ⭐⭐⭐⭐ | ⚡⚡ | **Best balance** (recommended) |
 | **Xenova/bge-base-en-v1.5** | 400MB | ⭐⭐⭐⭐⭐ | ⚡⚡ | Maximum quality |
+| **Xenova/all-MiniLM-L6-v2** | 80MB | ⭐⭐ | ⚡⚡⚡ | Baseline, resource-constrained |
 | **Xenova/gte-small** | 70MB | ⭐⭐⭐⭐ | ⚡⚡⚡ | Small + fast |
 | **Xenova/nomic-embed-text-v1.5** | 270MB | ⭐⭐⭐⭐ | ⚡⚡ | Long documents |
 
-| **External API Service** | 0MB | ⭐⭐⭐⭐⭐ | ⚡⚡ | **Recommended** (localhost:18000) |
-
-**Default**: `External API Service` (0MB, customizable, high performance via localhost:18000)
-
+**Default**: `ModelScope API` (0MB, high quality, cloud-based)
 ## ⚙️ Configuration
 
 The plugin creates a configuration file at `~/.opencode/memory/memory-config.json`:
 
 ### Quick Configuration Examples
 
-**Default (Balanced)** - Works out of the box:
+**Default (ModelScope API)** - Works out of box:
 ```json
 {
   "search": { "mode": "hybrid" },
   "embedding": {
-    "model": "Xenova/bge-small-en-v1.5"
+    "enabled": true,
+    "provider": "external",
+    "endpoint": "https://api-inference.modelscope.cn/v1/embeddings",
+    "model": "Qwen/Qwen3-Embedding-0.6B"
   }
 }
 ```
@@ -123,13 +137,26 @@ The plugin creates a configuration file at `~/.opencode/memory/memory-config.jso
 }
 ```
 
-**High Quality** (Best model):
+**Local Service** (Custom endpoint):
 ```json
+{
   "search": { "mode": "vector" },
   "embedding": {
     "provider": "external",
     "endpoint": "http://localhost:18000/embeddings"
   }
+}
+```
+
+**Local Model** (Transformers.js):
+```json
+{
+  "search": { "mode": "hybrid" },
+  "embedding": {
+    "provider": "transformers",
+    "model": "Xenova/bge-small-en-v1.5"
+  }
+}
 ```
 
 For complete configuration guide, see [CONFIGURATION.md](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md).
@@ -245,17 +272,27 @@ opencode-memory-plugin/
 
 ### Embedding Service
 
-**Provider**: External API service (connects to `http://localhost:18000/embeddings`)
+**Primary Provider**: ModelScope Inference API
+- **Endpoint**: `https://api-inference.modelscope.cn/v1/embeddings`
+- **Model**: `Qwen/Qwen3-Embedding-0.6B`
+- **Dimensions**: 1024
+- **Latency**: ~50-100ms per request
+- **Inference**: Cloud-based (via HTTP API)
+- **Setup**: Set `MODELSCOPE_API_KEY` environment variable
+
+**Fallback Provider**: Local service (optional)
+- **Endpoint**: `http://localhost:18000/embeddings`
 - **Dimensions**: Dynamically detected from response
 - **Latency**: ~50-100ms per request
-- **Inference**: Remote (via HTTP API)
+- **Inference**: Local (via HTTP API)
 
 **Performance**:
 - First search: ~50-100ms (network call + inference)
 - Subsequent searches: ~50-100ms per query
 - Memory usage: ~50-100MB RAM (minimal as embeddings computed externally)
 
-**Default**: `External API Service` (0MB, customizable, high performance via localhost:18000)
+**Default**: `ModelScope API` (0MB, high quality, cloud-based)
+
 ### Hybrid Search Algorithm
 
 ```
@@ -266,13 +303,22 @@ This combines semantic understanding (70%) with keyword matching (30%) for optim
 
 ## 🌐 External Embedding Service
 
-The plugin now supports connecting to external embedding services:
+The plugin supports multiple external embedding services:
 
-- **Default Provider**: External API service (connects to `http://localhost:18000/embeddings`)
-- **Customizable**: Change endpoint in configuration file
-- **Fallback**: Automatically falls back to BM25 keyword search if external service unavailable
-- **Benefits**: Offloads computation, keeps memory usage low, customizable model
+- **ModelScope API** (Recommended): Cloud-based, high quality, zero setup
+  - Set `MODELSCOPE_API_KEY` environment variable
+  - Uses `Qwen/Qwen3-Embedding-0.6B` model (1024 dimensions)
+  - Best quality with minimal resource usage
 
+- **Custom Local Service**: Connect to any embedding service
+  - Change endpoint in configuration file
+  - Supports OpenAI-compatible API format
+  - Fallback: Automatically falls back to BM25 keyword search if external service unavailable
+
+- **Local Models (Transformers.js)**: Run models locally
+  - Multiple pre-configured models available
+  - Requires more RAM and CPU
+  - Use when internet is unavailable or for privacy
 ## 📚 Documentation
 
 - [Configuration Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options

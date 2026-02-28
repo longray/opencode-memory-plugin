@@ -1,13 +1,12 @@
-# Quick Start Guide - External Embedding Service
+# Quick Start Guide
 
-This guide will help you quickly set up the OpenCode Memory Plugin with an external embedding service.
+This guide will help you quickly set up and start using the OpenCode Memory Plugin.
 
 ## Prerequisites
 
 Before beginning, ensure you have:
 1. **Node.js** (v16 or higher) installed
 2. **OpenCode** installed and running
-3. An embedding service running at `http://localhost:18000/embeddings`
 
 ## Step 1: Installation
 
@@ -23,32 +22,59 @@ This will automatically:
 - Generate configuration (v2.0)
 - Register tools with OpenCode
 
-## Step 2: Set Up Your Embedding Service
+## Step 2: Choose Your Embedding Service
 
-Ensure your embedding service is running and accessible at `http://localhost:18000/embeddings`. 
+### Option A: ModelScope API (Recommended) ⭐
 
-The service should:
-- Accept POST requests to `/embeddings`
-- Expect JSON input: `{"input": "text to embed"}`
-- Return embedding vectors in standard format
+**Best choice for most users** - Cloud-based, zero setup, high quality.
 
-Example service setup (pseudo-code):
-```python
-from flask import Flask, request, jsonify
+1. Get your API key from [ModelScope](https://modelscope.cn/)
+2. Set the environment variable:
 
-app = Flask(__name__)
+   **Linux/Mac:**
+   ```bash
+   export MODELSCOPE_API_KEY='your-api-key-here'
+   ```
 
-@app.route('/embeddings', methods=['POST'])
-def get_embedding():
-    text = request.json['input']
-    # Generate embedding using your model
-    embedding = your_model.encode(text)
-    return jsonify({"embeddings": embedding.tolist()})
-```
+   **Windows PowerShell:**
+   ```powershell
+   $env:MODELSCOPE_API_KEY='your-api-key-here'
+   ```
+
+   **Windows CMD:**
+   ```cmd
+   set MODELSCOPE_API_KEY=your-api-key-here
+   ```
+
+3. You're done! The plugin will automatically use ModelScope API.
+
+### Option B: Local Embedding Service
+
+If you prefer to run your own service:
+
+1. Ensure your embedding service is running at `http://localhost:18000/embeddings`
+2. The service should accept POST requests with JSON input
+3. See [EXTERNAL_EMBEDDING.md](./EXTERNAL_EMBEDDING.md) for details
 
 ## Step 3: Verify Configuration
 
 Check your configuration at `~/.opencode/memory/memory-config.json`:
+
+**Default (ModelScope API):**
+```json
+{
+  "version": "2.0",
+  "embedding": {
+    "enabled": true,
+    "provider": "external",
+    "endpoint": "https://api-inference.modelscope.cn/v1/embeddings",
+    "model": "Qwen/Qwen3-Embedding-0.6B",
+    "fallbackMode": "bm25"
+  }
+}
+```
+
+**Local Service:**
 ```json
 {
   "version": "2.0",
@@ -56,6 +82,7 @@ Check your configuration at `~/.opencode/memory/memory-config.json`:
     "enabled": true,
     "provider": "external",
     "endpoint": "http://localhost:18000/embeddings",
+    "model": "local-embedding-model",
     "fallbackMode": "bm25"
   }
 }
@@ -67,10 +94,10 @@ Start OpenCode and test the memory tools:
 
 ```bash
 # Write a test entry
-memory_write content="This is a test for external embedding integration" type="test" tags=["external","embedding"]
+memory_write content="This is a test for memory integration" type="test" tags=["quickstart","test"]
 
-# Perform a semantic search (should use your external service)
-vector_memory_search query="external embedding functionality"
+# Perform a semantic search (uses your embedding service)
+vector_memory_search query="memory integration functionality"
 
 # List daily logs
 list_daily days=7
@@ -81,36 +108,145 @@ index_status
 
 ## Step 5: Rebuild the Index
 
-To incorporate existing memory files with the new external service:
+To incorporate existing memory files with the embedding service:
 
 ```bash
 rebuild_index force=true
 ```
 
-This will process all memory files through your external embedding service and create vector indexes.
+This will process all memory files through your embedding service and create vector indexes.
+
+## Quick Search Examples
+
+### Semantic Search (Vector + Keywords)
+
+```bash
+# Find relevant memories by meaning, not just keywords
+vector_memory_search query="how do I handle async errors"
+vector_memory_search query="best practices for testing"
+vector_memory_search query="user preferences for code style"
+```
+
+### Keyword Search Only
+
+```bash
+# Fast text-based search
+memory_search query="typescript"
+memory_search query="async patterns"
+```
+
+### Memory Management
+
+```bash
+# Write important information
+memory_write content="User prefers TypeScript for all new features" type="long-term" tags=["typescript","preferences"]
+
+# Read memory files
+memory_read file="MEMORY.md"
+
+# List daily logs
+list_daily days=30
+
+# Initialize today's log
+init_daily
+```
 
 ## Troubleshooting Quick Fixes
 
-If you encounter issues:
+### ModelScope API Issues
 
-1. **Service Not Reachable**: Verify your embedding service responds to requests:
-   ```bash
-   curl -X POST http://localhost:18000/embeddings \
-     -H "Content-Type: application/json" \
-     -d '{"input": "test"}'
-   ```
+**API Key Not Found:**
+```bash
+# Check if set
+echo $MODELSCOPE_API_KEY
 
-2. **Slow Performance**: Check network latency between the plugin and your embedding service
+# Set it
+export MODELSCOPE_API_KEY='your-key'
+```
 
-3. **Fallback to Keyword Search**: If vector search isn't working, the system will fall back to BM25 keyword search while displaying an error
+**Connection Errors:**
+- Check your internet connection
+- Verify API key is valid
+- System will fall back to BM25 keyword search
+
+### Local Service Issues
+
+**Service Not Reachable:**
+```bash
+curl -X POST http://localhost:18000/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{"input": "test"}'
+```
+
+**Slow Performance:**
+- Check network latency between plugin and embedding service
+- Consider switching to ModelScope API for better performance
 
 ## Performance Expectations
 
-With the external embedding service:
-- Initial search: ~50-100ms (network call to your service)
+### With ModelScope API:
+- Initial search: ~50-100ms (network call)
 - Subsequent searches: ~50-100ms per query
-- Memory usage: ~50-100MB RAM (significantly less than local models)
+- Memory usage: ~50MB RAM (minimal local resources)
 
-## Customizing Your Setup
+### With Local Service:
+- Initial search: ~50-100ms (network call to localhost)
+- Subsequent searches: ~50-100ms per query
+- Memory usage: ~50-100MB RAM (depends on your service)
 
-You can customize the endpoint in the configuration file to point to any external embedding service that meets the API requirements.
+### Without Embedding Service (BM25-only):
+- Search time: <1ms
+- Memory usage: ~50MB RAM
+- Quality: Keyword matching only
+
+## Common Workflows
+
+### Saving User Preferences
+
+```bash
+# Save coding style preferences
+memory_write content="User prefers TypeScript over JavaScript for type safety" type="preference" tags=["typescript","code-style"]
+
+# Save project conventions
+memory_write content="Always use functional components with hooks in React" type="preference" tags=["react","best-practices"]
+```
+
+### Learning from Mistakes
+
+```bash
+# Document errors and solutions
+memory_write content="Issue: Async function not awaited. Solution: Add await keyword or use .then()" type="long-term" tags=["javascript","async","debugging"]
+```
+
+### Project Context
+
+```bash
+# Save important project decisions
+memory_write content="Decided to use PostgreSQL instead of MongoDB for better relational data support" type="long-term" tags=["database","decision"]
+```
+
+## Next Steps
+
+1. **Explore Documentation:**
+   - [Configuration Guide](./CONFIGURATION.md) - Advanced configuration options
+   - [External Embedding Guide](./EXTERNAL_EMBEDDING.md) - Setting up custom embedding services
+   - [Troubleshooting Guide](./TROUBLESHOOTING.md) - Common issues and solutions
+
+2. **Customize Your Setup:**
+   - Adjust search modes (hybrid, vector-only, keyword-only)
+   - Configure fallback behavior
+   - Set up custom embedding endpoints
+
+3. **Use in Your Workflow:**
+   - Save important information automatically
+   - Search past decisions and patterns
+   - Maintain context across sessions
+
+## Support
+
+For issues or questions:
+- Check the [Troubleshooting Guide](./TROUBLESHOOTING.md)
+- Review [Configuration Guide](./CONFIGURATION.md)
+- Open an issue on GitHub
+
+Happy memory managing! 🧠✨

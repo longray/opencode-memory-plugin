@@ -57,24 +57,56 @@ Controls which model to use for generating embeddings.
 {
   "embedding": {
     "enabled": true,
-    "provider": "external",  // Changed to external API service
-    "endpoint": "http://localhost:18000/embeddings",  // Default embedding service endpoint
-    "model": "local-embedding-model",  // Placeholder for external model
+    "provider": "external",  // external API service (ModelScope or custom)
+    "endpoint": "https://api-inference.modelscope.cn/v1/embeddings",  // Default: ModelScope API
+    "model": "Qwen/Qwen3-Embedding-0.6B",  // Default model for ModelScope
     "fallbackMode": "bm25",  // Use BM25 as fallback
     "cache": {
       "enabled": false  // No caching for external service
     }
+  }
+}
+```
 
 **Options:**
 
 - `enabled`: Enable/disable embeddings (boolean)
-- `provider`: `'transformers'` for local models or `'external'` for external API service
-- `endpoint`: URL of external embedding service (only when `provider` is `'external'`)
-- `model`: Model identifier for external service (only when `provider` is `'external'`)
+- `provider`: `'external'` for external API services
+- `endpoint`: URL of external embedding service
+- `model`: Model identifier for external service
 - `fallbackMode`: What to do if external service fails (`"hash"`, `"bm25"`, or `"error"`)
+
+### Environment Variables
+
+The plugin supports environment variables for external API configuration:
+
+```bash
+# ModelScope API Key (recommended)
+export MODELSCOPE_API_KEY='your-modelscope-api-key'
+
+# Windows PowerShell
+$env:MODELSCOPE_API_KEY='your-modelscope-api-key'
+
+# Windows CMD
+set MODELSCOPE_API_KEY=your-modelscope-api-key
+```
+
+**Note**: When `MODELSCOPE_API_KEY` is set, the plugin will automatically use ModelScope Inference API with the `Qwen/Qwen3-Embedding-0.6B` model.
+
 ### Available Embedding Models
 
-#### Small Models (384 dimensions, fast)
+#### External API Services (Recommended)
+
+| Provider | Endpoint | Model | Dimensions | Quality | Speed |
+|----------|----------|-------|------------|---------|-------|
+| **ModelScope** | api-inference.modelscope.cn | Qwen3-Embedding-0.6B | 1024 | ⭐⭐⭐⭐⭐ | ⚡⚡ |
+| Custom | Your endpoint | Custom | Variable | ⭐⭐⭐⭐ | ⚡⚡ |
+
+**Recommendation**: Use ModelScope API for best quality with minimal resource usage.
+
+#### Local Models (Transformers.js)
+
+**Small Models (384 dimensions, fast)**
 
 | Model | Size | Quality | Speed | Best For |
 |-------|------|---------|-------|----------|
@@ -83,20 +115,19 @@ Controls which model to use for generating embeddings.
 | `Xenova/gte-small` | 70MB | ⭐⭐⭐⭐ | ⚡⚡⚡ | Small + fast |
 | `Xenova/e5-small-v2` | 130MB | ⭐⭐⭐ | ⚡⚡ | Question-answer tasks |
 
-#### Medium Models (768 dimensions, higher quality)
+**Medium Models (768 dimensions, higher quality)**
 
 | Model | Size | Quality | Speed | Best For |
 |-------|------|---------|-------|----------|
 | `Xenova/bge-base-en-v1.5` ⭐ | 400MB | ⭐⭐⭐⭐⭐ | ⚡⚡ | **Best quality** |
 | `Xenova/nomic-embed-text-v1.5` | 270MB | ⭐⭐⭐⭐ | ⚡⚡ | Long documents |
 
-#### External Service (Any dimension, customizable)
+**Recommendations:**
 
-| Provider | Endpoint | Quality | Speed | Best For |
-|----------|----------|---------|-------|----------|
-| `external` | http://localhost:18000 | ⭐⭐⭐⭐⭐ | ⚡⚡ | Custom models, resource efficiency |
-
-**Recommendation:** Use external service for maximum flexibility and resource efficiency.
+- **Most users**: ModelScope API (best quality, zero local resources)
+- **Local only**: `Xenova/bge-small-en-v1.5` (best balance)
+- **Maximum quality (local)**: `Xenova/bge-base-en-v1.5` (if you have RAM)
+- **Resource-constrained**: `Xenova/all-MiniLM-L6-v2` (smallest)
 
 **Recommendations:**
 
@@ -214,15 +245,41 @@ vector_memory_search query="test search"
 |---------------|--------------|------------|-----|---------|
 | BM25-only | <1ms | <1ms | ~50MB | ⭐⭐ Keywords |
 | Hash-only | ~5ms | ~5ms | ~50MB | ⭐ Poor |
+| **ModelScope API** | ~50-100ms | ~50-100ms | ~50MB | ⭐⭐⭐⭐⭐ |
 | Vector (small) | 2-3s | ~50ms | ~200MB | ⭐⭐⭐ Good |
 | Vector (large) | 3-5s | ~100ms | ~500MB | ⭐⭐⭐⭐⭐ Excellent |
 | Hybrid (small) | 2-3s | ~60ms | ~200MB | ⭐⭐⭐⭐ Best |
 
+**Recommendation**: Use ModelScope API for best quality-performance ratio.
+
 ## Troubleshooting
 
-### Model Download Fails
+### ModelScope API Issues
 
-If the model fails to download:
+**API Key Not Set:**
+```bash
+# Check if set
+echo $MODELSCOPE_API_KEY
+
+# Set it (Linux/Mac)
+export MODELSCOPE_API_KEY='your-key'
+
+# Windows PowerShell
+$env:MODELSCOPE_API_KEY='your-key'
+
+# Windows CMD
+set MODELSCOPE_API_KEY=your-key
+```
+
+**Connection Errors:**
+- Check your internet connection
+- Verify API key is valid
+- Check ModelScope service status
+- System will fall back to BM25 keyword search
+
+### Local Model Issues
+
+**Model Download Fails:**
 ```json
 {
   "embedding": {
@@ -230,23 +287,20 @@ If the model fails to download:
   }
 }
 ```
-
 This will use keyword-only search instead of failing.
 
-### Out of Memory Errors
+**Out of Memory Errors:**
+1. Switch to ModelScope API (recommended)
+2. Or switch to a smaller model (`all-MiniLM-L6-v2`)
+3. Or disable embeddings entirely (`enabled: false`)
+4. Or use BM25-only search mode
 
-If you see memory errors:
-1. Switch to a smaller model (`all-MiniLM-L6-v2`)
-2. Or disable embeddings entirely (`enabled: false`)
-3. Or use BM25-only search mode
-
-### Slow Search
-
+**Slow Search:**
 For faster searches:
 1. Use BM25-only mode (`mode: "bm25"`)
-2. Use a smaller model
-3. Reduce chunk size (faster indexing)
-
+2. Use ModelScope API instead of local models
+3. Use a smaller model
+4. Reduce chunk size (faster indexing)
 ## Migration from v1.0
 
 The plugin automatically supports v1.0 configs. To upgrade to v2.0:
