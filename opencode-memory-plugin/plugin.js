@@ -259,12 +259,8 @@ ${content}
             } else if (searchMode === 'keyword') {
               results = vectorStore.keywordSearch(query, { limit });
             } else {
-              // Hybrid mode (default)
-              results = await vectorStore.hybridSearch(query, { 
-                limit,
-                vectorWeight: config.search?.options?.hybrid?.vectorWeight || 0.7,
-                keywordWeight: config.search?.options?.hybrid?.keywordWeight || 0.3
-              });
+              // Use vector search only (since we removed hybrid functionality)
+              results = await vectorStore.search(query, { limit, threshold: threshold || 0.3 });
             }
 
             return {

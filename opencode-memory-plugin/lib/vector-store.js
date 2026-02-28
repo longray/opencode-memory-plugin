@@ -2,22 +2,16 @@
  * Vector Store Module for OpenCode Memory Plugin
  * 
  * Provides real semantic search using:
- * - External embedding service API (localhost:18000)
+ * - External embedding service API (localhost:18000/v1/embeddings)
  * - sqlite-vec for vector storage
  * - better-sqlite3 for database
- * - BM25 for fallback keyword search
  */
 
 import Database from 'better-sqlite3';
 import { load as loadVec } from 'sqlite-vec';
 import fs from 'fs';
 import path from 'path';
-import { BM25Index, createBM25Index } from './bm25.js';
-import Database from 'better-sqlite3';
-import { load as loadVec } from 'sqlite-vec';
-import fs from 'fs';
-import path from 'path';
-import { BM25Index, createBM25Index } from './bm25.js';
+
 const HOME = process.env.HOME || process.env.USERPROFILE;
 const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
 const VECTOR_DB = path.join(MEMORY_DIR, 'vector-index.db');
@@ -25,7 +19,7 @@ const CONFIG_FILE = path.join(MEMORY_DIR, 'memory-config.json');
 
 // Default values for external service
 const DEFAULT_MODEL = 'external-api-service';
-let DEFAULT_DIMENSIONS = 384; // Will be updated dynamically
+let DEFAULT_DIMENSIONS = 1024; // Updated to Qwen3 embedding dimension (will be updated dynamically)
 
 /**
  * VectorStore class for managing embeddings and semantic search
@@ -39,7 +33,7 @@ export class VectorStore {
     this.initialized = false;
     this.config = null;
     this.useExternalService = true;
-    this.externalEndpoint = 'http://localhost:18000/embeddings'; // Default endpoint
+    this.externalEndpoint = 'http://localhost:18000/v1/embeddings'; // Default endpoint for Qwen3 embedding service
   }
 
   /**
@@ -57,7 +51,18 @@ export class VectorStore {
       // Ignore errors
     }
     
-    this.config = this.config || { embedding: { enabled: true } };
+    this.config = this.config || { 
+      embedding: { 
+        enabled: true,
+        provider: 'external',  // Changed to external API service
+        endpoint: 'http://localhost:18000/v1/embeddings',  // Default embedding service endpoint for Qwen3
+        model: 'local-embedding-model',  // Placeholder for external model
+        fallbackMode: 'error',  // Throw error when external service unavailable
+        cache: {
+          enabled: false  // No caching for external service
+        }
+      } 
+    };
     return this.config;
   }
 
@@ -78,16 +83,33 @@ export class VectorStore {
       };
     }
 
-    // Set model from config or options
-    this.modelName = options.model || config.embedding?.model || DEFAULT_MODEL;
-    this.dimensions = this.getModelDimensions(this.modelName);
+    // Set service endpoint from config or options
+    this.externalEndpoint = options.endpoint || config.embedding?.endpoint || 'http://localhost:18000/v1/embeddings';
+    this.useExternalService = config.embedding?.provider === 'external';
+    
+    // Validate external service if enabled
+    if (this.useExternalService) {
+      try {
+        // Test the endpoint with a small text
+        const testEmbedding = await this.getExternalEmbedding('test');
+        if (testEmbedding && Array.isArray(testEmbedding)) {
+          this.dimensions = testEmbedding.length;
+        } else {
+          throw new Error('Invalid response from embedding service');
+        }
+      } catch (e) {
+        console.error('Failed to connect to external embedding service:', e.message);
+        return {
+          success: false,
+          error: `External embedding service not accessible: ${e.message}`,
+          fallback: true
+        };
+      }
+    }
 
     try {
       // Initialize database
       await this.initDatabase();
-      
-      // Load embedding model
-      await this.loadModel(options.forceReload);
       
       this.initialized = true;
       
@@ -135,8 +157,8 @@ export class VectorStore {
     // Load sqlite-vec extension
     loadVec(this.db);
     
-    // Create vector table if not exists
-    this.db.exec(`
+    // Define SQL string for creating tables
+    const createTablesSql = `
       CREATE TABLE IF NOT EXISTS documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         content TEXT NOT NULL,
@@ -154,14 +176,17 @@ export class VectorStore {
         last_indexed DATETIME,
         version TEXT DEFAULT '1.0'
       );
-    `);
+    `;    
     
+    this.db.exec(createTablesSql);
+
     // Create vector table
-    this.db.exec(`
+    const createVectorTableSql = `
       CREATE VIRTUAL TABLE IF NOT EXISTS vec_embeddings USING vec0(
         embedding float[${this.dimensions}]
       )
-    `);
+    `;
+    this.db.exec(createVectorTableSql);
     
     // Create indexes for faster lookups
     this.db.exec(`
@@ -171,32 +196,50 @@ export class VectorStore {
   }
 
   /**
-   * Load the embedding model
+   * Get embedding from external service
    */
-  async loadModel(forceReload = false) {
-    if (this.extractor && !forceReload) {
-      return;
+  async getExternalEmbedding(text) {
+    // Using global fetch (available in Node.js 18+)
+    const response = await fetch(this.externalEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        input: text,
+        model: 'Qwen3-Embedding-0.6B',
+        encoding_format: 'float',
+        normalize: true
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
     }
-
-    const config = this.getConfig();
-    const cacheDir = config.embedding?.cache?.directory || 
-      path.join(HOME, '.cache', 'huggingface');
-
-    // Create feature extraction pipeline
-    try {
-      this.extractor = await pipeline('feature-extraction', this.modelName, {
-        cache_dir: cacheDir,
-        progress_callback: (progress) => {
-          if (progress.status === 'downloading') {
-            console.log(`Loading model: ${progress.file} (${Math.round(progress.progress || 0)}%)`);
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Failed to load embedding model:', error.message);
-      // Model loading failed, but we can still use keyword search
-      this.extractor = null;
+    
+    const data = await response.json();
+    
+    // Handle different possible response formats
+    // Note: Qwen3 returns a structure like { data: [{ embedding: [...] }] }
+    if (data && data.data && Array.isArray(data.data)) {
+      // Common OpenAI compatible format
+      if (data.data[0] && Array.isArray(data.data[0].embedding)) {
+        return data.data[0].embedding;
+      } else if (Array.isArray(data.data[0])) {
+        return data.data[0];
+      }
+    } else if (Array.isArray(data)) {
+      // Raw embedding array format
+      return data;
+    } else if (data && Array.isArray(data.embedding)) {
+      // Alternative format with embedding property
+      return data.embedding;
+    } else if (data && data.embeddings && Array.isArray(data.embeddings)) {
+      // Another common format
+      return data.embeddings;
     }
+    
+    throw new Error('Unexpected response format from embedding service');
   }
 
   /**
@@ -230,16 +273,6 @@ export class VectorStore {
           console.error('Error getting embedding for text:', error.message);
           throw error;
         }
-      }
-    } else {
-      for (const text of textArray) {
-        const output = await this.extractor(text, {
-          pooling: 'mean',
-          normalize: true
-        });
-        
-        // Convert to regular array
-        embeddings.push(Array.from(output.data));
       }
     }
     
@@ -408,8 +441,7 @@ export class VectorStore {
     if (!this.initialized) {
       const initResult = await this.initialize();
       if (!initResult.success) {
-        // Fallback to keyword search
-        return this.keywordSearch(query, options);
+        throw new Error('External embedding service not accessible');
       }
     }
 
@@ -434,8 +466,7 @@ export class VectorStore {
       FROM documents d
       JOIN vec_embeddings v ON d.id = v.rowid
       WHERE vec_distance_cosine(v.embedding, ?) < ?
-    `;
-    
+    `;    
     const params = [queryVector, threshold];
     
     if (sourceFile) {
@@ -460,121 +491,6 @@ export class VectorStore {
   }
 
   /**
-   * Hybrid search (vector + keyword)
-   * @param {string} query - Search query
-   * @param {Object} options - Search options
-   */
-  async hybridSearch(query, options = {}) {
-    const { 
-      limit = 10, 
-      vectorWeight = 0.7,
-      keywordWeight = 0.3,
-      sourceFile = null
-    } = options;
-
-    // Get vector search results
-    const vectorResults = await this.search(query, { 
-      limit: limit * 2, 
-      threshold: 0.8,
-      sourceFile 
-    });
-
-    // Get keyword search results
-    const keywordResults = this.keywordSearch(query, { 
-      limit: limit * 2,
-      sourceFile 
-    });
-
-    // Combine scores
-    const combined = new Map();
-    
-    for (const r of vectorResults) {
-      combined.set(r.id, { 
-        ...r, 
-        vectorScore: r.score, 
-        keywordScore: 0 
-      });
-    }
-    
-    for (const r of keywordResults) {
-      if (combined.has(r.id)) {
-        combined.get(r.id).keywordScore = r.score;
-      } else {
-        combined.set(r.id, { 
-          ...r, 
-          vectorScore: 0, 
-          keywordScore: r.score 
-        });
-      }
-    }
-
-    // Calculate hybrid score
-    const results = Array.from(combined.values()).map(r => ({
-      ...r,
-      score: r.vectorScore * vectorWeight + r.keywordScore * keywordWeight
-    }));
-
-    // Sort by hybrid score and return top results
-    return results
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
-  }
-
-  /**
-   * BM25 search (keyword-based with TF-IDF scoring)
-   * Falls back from vector search when embedding model is unavailable
-   */
-  bm25Search(query, options = {}) {
-    const { limit = 10, sourceFile = null } = options;
-    const terms = query.toLowerCase().split(/\s+/).filter(t => t.length > 1);
-    
-    if (terms.length === 0) {
-      return [];
-    }
-
-    // Get all documents for BM25 indexing
-    let sql = `SELECT id, content, source_file, line_number FROM documents`;
-    const params = [];
-    
-    if (sourceFile) {
-      sql += ` WHERE source_file = ?`;
-      params.push(sourceFile);
-    }
-
-    const docs = this.db.prepare(sql).all(...params);
-    
-    if (docs.length === 0) {
-      return [];
-    }
-
-    // Create BM25 index from documents
-    const documents = docs.map(d => ({
-      id: d.id,
-      content: d.content,
-      metadata: { source: d.source_file, line: d.line_number }
-    }));
-    
-    const index = createBM25Index(documents);
-    const results = index.search(query, { limit, minScore: 0.01 });
-    
-    return results.map(r => ({
-      id: r.id,
-      content: r.content,
-      source: r.metadata.source,
-      line: r.metadata.line,
-      score: Math.min(1, r.score / 10)  // Normalize score to 0-1 range
-    }));
-  }
-
-  /**
-   * Legacy keyword search (kept for compatibility)
-   * @deprecated Use bm25Search instead
-   */
-  keywordSearch(query, options = {}) {
-    return this.bm25Search(query, options);
-  }
-
-  /**
    * Get index status
    */
   getStatus() {
@@ -592,7 +508,7 @@ export class VectorStore {
       model: this.modelName,
       dimensions: this.dimensions,
       totalChunks: count,
-      lastIndexed: metadata?.last_indexed || null,
+      lastIndexed: metadata?.lastIndexed || null,
       dbPath: VECTOR_DB
     };
   }
