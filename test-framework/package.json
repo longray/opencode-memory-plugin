@@ -1,0 +1,22 @@
+{
+  "name": "opencode-memory-test-framework",
+  "version": "1.0.0",
+  "description": "60天生产级测试框架 for OpenCode Memory Plugin",
+  "type": "module",
+  "main": "run-60day-simulation.mjs",
+  "scripts": {
+    "test": "node run-60day-simulation.mjs",
+    "test:verbose": "node run-60day-simulation.mjs --verbose",
+    "test:report": "node run-60day-simulation.mjs --report-only"
+  },
+  "keywords": [
+    "testing",
+    "performance",
+    "memory-plugin",
+    "opencode"
+  ],
+  "author": "OpenCode Memory Team",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}

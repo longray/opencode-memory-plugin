@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-02-28T14:10:35.416Z",
+  "singleTest": {
+    "success": true,
+    "duration": 980,
+    "dimensions": 1024,
+    "embedding": [
+      -0.017822265625,
+      -0.0034008026123046875,
+      -0.0100860595703125,
+      -0.07177734375,
+      0.03692626953125
+    ]
+  },
+  "batchTest": {
+    "success": true,
+    "count": 5,
+    "totalDuration": 439,
+    "avgDuration": 87.8,
+    "dimensions": 1024
+  },
+  "summary": {
+    "success": true,
+    "message": "✅ 所有测试通过"
+  }
+}
