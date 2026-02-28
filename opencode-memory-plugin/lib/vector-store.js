@@ -199,6 +199,109 @@ export class VectorStore {
    * Get embedding from external service
    */
   async getExternalEmbedding(text) {
+    // 尝試使用公网服务，但区分 ModelScope Hub 和 DashScope API
+    const apiKey = process.env.MODELSCOPE_API_KEY;
+    
+    // 首先检查是否设置了 ModelScope API 密钥
+    if (apiKey) {
+      // ModelScope API 密钥以 'ms-' 開頭，通常是 ModelScope Hub 密钥
+      // 不能直接用於 DashScope embedding 服务 API
+      if (apiKey.startsWith('ms-')) {
+        console.log('MODELSCOPE_API_KEY detected as ModelScope Hub key (not DashScope API compatible)');
+        console.log('ModelScope Hub key is for downloading models, not for calling embedding API services');
+      } else {
+        console.log('Using public API service with provided key');
+        // 如果不是 ms- 開頭，可能是 DashScope 或其他 API 密钥
+        const publicEndpoints = [
+          'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-embedding/text-embedding',
+        ];
+        
+        for (const endpoint of publicEndpoints) {
+          try {
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'X-DashScope-SSE-Enable': 'disable',
+              },
+              body: JSON.stringify({ 
+                model: 'gte-text-embedding-v1',
+                input: {
+                  texts: [text]
+                }
+              })
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+
+              if (data && data.output && data.output.embeddings) {
+                return data.output.embeddings[0].embedding;
+              } else if (data && data.data && Array.isArray(data.data)) {
+                if (data.data[0] && Array.isArray(data.data[0].embedding)) {
+                  return data.data[0].embedding;
+                } else if (Array.isArray(data.data[0])) {
+                  return data.data[0];
+                }
+              } else if (Array.isArray(data)) {
+                return data;
+              } else if (data && Array.isArray(data.embedding)) {
+                return data.embedding;
+              } else if (data && data.embeddings && Array.isArray(data.embeddings)) {
+                return data.embeddings;
+              }
+            } else {
+              console.log(`Public service failed: ${response.status} ${await response.text()}`);
+            }
+          } catch (error) {
+            console.log(`Public service endpoint ${endpoint} failed:`, error.message);
+          }
+        }
+      }
+    } else {
+      console.log('MODELSCOPE_API_KEY not set, skipping public service');
+    }
+
+    // 如果公網服務都失敗了，嘗試本地服務
+    console.log('Falling back to local service');
+    
+    const response = await fetch(this.externalEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        input: text,
+        model: 'Qwen3-Embedding-0.6B',
+        encoding_format: 'float',
+        normalize: true
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Local service failed: HTTP ${response.status}: ${await response.text()}`);
+    }
+
+    const data = await response.json();
+
+    // 处理本地服務的響應格式
+    if (data && data.data && Array.isArray(data.data)) {
+      if (data.data[0] && Array.isArray(data.data[0].embedding)) {
+        return data.data[0].embedding;
+      } else if (Array.isArray(data.data[0])) {
+        return data.data[0];
+      }
+    } else if (Array.isArray(data)) {
+      return data;
+    } else if (data && Array.isArray(data.embedding)) {
+      return data.embedding;
+    } else if (data && data.embeddings && Array.isArray(data.embeddings)) {
+      return data.embeddings;
+    }
+    
+    throw new Error('Unexpected response format from local embedding service');
+  }
     // 优先尝试公网服务（使用 MODELSCOPE_API_KEY），本地服务作为后备
     const publicEndpoints = [
       'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-embedding/text-embedding',  // 通义千问 embedding 服务
