@@ -99,17 +99,15 @@ The plugin supports multiple embedding options:
 export MODELSCOPE_API_KEY='your-api-key-here'
 ```
 
-### Local Models (Transformers.js)
+### Alternative: Local Service
 
-| Model | Size | Quality | Speed | Best For |
-|-------|------|---------|-------|----------|
-| **Xenova/bge-small-en-v1.5** ⭐ | 130MB | ⭐⭐⭐⭐ | ⚡⚡ | **Best balance** (recommended) |
-| **Xenova/bge-base-en-v1.5** | 400MB | ⭐⭐⭐⭐⭐ | ⚡⚡ | Maximum quality |
-| **Xenova/all-MiniLM-L6-v2** | 80MB | ⭐⭐ | ⚡⚡⚡ | Baseline, resource-constrained |
-| **Xenova/gte-small** | 70MB | ⭐⭐⭐⭐ | ⚡⚡⚡ | Small + fast |
-| **Xenova/nomic-embed-text-v1.5** | 270MB | ⭐⭐⭐⭐ | ⚡⚡ | Long documents |
+If you prefer to run your own embedding service:
 
-**Default**: `ModelScope API` (0MB, high quality, cloud-based)
+| Endpoint | Model | Dimensions |
+|----------|-------|------------|
+| `http://localhost:18000/embeddings` | Custom | Dynamic |
+
+**Note**: Configure `endpoint` and `model` in config to use local service.
 ## ⚙️ Configuration
 
 The plugin creates a configuration file at `~/.opencode/memory/memory-config.json`:
@@ -148,16 +146,7 @@ The plugin creates a configuration file at `~/.opencode/memory/memory-config.jso
 }
 ```
 
-**Local Model** (Transformers.js):
-```json
-{
-  "search": { "mode": "hybrid" },
-  "embedding": {
-    "provider": "transformers",
-    "model": "Xenova/bge-small-en-v1.5"
-  }
-}
-```
+
 
 For complete configuration guide, see [CONFIGURATION.md](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md).
 
