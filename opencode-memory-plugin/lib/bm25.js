@@ -33,46 +33,6 @@ export class BM25Index {
    * @returns {string[]} Array of terms
    */
   tokenize(text) {
-    const lowerText = text.toLowerCase();
-    
-    // 第一步：按空格分割（处理英文）
-    const spaceSplit = lowerText.replace(/[^\w\u4e00-\u9fa5\s]/g, ' ').split(/\s+/);
-    
-    const tokens = [];
-    
-    for (const part of spaceSplit) {
-      if (!part || part.trim() === '') continue;
-      
-      // 检查是否包含中文
-      const hasChinese = /[\u4e00-\u9fa5]/.test(part);
-      
-      if (hasChinese) {
-        // 中文部分：按字符切分，保留2字以上词组和单个字符
-        // 先提取2字以上连续词组
-        const chineseWords = part.match(/[\u4e00-\u9fa5]{2,}/g) || [];
-        // 提取单个中文字符
-        const singleChars = part.match(/[\u4e00-\u9fa5]/g) || [];
-        
-        tokens.push(...chineseWords);
-        tokens.push(...singleChars);
-        
-        // 同时也保留混合的英文部分
-        const englishParts = part.match(/[a-z0-9]+/g) || [];
-        tokens.push(...englishParts.filter(w => w.length > 1));
-      } else {
-        // 纯英文部分：直接作为token，过滤长度为1的
-        if (part.length > 1) {
-          tokens.push(part);
-        }
-      }
-    }
-    
-    return tokens;
-  }
-
-  /**
-
-  /**
     return text
       .toLowerCase()
       .replace(/[^\w\s]/g, ' ')
@@ -246,6 +206,95 @@ export class BM25Index {
       totalTokens: this.totalDocLengths
     };
   }
+
+  /**
+   * Search with diagnostic information
+   * @param {string} query - Search query
+   * @param {Object} options - Search options
+   * @returns {Object} Results with diagnostic data
+   */
+  searchWithDiagnostics(query, options = {}) {
+    const { limit = 10, minScore = 0.1 } = options;
+    const queryTerms = this.tokenize(query);
+
+    const diagnostics = {
+      query,
+      queryTerms,
+      totalDocs: this.docCount,
+      minScore,
+      scoreDistribution: {},
+      idfStats: {},
+      processingTime: 0
+    };
+
+    const startTime = Date.now();
+
+    if (queryTerms.length === 0) {
+      diagnostics.processingTime = Date.now() - startTime;
+      return { results: [], diagnostics };
+    }
+
+    // Calculate IDF stats for query terms
+    for (const term of queryTerms) {
+      const idf = this.calculateIDF(term);
+      const docFreq = this.termDocFreq.get(term) || 0;
+      diagnostics.idfStats[term] = { idf, docFreq };
+    }
+
+    const results = [];
+    const allScores = [];
+
+    for (const [id, doc] of this.documents) {
+      const score = this.calculateBM25Score(doc, queryTerms);
+      allScores.push(score);
+      
+      if (score >= minScore) {
+        results.push({
+          id: doc.id,
+          score,
+          content: doc.content,
+          metadata: doc.metadata
+        });
+      }
+    }
+
+    // Sort by score descending
+    results.sort((a, b) => b.score - a.score);
+
+    // Calculate score distribution statistics
+    diagnostics.scoreDistribution = {
+      count: allScores.length,
+      min: Math.min(...allScores),
+      max: Math.max(...allScores),
+      mean: allScores.reduce((a, b) => a + b, 0) / allScores.length,
+      aboveThreshold: results.length
+    };
+
+    // Calculate percentiles if there are scores
+    if (allScores.length > 0) {
+      const sorted = [...allScores].sort((a, b) => a - b);
+      const getPercentile = (p) => {
+        const index = Math.ceil((p / 100) * sorted.length) - 1;
+        return sorted[Math.max(0, index)];
+      };
+      diagnostics.scoreDistribution.percentiles = {
+        p25: getPercentile(25),
+        p50: getPercentile(50),
+        p75: getPercentile(75),
+        p90: getPercentile(90),
+        p95: getPercentile(95),
+        p99: getPercentile(99)
+      };
+    }
+
+    diagnostics.processingTime = Date.now() - startTime;
+
+    return {
+      results: results.slice(0, limit),
+      diagnostics
+    };
+  }
+
 }
 
 /**
@@ -276,3 +325,4 @@ export function bm25Search(query, documents, options = {}) {
 }
 
 export default BM25Index;
+

@@ -93,6 +93,30 @@ function createMemoryConfig() {
     version: '2.0',
     search: {
       mode: 'hybrid',
+      // Phase 3: 融合策略配置
+      fusion: {
+        // 可选策略: 'rrf' (推荐), 'soft-multiplication', 'dynamic'
+        strategy: 'rrf',
+        options: {
+          // RRF参数 (推荐)
+          rrf: {
+            k: 20  // RRF常数，越小区分度越高 (推荐值: 20-60)
+          },
+          // 温和版乘法融合参数
+          softMultiplication: {
+            vectorWeight: 0.5,
+            bm25Weight: 0.3,
+            productWeight: 0.2
+          },
+          // 动态权重参数
+          dynamic: {
+            shortQueryThreshold: 2,   // ≤2词为短查询
+            longQueryThreshold: 5     // >5词为长查询
+          }
+        }
+      }
+    },
+      mode: 'hybrid',
       options: {
         hybrid: {
           vectorWeight: 0.7,
