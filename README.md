@@ -7,7 +7,7 @@
 [![Downloads](https://img.shields.io/npm/dt/@csuwl/opencode-memory-plugin.svg)](https://www.npmjs.com/package/@csuwl/opencode-memory-plugin)
 
 [![OpenCode](https://img.shields.io/badge/OpenCode-native%20plugin-success.svg)](https://docs.opencode.ai)
-[![Transformers.js](https://img.shields.io/badge/Transformers.js-3.8.1-orange.svg)](https://huggingface.co/docs/transformers.js)
+[![External Services](https://img.shields.io/badge/Embedding-External%20Services-blue.svg)](https://github.com/csuwl/opencode-memory-plugin#-external-embedding-service)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/opencode-memory-plugin/blob/main/LICENSE)
 
 ## 🎯 Features
@@ -349,6 +349,18 @@ MIT License - see [LICENSE](LICENSE) for details
 ### Latest Release: v1.2.0 (2026-02-26)
 
 **New Features**:
+- ✨ External embedding services (ModelScope API + local service)
+- ✨ Primary: ModelScope Inference API (Qwen3-Embedding-0.6B, 1024 dimensions)
+- ✨ Fallback: Local embedding service at localhost:18000
+- ✨ BM25 Chinese tokenization optimization (Recall: 0-14% → 82.5%)
+- ✨ Dynamic result limits and BM25 thresholds
+- ✨ MRR improved by 12.9% (0.7033 → 0.7939)
+- ✨ Reduced resource usage (cloud-based embedding)
+- ✨ Vector, keyword, and hybrid search modes
+- ✨ sqlite-vec for vector storage and similarity search
+- ✨ Automatic fallback to BM25 when external services unavailable
+- ✨ Full `rebuild_index` implementation for indexing memory files
+- ✨ Enhanced `index_status` with vector index information
 - ✨ Real vector search with @huggingface/transformers embeddings
 - ✨ Vector, keyword, and hybrid search modes
 - ✨ sqlite-vec for vector storage and similarity search

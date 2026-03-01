@@ -1,6 +1,6 @@
 # @csuwl/opencode-memory-plugin
 
-> OpenClaw-style persistent memory system for OpenCode with **flexible configuration** for embedding models and search modes
+> OpenClaw-style persistent memory system for OpenCode with **external embedding services** and semantic vector search
 
 ## Installation
 
@@ -9,7 +9,7 @@
 npm install @csuwl/opencode-memory-plugin -g
 
 # Or install a specific version
-npm install -g @csuwl/opencode-memory-plugin@1.1.0
+npm install -g @csuwl/opencode-memory-plugin@1.2.0
 
 # Or install locally without -g
 npm install @csuwl/opencode-memory-plugin
@@ -23,10 +23,10 @@ The plugin will be automatically configured for you!
 - 8 memory tools (write, read, search, vector search)
 - 2 automation agents (auto-save, auto-consolidate)
 - Daily memory logs with automatic consolidation
-- **Configurable semantic search** using @huggingface/transformers
+- **Semantic search** using external embedding services (ModelScope API + local service)
 - **Multiple search modes**: hybrid, vector-only, bm25-only, hash-only
-- **Multiple embedding models**: all-MiniLM-L6-v2, bge-small-en-v1.5, bge-base-en-v1.5, and more
-- **100% local** - No API calls, models auto-download on first use
+- **Flexible deployment**: Cloud-based ModelScope API with local service fallback
+- **BM25 Chinese tokenization optimization** for better keyword search
 
 ## Configuration
 
@@ -34,17 +34,32 @@ The plugin supports flexible configuration via `~/.opencode/memory/memory-config
 
 ### Quick Configuration Examples
 
-**Default (Balanced)** - Works out of the box:
+**Default (Recommended)** - ModelScope API:
 ```json
 {
   "search": { "mode": "hybrid" },
   "embedding": {
-    "model": "Xenova/bge-small-en-v1.5"
+    "enabled": true,
+    "provider": "external",
+    "endpoint": "https://api-inference.modelscope.cn/v1/embeddings",
+    "model": "Qwen/Qwen3-Embedding-0.6B"
   }
 }
 ```
 
-**Fast Search** (No model, keywords only):
+**Local Service** - Custom endpoint:
+```json
+{
+  "search": { "mode": "vector" },
+  "embedding": {
+    "enabled": true,
+    "provider": "external",
+    "endpoint": "http://localhost:18000/v1/embeddings"
+  }
+}
+```
+
+**Fast Search** - Keywords only (no embedding):
 ```json
 {
   "search": { "mode": "bm25" },
@@ -52,43 +67,28 @@ The plugin supports flexible configuration via `~/.opencode/memory/memory-config
 }
 ```
 
-**High Quality** (Best model):
-```json
-{
-  "search": { "mode": "vector" },
-  "embedding": {
-    "model": "Xenova/bge-base-en-v1.5"
-  }
-}
-```
+### External Embedding Services
 
-**Resource-Constrained** (Smallest model):
-```json
-{
-  "search": { "mode": "vector" },
-  "embedding": {
-    "model": "Xenova/all-MiniLM-L6-v2"
-  }
-}
-```
+| Service | Model | Dimensions | Quality | Resource | Speed |
+|---------|-------|------------|---------|----------|-------|
+| **ModelScope API** ⭐ | Qwen3-Embedding-0.6B | 1024 | ⭐⭐⭐⭐⭐ | Cloud (0MB) | ⚡⚡ |
+| Local Service | Custom | Dynamic | ⭐⭐⭐⭐ | Local RAM | ⚡⚡ |
 
-### Available Search Modes
+**ModelScope API Setup**:
+1. Get API key from [ModelScope](https://modelscope.cn/)
+2. Set environment variable: `export MODELSCOPE_API_KEY='your-api-key'`
+3. Plugin will automatically use ModelScope API when available
+
+### Search Modes
 
 | Mode | Description | Speed | Quality | Model Required |
 |------|-------------|-------|---------|----------------|
-| `hybrid` | Vector + BM25 (best) | Medium | ⭐⭐⭐⭐ | Yes |
+| `hybrid` | Vector + BM25 (70% + 30%) | Medium | ⭐⭐⭐⭐ | Yes |
 | `vector` | Vector-only | Medium | ⭐⭐⭐ | Yes |
 | `bm25` | Keywords only | Fast | ⭐⭐ | No |
 | `hash` | Hash fallback | Fast | ⭐ | No |
 
-### Available Embedding Models
-
-| Model | Size | Quality | Speed | Best For |
-|-------|------|---------|-------|----------|
-| `Xenova/all-MiniLM-L6-v2` | 80MB | Good | ⚡⚡⚡ | Baseline |
-| `Xenova/bge-small-en-v1.5` ⭐ | 130MB | Excellent | ⚡⚡ | **Best balance** |
-| `Xenova/bge-base-en-v1.5` | 400MB | Best | ⚡⚡ | High quality |
-| `Xenova/gte-small` | 70MB | Very Good | ⚡⚡⚡ | Small + fast |
+**Default**: `hybrid` mode (combines semantic understanding with keyword matching)
 
 See [CONFIGURATION.md](https://github.com/csuwl/opencode-memory-plugin/blob/main/CONFIGURATION.md) for details.
 
@@ -103,25 +103,30 @@ memory_write content="User prefers TypeScript" type="long-term"
 # Search memory
 memory_search query="typescript"
 
-# Semantic search (respects your config)
+# Semantic search (uses ModelScope API or local service)
 vector_memory_search query="how to handle errors"
 
 # List daily logs
 list_daily days=7
 ```
 
-## What's New in v1.1.0
+## What's New in v1.2.0
 
-✨ **Flexible Configuration System**
-- Choose from 5 embedding models (small to large)
-- 4 search modes (hybrid, vector, bm25, hash)
-- Configurable quality vs speed tradeoffs
-- Easy fallback to keyword-only search
+✨ **External Embedding Services**
+- Primary: ModelScope Inference API (Qwen3-Embedding-0.6B)
+- Fallback: Local embedding service at localhost:18000
+- Automatic fallback to BM25 when services unavailable
+- 1024-dimensional vectors for better semantic understanding
 
-✨ **True Semantic Search**
-- Real vector embeddings using Transformers.js
-- Understands meaning, not just keywords
-- Works 100% offline after model download
+✨ **Improved Search Quality**
+- BM25 Chinese tokenization optimization (Recall: 0-14% → 82.5%)
+- Dynamic result limits and BM25 thresholds
+- MRR improved by 12.9%
+
+✨ **Enhanced Performance**
+- Reduced resource usage (cloud-based embedding)
+- Faster indexing and search response times
+- Better error handling and user feedback
 
 ## Configuration
 
@@ -139,6 +144,8 @@ Memory files are located at `~/.opencode/memory/`:
 ## Documentation
 
 - **[CONFIGURATION.md](https://github.com/csuwl/opencode-memory-plugin/blob/main/CONFIGURATION.md)** - Complete configuration guide
+- **[EXTERNAL_EMBEDDING.md](https://github.com/csuwl/opencode-memory-plugin/blob/main/EXTERNAL_EMBEDDING.md)** - External service setup guide
+- **[ARCHITECTURE.md](https://github.com/csuwl/opencode-memory-plugin/blob/main/ARCHITECTURE.md)** - System architecture
 - [Full Documentation](https://github.com/csuwl/opencode-memory-plugin) - Project README
 
 ## License
