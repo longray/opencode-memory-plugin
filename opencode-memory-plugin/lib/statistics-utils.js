@@ -20,13 +20,11 @@ export function calculateMean(arr) {
  */
 export function calculateMedian(arr) {
   if (arr.length === 0) return 0;
-  
+
   const sorted = [...arr].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1] + sorted[mid]) / 2
-    : sorted[mid];
+
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
 /**
@@ -40,17 +38,17 @@ export function calculatePercentile(arr, percentile) {
   if (percentile < 0 || percentile > 100) {
     throw new Error('Percentile must be between 0 and 100');
   }
-  
+
   const sorted = [...arr].sort((a, b) => a - b);
   const index = (percentile / 100) * (sorted.length - 1);
-  
+
   const lower = Math.floor(index);
   const upper = Math.ceil(index);
-  
+
   if (upper === lower) {
     return sorted[lower];
   }
-  
+
   return sorted[lower] * (upper - index) + sorted[upper] * (index - lower);
 }
 
@@ -61,11 +59,11 @@ export function calculatePercentile(arr, percentile) {
  */
 export function calculateStdDev(arr) {
   if (arr.length === 0) return 0;
-  
+
   const mean = calculateMean(arr);
   const squaredDiffs = arr.map(val => Math.pow(val - mean, 2));
   const variance = calculateMean(squaredDiffs);
-  
+
   return Math.sqrt(variance);
 }
 
@@ -76,11 +74,11 @@ export function calculateStdDev(arr) {
  */
 export function calculateMode(arr) {
   if (arr.length === 0) return 0;
-  
+
   const frequency = {};
   let maxFreq = 0;
   let mode = arr[0];
-  
+
   for (const val of arr) {
     frequency[val] = (frequency[val] || 0) + 1;
     if (frequency[val] > maxFreq) {
@@ -88,7 +86,7 @@ export function calculateMode(arr) {
       mode = val;
     }
   }
-  
+
   return mode;
 }
 
@@ -113,12 +111,12 @@ export function calculateScoreDistribution(scores) {
         75: 0,
         90: 0,
         95: 0,
-        99: 0
+        99: 0,
       },
-      histogram: {}
+      histogram: {},
     };
   }
-  
+
   return {
     count: scores.length,
     min: Math.min(...scores),
@@ -133,10 +131,10 @@ export function calculateScoreDistribution(scores) {
       75: calculatePercentile(scores, 75),
       90: calculatePercentile(scores, 90),
       95: calculatePercentile(scores, 95),
-      99: calculatePercentile(scores, 99)
+      99: calculatePercentile(scores, 99),
     },
     // 生成简单的直方图（10个bin）
-    histogram: generateHistogram(scores, 10)
+    histogram: generateHistogram(scores, 10),
   };
 }
 
@@ -148,22 +146,24 @@ export function calculateScoreDistribution(scores) {
  */
 export function generateHistogram(scores, bins = 10) {
   if (scores.length === 0) return {};
-  
+
   const min = Math.min(...scores);
   const max = Math.max(...scores);
   const range = max - min;
   const binSize = range / bins;
-  
+
   const histogram = {};
   for (let i = 0; i < bins; i++) {
     const binStart = min + i * binSize;
     const binEnd = binStart + binSize;
     const binLabel = `${binStart.toFixed(2)}-${binEnd.toFixed(2)}`;
-    
-    const count = scores.filter(s => s >= binStart && (s < binEnd || (i === bins - 1 && s <= binEnd))).length;
+
+    const count = scores.filter(
+      s => s >= binStart && (s < binEnd || (i === bins - 1 && s <= binEnd))
+    ).length;
     histogram[binLabel] = count;
   }
-  
+
   return histogram;
 }
 
@@ -196,13 +196,12 @@ export function generateDistributionReport(dist, label = 'BM25分数') {
     '',
     '📊 直方图 (10 bins):',
   ];
-  
-  const histogramLines = Object.entries(dist.histogram)
-    .map(([range, count]) => {
-      const bar = '█'.repeat(Math.min(count * 2, 50));
-      return `   [${range}]: ${count.toString().padStart(4)} ${bar}`;
-    });
-  
+
+  const histogramLines = Object.entries(dist.histogram).map(([range, count]) => {
+    const bar = '█'.repeat(Math.min(count * 2, 50));
+    return `   [${range}]: ${count.toString().padStart(4)} ${bar}`;
+  });
+
   return report.concat(histogramLines).join('\n');
 }
 
@@ -213,16 +212,16 @@ export function generateDistributionReport(dist, label = 'BM25分数') {
  */
 export function isLongTailedDistribution(dist) {
   if (dist.count === 0) return false;
-  
+
   // 长尾分布的特征：
   // 1. 平均值显著大于中位数（平均被高值拉高）
   // 2. P90远大于P75
   // 3. P99远大于P95
-  
+
   const meanToMedian = dist.mean / dist.median;
   const p90ToP75 = dist.percentiles[90] / dist.percentiles[75];
   const p99ToP95 = dist.percentiles[99] / dist.percentiles[95];
-  
+
   // 如果平均值比中位数大50%以上，判定为长尾
   return meanToMedian > 1.5 && (p90ToP75 > 1.2 || p99ToP95 > 1.2);
 }
@@ -235,12 +234,12 @@ export function isLongTailedDistribution(dist) {
  */
 export function identifyOutliers(scores, threshold = 3) {
   if (scores.length === 0) return [];
-  
+
   const mean = calculateMean(scores);
   const stdDev = calculateStdDev(scores);
   const lower = mean - threshold * stdDev;
   const upper = mean + threshold * stdDev;
-  
+
   return scores
     .map((score, index) => ({ score, index }))
     .filter(({ score }) => score < lower || score > upper);
@@ -256,5 +255,5 @@ export default {
   generateHistogram,
   generateDistributionReport,
   isLongTailedDistribution,
-  identifyOutliers
+  identifyOutliers,
 };
