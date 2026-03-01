@@ -1,29 +1,39 @@
 # OpenCode Memory Plugin 60天生产级测试报告
 
-**生成时间**: 2026-02-28T13:35:36.376Z
+**生成时间**: 2026-02-28T17:56:56.302Z
 **测试引擎版本**: v1.0
 
 ## 📊 执行摘要
 
 | 指标 | 值 |
 |------|-----|
-| 总测试数 | 78 |
-| 通过测试 | 78 |
-| 失败测试 | 0 |
-| 成功率 | 100.00% |
-| 总耗时 | NaNs |
-| 平均耗时 | NaNms |
+| 总测试数 | 53 |
+| 通过测试 | 44 |
+| 失败测试 | 9 |
+| 成功率 | 83.02% |
+| 总耗时 | 47.92s |
+| 平均耗时 | 904.19ms |
 
 ## ✅ 测试结果
 
 ### 成功率
-🎉 **优秀** - 达到生产级标准
+⚠️ **需改进** - 未达到生产级标准
 
-### 通过测试: 78/78
+### 通过测试: 44/53
 
 ### 失败测试详情
 
-🎉 **无失败测试**
+| 测试用例 | 错误信息 |
+|---------|---------|
+| TC-070: init_daily - 新日期 | Cannot destructure property 'date' of 'undefined' as it is undefined. |
+| TC-071: init_daily - 已存在 | Cannot destructure property 'date' of 'undefined' as it is undefined. |
+| TC-072: list_daily - 有日志 | Cannot read properties of undefined (reading 'days') |
+| TC-073: list_daily - 无日志 | Cannot read properties of undefined (reading 'days') |
+| TC-074: 连续多日创建 | Cannot read properties of undefined (reading 'days') |
+| TC-081: rebuild_index - 完整重建 | Cannot read properties of undefined (reading 'force') |
+| TC-082: rebuild_index - 增量重建 | Cannot read properties of undefined (reading 'force') |
+| TC-083: 重建后搜索 | Cannot read properties of undefined (reading 'force') |
+| TC-084: 大量数据后重建 | Cannot read properties of undefined (reading 'force') |
 
 
 ## 🎯 生产级验收标准
@@ -37,15 +47,15 @@
 ### 性能验收
 | 标准 | 目标 | 实际 | 状态 |
 |------|------|------|------|
-| 平均响应时间 | < 200ms | 807.67ms | ❌ 失败 |
-| P95响应时间 | < 500ms | 645.00ms | ❌ 失败 |
-| P99响应时间 | < 1000ms | 60001.00ms | ❌ 失败 |
+| 平均响应时间 | < 200ms | 904.19ms | ❌ 失败 |
+| P95响应时间 | < 500ms | 416.00ms | ✅ 通过 |
+| P99响应时间 | < 1000ms | 45393.00ms | ❌ 失败 |
 | 最大 RSS | < 150MB | 0.00MB | ✅ 通过 |
 
 ### 稳定性验收
 | 标准 | 目标 | 实际 | 状态 |
 |------|------|------|------|
-| 操作成功率 | > 99.9% | 100.00% | ✅ 通过 |
+| 操作成功率 | > 99.9% | 83.02% | ❌ 失败 |
 
 ### 可观测性验收
 | 标准 | 目标 | 实际 | 状态 |
@@ -59,16 +69,69 @@
 详见 [performance-report.md](./performance-report.md)
 
 ### 性能趋势分析
-- 平均响应时间: NaNms
-- P95响应时间: 645.00ms
-- P99响应时间: 60001.00ms
+- 平均响应时间: 904.19ms
+- P95响应时间: 416.00ms
+- P99响应时间: 45393.00ms
 
 ## 🔍 问题分析
 
 
-### ✅ 未发现问题
+### 发现的问题 (9)
 
-所有测试用例均通过，系统运行稳定。
+
+#### 1. TC-070: init_daily - 新日期
+- **错误**: Cannot destructure property 'date' of 'undefined' as it is undefined.
+- **类别**: 每日日志管理
+- **建议**: 检查相关代码和配置
+
+
+#### 2. TC-071: init_daily - 已存在
+- **错误**: Cannot destructure property 'date' of 'undefined' as it is undefined.
+- **类别**: 每日日志管理
+- **建议**: 检查相关代码和配置
+
+
+#### 3. TC-072: list_daily - 有日志
+- **错误**: Cannot read properties of undefined (reading 'days')
+- **类别**: 每日日志管理
+- **建议**: 检查相关代码和配置
+
+
+#### 4. TC-073: list_daily - 无日志
+- **错误**: Cannot read properties of undefined (reading 'days')
+- **类别**: 每日日志管理
+- **建议**: 检查相关代码和配置
+
+
+#### 5. TC-074: 连续多日创建
+- **错误**: Cannot read properties of undefined (reading 'days')
+- **类别**: 每日日志管理
+- **建议**: 检查相关代码和配置
+
+
+#### 6. TC-081: rebuild_index - 完整重建
+- **错误**: Cannot read properties of undefined (reading 'force')
+- **类别**: 索引管理
+- **建议**: 检查相关代码和配置
+
+
+#### 7. TC-082: rebuild_index - 增量重建
+- **错误**: Cannot read properties of undefined (reading 'force')
+- **类别**: 索引管理
+- **建议**: 检查相关代码和配置
+
+
+#### 8. TC-083: 重建后搜索
+- **错误**: Cannot read properties of undefined (reading 'force')
+- **类别**: 索引管理
+- **建议**: 检查相关代码和配置
+
+
+#### 9. TC-084: 大量数据后重建
+- **错误**: Cannot read properties of undefined (reading 'force')
+- **类别**: 索引管理
+- **建议**: 检查相关代码和配置
+
 
 
 ## 📋 测试覆盖率
@@ -103,19 +166,20 @@
 ## 🎉 结论
 
 
-### ✅ 生产就绪
+### ❌ 未达到生产级标准
 
-系统已达到生产级标准，可以部署到生产环境。
+系统存在较多问题，不建议部署到生产环境。
 
 **关键指标**:
-- 成功率: 100.00% (目标 > 99.9%)
-- 平均响应时间: NaNms (目标 < 200ms)
-- P95响应时间: 645.00ms (目标 < 500ms)
+- 成功率: 83.02% (目标 > 99.9%)
+- 平均响应时间: 904.19ms (目标 < 200ms)
+- P95响应时间: 416.00ms (目标 < 500ms)
 
 **建议**:
-- 可以安全部署到生产环境
-- 持续监控生产环境指标
-- 定期执行回归测试
+- 修复所有发现的9个问题
+- 优化性能指标
+- 重新运行完整测试
+- 达标后再部署
 
 
 ## 📊 附录
@@ -125,9 +189,9 @@
   "totalDays": 60,
   "totalRecords": 1387,
   "typeDistribution": {
-    "long-term": 677,
-    "daily": 652,
-    "preference": 58
+    "long-term": 644,
+    "daily": 669,
+    "preference": 74
   },
   "averageRecordsPerDay": "23.12"
 }
@@ -135,4 +199,4 @@
 ---
 
 **报告生成**: TestEngine v1.0
-**报告时间**: 2026-02-28T13:35:36.377Z
+**报告时间**: 2026-02-28T17:56:56.303Z
