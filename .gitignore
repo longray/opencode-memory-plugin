@@ -44,3 +44,13 @@ credentials/
 # Temporary test files
 tmp/
 build-*.log
+# Temporary test files
+tmp/
+build-*.log
+
+# OpenCode session files
+.opencode/worktree-session-state.json
+session-*.md
+
+# Windows special files
+nul
