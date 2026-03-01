@@ -1,0 +1,26 @@
+# Gitleaks 配置 - 密钥泄露检测
+
+title = "OpenCode Memory Plugin Gitleaks Config"
+
+[allowlist]
+description = "Global Allowlist"
+
+paths = [
+  '''\.env\.example$''',
+  '''\.env\.sample$''',
+  '''test\/''',
+  '''tests\/''',
+  '''__tests__\/''',
+  '''\.test\.''',
+  '''\.spec\.''',
+]
+
+regexes = [
+  '''test-key-12345''',
+  '''example-secret''',
+  '''YOUR_API_KEY_HERE''',
+  '''xxx-xxxxxxxxxxxxxxxx''',
+  '''sk-test-xxxxxxxx''',
+]
+
+commits = []

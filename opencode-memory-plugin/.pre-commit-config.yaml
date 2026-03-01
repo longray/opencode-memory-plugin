@@ -1,0 +1,46 @@
+# Pre-commit 配置 - OpenCode Memory Plugin
+
+default_stages: [pre-commit]
+fail_fast: true
+
+exclude: '^node_modules/|^dist/|^build/|^\.git/|^\.opencode/'
+
+repos:
+  # ===========================================
+  # 🔐 安全扫描 (P0 - 最高优先级)
+  # ===========================================
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+        name: 🔐 Gitleaks - Secret Detection
+        description: Detect hardcoded secrets using Gitleaks
+        entry: gitleaks protect --verbose --redact --staged
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # ===========================================
+  # 📝 代码格式化 (P2)
+  # ===========================================
+  - repo: local
+    hooks:
+      - id: prettier
+        name: 💅 Prettier - Code Formatting
+        entry: npx prettier --write --ignore-unknown
+        language: system
+        files: '\.(js|mjs|cjs|ts|json|md|yaml|yml)$'
+        stages: [pre-commit]
+
+  # ===========================================
+  # 🔍 代码检查 (P1)
+  # ===========================================
+  - repo: local
+    hooks:
+      - id: eslint
+        name: 🔍 ESLint - Code Linting
+        entry: npx eslint --fix
+        language: system
+        files: '\.(js|mjs|cjs)$'
+        exclude: 'node_modules/'
+        stages: [pre-commit]
