@@ -1,0 +1,87 @@
+{
+  "metadata": {
+    "test_run_id": "quick-test-1772296922358",
+    "timestamp": "2026-02-28T16:42:02.358Z",
+    "duration": 4570,
+    "mode": "quick-test"
+  },
+  "summary": {
+    "total_tests": 5,
+    "passed": 3,
+    "failed": 2,
+    "pass_rate": 0.6
+  },
+  "metrics": {
+    "avg_f1": 0.8139406192449634,
+    "avg_precision": 0.8565143511945138,
+    "avg_recall": 0.8679785908792624,
+    "avg_similarity": 0.8001025161167696
+  },
+  "results": [
+    {
+      "query_id": "query-001",
+      "query": "如何优化dict comprehension",
+      "expected_result": "should_recall",
+      "passed": false,
+      "metrics": {
+        "f1": 0.79504214168228,
+        "precision": 0.9250645219669503,
+        "recall": 0.8449789424674807
+      },
+      "top_similarity": 0.9018849368148716,
+      "duration": 480.56974380345684
+    },
+    {
+      "query_id": "query-002",
+      "query": "高阶函数包装器的实现方式",
+      "expected_result": "should_recall",
+      "passed": false,
+      "metrics": {
+        "f1": 0.7529215405036334,
+        "precision": 0.8298454799854845,
+        "recall": 0.7959362517687968
+      },
+      "top_similarity": 0.7184852512093632,
+      "duration": 464.5962483010295
+    },
+    {
+      "query_id": "query-003",
+      "query": "数据库查询加速方法",
+      "expected_result": "should_recall",
+      "passed": true,
+      "metrics": {
+        "f1": 0.834705584682439,
+        "precision": 0.8191354286885021,
+        "recall": 0.9469086811699882
+      },
+      "top_similarity": 0.9418973198004652,
+      "duration": 531.7312223145091
+    },
+    {
+      "query_id": "query-004",
+      "query": "Eureka和Consul的区别",
+      "expected_result": "should_recall",
+      "passed": true,
+      "metrics": {
+        "f1": 0.8187663997856324,
+        "precision": 0.8678616131906906,
+        "recall": 0.9399760686789265
+      },
+      "top_similarity": 0.7218361493489782,
+      "duration": 477.26505551171624
+    },
+    {
+      "query_id": "query-005",
+      "query": "如何解决缓存雪崩",
+      "expected_result": "should_recall",
+      "passed": true,
+      "metrics": {
+        "f1": 0.8682674295708329,
+        "precision": 0.8406647121409409,
+        "recall": 0.8120930103111195
+      },
+      "top_similarity": 0.71640892341017,
+      "duration": 519.9596157617116
+    }
+  ]
+}
