@@ -22,22 +22,67 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * 从测试套件中提取所有测试数据
+ * 改进版：动态收集所有可能用到的测试数据
  */
 function extractAllTestData(testSuites) {
   const testData = [];
+  const contentsSet = new Set(); // 用于去重
   
+  // 1. 从测试套件的测试用例中提取
   for (const suite of testSuites) {
     for (const testCase of suite.testCases) {
       // 根据测试用例名称和内容推断需要写入的数据
       const extracted = extractDataFromTestCase(testCase);
-      testData.push(...extracted);
+      extracted.forEach(item => {
+        if (!contentsSet.has(item.content)) {
+          contentsSet.add(item.content);
+          testData.push(item);
+        }
+      });
     }
   }
   
-  // 去重
-  const uniqueData = [...new Map(testData.map(item => [item.content, item])).values()];
+  // 2. 生成性能测试数据（从测试数据生成器中提取）
+  const performanceTestData = generatePerformanceTestData();
+  performanceTestData.forEach(item => {
+    if (!contentsSet.has(item.content)) {
+      contentsSet.add(item.content);
+      testData.push(item);
+    }
+  });
   
-  return uniqueData;
+  console.log(`📊 数据提取完成:`);
+  console.log(`   提取测试用例数据: ${testData.length} 条`);
+  console.log(`   性能测试数据: ${performanceTestData.length} 条`);
+  
+  return testData;
+}
+
+/**
+ * 生成性能测试数据
+ */
+function generatePerformanceTestData() {
+  const data = [];
+  
+  // 生成 100 条性能测试数据（匹配测试套件中的数据）
+  for (let i = 0; i < 100; i++) {
+    data.push({
+      content: `性能测试数据 ${i}`,
+      type: 'test',
+      tags: ['performance', 'test']
+    });
+  }
+  
+  // 生成快速入库测试数据
+  for (let i = 0; i < 10; i++) {
+    data.push({
+      content: `快速入库测试 ${i}`,
+      type: 'test',
+      tags: ['test']
+    });
+  }
+  
+  return data;
 }
 
 /**

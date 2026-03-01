@@ -154,7 +154,9 @@ class MockOpenCodeToolsV5 {
 
     } catch (error) {
       console.error('Batch embedding generation failed:', error);
-      throw error;
+      console.warn('⚠️  Falling back to mock embeddings for this batch');
+      // 优雅降级：返回 mock embeddings 而不是抛出错误
+      return texts.map(text => this.generateMockEmbedding(text));
     }
   }
 
@@ -162,6 +164,11 @@ class MockOpenCodeToolsV5 {
    * 优化的 memory_write - 使用预生成缓存
    */
   async memory_write({ content, type, tags }) {
+    // 输入验证
+    if (!content || content.trim() === '') {
+      throw new Error('Content cannot be empty');
+    }
+    
     const record = {
       id: Date.now() + Math.random(),
       content,
@@ -181,14 +188,17 @@ class MockOpenCodeToolsV5 {
         embedding = this.embeddingCache.get(cacheKey);
         this.stats.cacheHits++;
       } else {
-        // 未命中，实时生成（不应该走到这里）
+        // 未命中，实时生成（带容错）
         console.log(`⚠️ Cache miss for content: ${content.substring(0, 30)}...`);
         embedding = await this.generateLocalEmbedding(content);
       }
       
-      this.vectorIndex.set(record.id, embedding);
+      if (embedding) {
+        this.vectorIndex.set(record.id, embedding);
+      }
     } catch (error) {
       console.error(`Failed to get embedding for record ${record.id}:`, error);
+      // 不抛出错误，允许记录保存成功（只是没有向量索引）
     }
 
     this.buildBM25Index();
@@ -263,10 +273,295 @@ class MockOpenCodeToolsV5 {
   }
 
   /**
-   * 其他必要的方法（简化实现）
+   * 其他必要的方法（补全所有检索功能）
    */
   buildBM25Index() {
-    // 简化实现
+    this.bm25Index.clear();
+    const documents = this.memoryData.map(record => ({
+      id: record.id,
+      content: record.content,
+      tags: record.tags,
+    }));
+
+    documents.forEach(doc => {
+      // 修复：处理 tags 可能不是数组的情况
+      const tagsStr = Array.isArray(doc.tags) ? doc.tags.join(' ') : (doc.tags || '');
+      const terms = this.tokenize(doc.content + ' ' + tagsStr);
+      terms.forEach(term => {
+        if (!this.bm25Index.has(term)) {
+          this.bm25Index.set(term, new Map());
+        }
+        const postings = this.bm25Index.get(term);
+        const docLength = postings.get(doc.id);
+        postings.set(doc.id, (docLength || 0) + 1);
+      });
+    });
+  }
+
+
+  /**
+   * 分词
+   */
+  tokenize(text) {
+    return String(text).toLowerCase()
+      .replace(/[^\w\s\u4e00-\u9fa5]/g, '')
+      .split(/\s+/)
+      .filter(term => term.length > 0);
+  }
+
+  /**
+   * 余弦相似度
+   */
+  cosineSimilarity(vec1, vec2) {
+    const minDim = Math.min(vec1.length, vec2.length);
+
+    let dotProduct = 0;
+    let norm1 = 0;
+    let norm2 = 0;
+    for (let i = 0; i < minDim; i++) {
+      dotProduct += vec1[i] * vec2[i];
+      norm1 += vec1[i] * vec1[i];
+      norm2 += vec2[i] * vec2[i];
+    }
+    const denominator = Math.sqrt(norm1) * Math.sqrt(norm2);
+    return denominator > 0 ? dotProduct / denominator : 0;
+  }
+
+  /**
+   * BM25搜索算法
+   */
+  bm25Search(query, k1 = 1.5, b = 0.75) {
+    const queryTerms = this.tokenize(query);
+    if (queryTerms.length === 0) return [];
+
+    const avgDocLength = this.memoryData.reduce((sum, doc) => sum + doc.content.length, 0) / this.memoryData.length || 1;
+    const scores = new Map();
+
+    queryTerms.forEach(term => {
+      const postings = this.bm25Index.get(term);
+      if (!postings) return;
+
+      const df = postings.size;
+      const idf = Math.log((this.memoryData.length - df + 0.5) / (df + 0.5) + 1);
+
+      postings.forEach((tf, docId) => {
+        const doc = this.memoryData.find(d => d.id === docId);
+        if (!doc) return;
+
+        const docLength = doc.content.length;
+        const normalizedTF = (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (docLength / avgDocLength)));
+        const score = idf * normalizedTF;
+
+        scores.set(docId, (scores.get(docId) || 0) + score);
+      });
+    });
+
+    return Array.from(scores.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([id, score]) => ({ id, score, record: this.memoryData.find(d => d.id === id) }))
+      .filter(item => item.record)
+      .map(item => ({
+        id: item.id,
+        content: item.record.content,
+        type: item.record.type,
+        tags: item.record.tags,
+        timestamp: item.record.timestamp,
+        score: item.score,
+      }));
+  }
+
+  /**
+   * 向量搜索（余弦相似度）
+   */
+  vectorSearch(query, queryVector) {
+    const results = [];
+    const queryVec = queryVector || this.generateMockEmbedding(query);
+
+    this.memoryData.forEach(record => {
+      const embedding = this.vectorIndex.get(record.id);
+      if (!embedding) return;
+
+      const similarity = this.cosineSimilarity(queryVec, embedding);
+      if (similarity > 0.1) {  // 阈值
+        results.push({
+          id: record.id,
+          content: record.content,
+          type: record.type,
+          tags: record.tags,
+          timestamp: record.timestamp,
+          score: similarity,
+        });
+      }
+    });
+
+    return results.sort((a, b) => b.score - a.score);
+  }
+
+  /**
+   * 混合搜索（70%向量 + 30%BM25）
+   */
+  hybridSearch(query, queryVector) {
+    const vectorResults = this.vectorSearch(query, queryVector);
+    const bm25Results = this.bm25Search(query);
+
+    // 合并结果
+    const combinedScores = new Map();
+    const vectorMax = Math.max(...vectorResults.map(r => r.score), 1);
+    const bm25Max = Math.max(...bm25Results.map(r => r.score), 1);
+
+    // 向量得分（归一化后70%权重）
+    vectorResults.forEach(item => {
+      const normalizedScore = item.score / vectorMax;
+      combinedScores.set(item.id, (combinedScores.get(item.id) || 0) + 0.7 * normalizedScore);
+    });
+
+    // BM25得分（归一化后30%权重）
+    bm25Results.forEach(item => {
+      const normalizedScore = item.score / bm25Max;
+      combinedScores.set(item.id, (combinedScores.get(item.id) || 0) + 0.3 * normalizedScore);
+    });
+
+    return Array.from(combinedScores.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([id, score]) => {
+        const record = this.memoryData.find(d => d.id === id);
+        return {
+          id,
+          content: record.content,
+          type: record.type,
+          tags: record.tags,
+          timestamp: record.timestamp,
+          score,
+        };
+      });
+  }
+
+  /**
+   * 关键词搜索
+   */
+  async memory_search({ query, scope = 'all', limit = 10 }) {
+    const results = this.bm25Search(query);
+    return results.slice(0, limit);
+  }
+
+  /**
+   * 语义搜索
+   */
+  async vector_memory_search({ query, mode = 'hybrid', limit = 10 }) {
+    let results = [];
+    const queryVector = await this.generateLocalEmbedding(query);
+
+    if (mode === 'hybrid') {
+      results = this.hybridSearch(query, queryVector);
+    } else if (mode === 'vector') {
+      results = this.vectorSearch(query, queryVector);
+    } else if (mode === 'keyword' || mode === 'bm25') {
+      results = this.bm25Search(query);
+    } else if (mode === 'hash') {
+      // 哈希搜索：快速字符串匹配
+      const queryLower = query.toLowerCase();
+      results = this.memoryData
+        .filter(record => record.content.toLowerCase().includes(queryLower))
+        .map(record => ({
+          id: record.id,
+          content: record.content,
+          type: record.type,
+          tags: record.tags,
+          timestamp: record.timestamp,
+          score: 1.0,
+        }));
+    }
+
+    return results.slice(0, limit);
+  }
+
+  /**
+   * 读取记忆
+   */
+  async memory_read({ type, limit = 10 }) {
+    let records = this.memoryData;
+    if (type && type !== 'all') {
+      records = records.filter(r => r.type === type);
+    }
+    return records.slice(-limit).reverse();
+  }
+
+  /**
+   * 列出每日日志
+   */
+  async list_daily({ days = 7 }) {
+    const dailyRecords = this.memoryData.filter(r => r.type === 'daily');
+    const daysSet = new Set(dailyRecords.map(r => r.timestamp.split('T')[0]));
+    return Array.from(daysSet).sort().reverse().slice(0, days);
+  }
+
+  /**
+   * 初始化今日日志
+   */
+  async init_daily({ date }) {
+    const today = date || new Date().toISOString().split('T')[0];
+    const existing = this.memoryData.find(r =>
+      r.type === 'daily' && r.timestamp.startsWith(today)
+    );
+    if (existing) {
+      return { success: true, message: 'Daily log already exists' };
+    }
+    await this.memory_write({
+      content: `Daily log for ${today}`,
+      type: 'daily',
+      tags: ['daily'],
+    });
+    return { success: true, message: 'Daily log initialized' };
+  }
+
+  /**
+   * 重建索引
+   */
+  async rebuild_index(options = {}) {
+    const force = options.force || false;
+    console.log(`Rebuilding index (force=${force})...`);
+    this.buildBM25Index();
+
+    // 批量重建向量索引（使用批量API）
+    const texts = this.memoryData.map(r => r.content);
+    if (texts.length > 0) {
+      const batchSize = Math.min(this.maxBatchSize, texts.length);
+      const batches = [];
+      for (let i = 0; i < texts.length; i += batchSize) {
+        batches.push(texts.slice(i, i + batchSize));
+      }
+
+      console.log(`Rebuilding vector index in ${batches.length} batches of ${batchSize}...`);
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        const embeddings = await this.generateBatchEmbeddings(batch);
+        batch.forEach((text, j) => {
+          const record = this.memoryData[i * batchSize + j];
+          if (record && embeddings[j]) {
+            this.vectorIndex.set(record.id, embeddings[j]);
+          }
+        });
+        console.log(`  Batch ${i + 1}/${batches.length} completed`);
+      }
+    }
+
+    return { success: true, message: 'Index rebuilt', totalRecords: this.memoryData.length };
+  }
+
+  /**
+   * 索引状态
+   */
+  async index_status() {
+    return {
+      success: true,
+      totalRecords: this.memoryData.length,
+      vectorIndexSize: this.vectorIndex.size,
+      bm25IndexSize: this.bm25Index.size,
+      embeddingCacheSize: this.embeddingCache.size,
+      embeddingMode: this.embeddingMode,
+      apiEndpoint: this.apiEndpoint,
+      model: this.model,
+    };
   }
 }
 

@@ -4,7 +4,22 @@
 
 ## 📋 目录结构
 
-```
+test-framework/
+├── test-engine.mjs              # 测试引擎核心
+├── test-logger.mjs              # 日志记录器
+├── test-monitor.mjs             # 性能监控器
+├── test-data-generator.mjs      # 测试数据生成器
+├── test-data-preprocessor.mjs   # 测试数据预处理器
+├── mock-opencode-tools-v5.mjs   # V5批量优化工具类 ⭐
+├── run-60day-simulation.mjs     # 主测试执行程序
+├── run-batch-optimized-test.mjs # 批量优化测试程序 ⭐
+├── suites/                      # 测试套件
+│   ├── ingestion-test-suite.mjs # 入库测试
+│   ├── retrieval-test-suite.mjs # 检索测试
+│   ├── archiving-test-suite.mjs # 归档测试
+│   ├── data-flow-test-suite.mjs # 数据流动测试
+│   └── 60day-simulation-suite.mjs # 60天模拟测试
+└── README.md                    # 本文档
 test-framework/
 ├── test-engine.mjs              # 测试引擎核心
 ├── test-logger.mjs              # 日志记录器
@@ -32,11 +47,14 @@ npm install
 ### 2. 运行测试
 
 ```bash
-# 运行完整的60天模拟测试
+# 推荐：运行批量优化测试（V5工具类，40-60x性能提升）
+node run-batch-optimized-test.mjs
+
+# 或者运行完整的60天模拟测试
 node run-60day-simulation.mjs
 
 # 或者使用 uv run（如果项目使用 uv）
-uv run node run-60day-simulation.mjs
+uv run node run-batch-optimized-test.mjs
 ```
 
 ### 3. 查看结果

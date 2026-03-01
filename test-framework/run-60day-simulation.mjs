@@ -12,9 +12,7 @@ import { createArchivingTestSuite } from './suites/archiving-test-suite.mjs';
 import { createDataFlowTestSuite } from './suites/data-flow-test-suite.mjs';
 import { create60DaySimulationSuite } from './suites/60day-simulation-suite.mjs';
 import TestDataGenerator from './test-data-generator.mjs';
-import MockOpenCodeTools from './mock-opencode-tools-v3.mjs';
-import MockOpenCodeTools from './mock-opencode-tools-v2.mjs';
-import MockOpenCodeTools from './mock-opencode-tools.mjs';
+import MockOpenCodeToolsV5 from './mock-opencode-tools-v5.mjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -35,7 +33,11 @@ async function main() {
     monitor: {
       verbose: true,
     },
-    tools: new MockOpenCodeTools(), // 使用改进的模拟工具（支持BM25和向量搜索）
+    tools: new MockOpenCodeToolsV5({
+      apiEndpoint: 'http://localhost:18000/v1/embeddings',
+      model: 'Qwen3-Embedding-0.6B',
+      maxBatchSize: 64,
+    }), // 使用V5批量优化工具
   });
 
   try {
