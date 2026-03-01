@@ -9,19 +9,19 @@
 
 ### 7.1.1 Pre-commit 核心原则
 
-| 原则 | 说明 | 实施方式 |
-|------|------|----------|
-| **自动化** | 所有检查自动执行, 无需手动触发 | `.git/hooks/pre-commit` 自动运行 |
-| **快速反馈** | 开发者提交前立即看到检查结果 | 实时错误输出 |
-| **可配置性** | 通过配置文件灵活定制 | `.pre-commit-config.yaml` |
-| **跨平台** | 支持 Windows/Linux/macOS | 统一配置 |
+| 原则         | 说明                           | 实施方式                         |
+| ------------ | ------------------------------ | -------------------------------- |
+| **自动化**   | 所有检查自动执行, 无需手动触发 | `.git/hooks/pre-commit` 自动运行 |
+| **快速反馈** | 开发者提交前立即看到检查结果   | 实时错误输出                     |
+| **可配置性** | 通过配置文件灵活定制           | `.pre-commit-config.yaml`        |
+| **跨平台**   | 支持 Windows/Linux/macOS       | 统一配置                         |
 
 ### 7.1.2 Hook 时机
 
-| 时机 | 触发条件 | 说明 |
-|------|---------|------|
-| **pre-commit** | `git commit` 前 | 所有文件提交前检查 |
-| **pre-push** | `git push` 前 | 推送前检查（测试等耗时操作） |
+| 时机           | 触发条件        | 说明                         |
+| -------------- | --------------- | ---------------------------- |
+| **pre-commit** | `git commit` 前 | 所有文件提交前检查           |
+| **pre-push**   | `git push` 前   | 推送前检查（测试等耗时操作） |
 
 **推荐**: pre-commit（代码质量）+ pre-push（测试）
 
@@ -42,7 +42,7 @@
 ```yaml
 # .pre-commit-config.yaml
 default_stages: [pre-commit]
-fail_fast: true  # 第一个失败就停止
+fail_fast: true # 第一个失败就停止
 
 exclude: '^node_modules/|^dist/|^build/|^\.git/'
 
@@ -101,11 +101,11 @@ repos:
 
 ### 7.2.2 配置说明
 
-| 配置项 | 说明 | 本项目设置 |
-|--------|------|------------|
-| `fail_fast` | 第一个失败就停止 | `true` - 快速反馈 |
-| `exclude` | 排除的文件路径 | `node_modules/`, `dist/`, `build/` |
-| `default_stages` | 默认执行时机 | `[pre-commit]` |
+| 配置项           | 说明             | 本项目设置                         |
+| ---------------- | ---------------- | ---------------------------------- |
+| `fail_fast`      | 第一个失败就停止 | `true` - 快速反馈                  |
+| `exclude`        | 排除的文件路径   | `node_modules/`, `dist/`, `build/` |
+| `default_stages` | 默认执行时机     | `[pre-commit]`                     |
 
 ### 7.2.3 Hook 详细配置
 
@@ -241,12 +241,12 @@ SKIP=eslint git commit -m "跳过 ESLint"
 
 ### 7.5.1 执行时间目标
 
-| Hook | 目标时间 | 优化策略 |
-|------|----------|----------|
-| Gitleaks | < 1s | 只检查 staged 文件 |
-| Prettier | < 2s | 并行处理 |
-| ESLint | < 5s | 缓存结果 |
-| 总计 | < 10s | fail_fast 模式 |
+| Hook     | 目标时间 | 优化策略           |
+| -------- | -------- | ------------------ |
+| Gitleaks | < 1s     | 只检查 staged 文件 |
+| Prettier | < 2s     | 并行处理           |
+| ESLint   | < 5s     | 缓存结果           |
+| 总计     | < 10s    | fail_fast 模式     |
 
 ### 7.5.2 缓存配置
 

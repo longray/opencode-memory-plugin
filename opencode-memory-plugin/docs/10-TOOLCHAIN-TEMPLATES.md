@@ -11,12 +11,12 @@
 
 ### 10.1.1 模板设计原则
 
-| 原则 | 说明 |
-|------|------|
-| **完整性** | 包含所有必要的配置文件 |
-| **即用性** | 复制即可使用，最小修改 |
-| **文档化** | 每个配置都有清晰注释 |
-| **最佳实践** | 基于行业最佳实践 |
+| 原则         | 说明                   |
+| ------------ | ---------------------- |
+| **完整性**   | 包含所有必要的配置文件 |
+| **即用性**   | 复制即可使用，最小修改 |
+| **文档化**   | 每个配置都有清晰注释   |
+| **最佳实践** | 基于行业最佳实践       |
 
 ---
 
@@ -61,9 +61,7 @@ module.exports = {
     node: true,
     es2022: true,
   },
-  extends: [
-    'eslint:recommended',
-  ],
+  extends: ['eslint:recommended'],
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
@@ -73,28 +71,23 @@ module.exports = {
     'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     'no-undef': 'error',
     'no-console': 'off', // 允许 console，但建议使用日志库
-    
+
     // 最佳实践
     'prefer-const': 'error',
     'no-var': 'error',
     'object-shorthand': 'error',
     'prefer-template': 'error',
-    
+
     // 代码风格
-    'semi': ['error', 'always'],
-    'quotes': ['error', 'single', { avoidEscape: true }],
-    'indent': ['error', 2],
+    semi: ['error', 'always'],
+    quotes: ['error', 'single', { avoidEscape: true }],
+    indent: ['error', 2],
     'max-len': ['warn', { code: 120, ignoreComments: true }],
-    
+
     // Node.js 特定
     'no-path-concat': 'error',
   },
-  ignorePatterns: [
-    'node_modules/',
-    'dist/',
-    'build/',
-    '*.min.js',
-  ],
+  ignorePatterns: ['node_modules/', 'dist/', 'build/', '*.min.js'],
 };
 ```
 
@@ -218,13 +211,8 @@ repos:
 ```json
 {
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,yml,yaml,md}": [
-      "prettier --write"
-    ]
+    "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,yml,yaml,md}": ["prettier --write"]
   }
 }
 ```
@@ -274,16 +262,16 @@ module.exports = {
       2,
       'always',
       [
-        'feat',     // 新功能
-        'fix',      // 修复
-        'docs',     // 文档
-        'style',    // 格式
+        'feat', // 新功能
+        'fix', // 修复
+        'docs', // 文档
+        'style', // 格式
         'refactor', // 重构
-        'perf',     // 性能
-        'test',     // 测试
-        'chore',    // 构建/工具
-        'ci',       // CI/CD
-        'revert',   // 回滚
+        'perf', // 性能
+        'test', // 测试
+        'chore', // 构建/工具
+        'ci', // CI/CD
+        'revert', // 回滚
       ],
     ],
     'subject-full-stop': [0, 'never'],
@@ -299,23 +287,23 @@ module.exports = {
 
 ### 10.4.1 必需文件
 
-| 文件 | 用途 | 优先级 |
-|------|------|--------|
-| `.eslintrc.cjs` | ESLint 代码检查 | P1 |
-| `.prettierrc` | Prettier 格式化 | P2 |
-| `.editorconfig` | 编辑器统一配置 | P2 |
-| `.pre-commit-config.yaml` | Pre-commit hooks | P0 |
-| `.gitleaks.toml` | 密钥检测 | P0 |
-| `commitlint.config.js` | 提交规范 | P3 |
+| 文件                      | 用途             | 优先级 |
+| ------------------------- | ---------------- | ------ |
+| `.eslintrc.cjs`           | ESLint 代码检查  | P1     |
+| `.prettierrc`             | Prettier 格式化  | P2     |
+| `.editorconfig`           | 编辑器统一配置   | P2     |
+| `.pre-commit-config.yaml` | Pre-commit hooks | P0     |
+| `.gitleaks.toml`          | 密钥检测         | P0     |
+| `commitlint.config.js`    | 提交规范         | P3     |
 
 ### 10.4.2 可选文件
 
-| 文件 | 用途 | 优先级 |
-|------|------|--------|
-| `.eslintignore` | ESLint 忽略规则 | P3 |
-| `.prettierignore` | Prettier 忽略规则 | P3 |
-| `.husky/pre-commit` | Husky pre-commit hook | P2 |
-| `.husky/commit-msg` | Husky commit-msg hook | P3 |
+| 文件                | 用途                  | 优先级 |
+| ------------------- | --------------------- | ------ |
+| `.eslintignore`     | ESLint 忽略规则       | P3     |
+| `.prettierignore`   | Prettier 忽略规则     | P3     |
+| `.husky/pre-commit` | Husky pre-commit hook | P2     |
+| `.husky/commit-msg` | Husky commit-msg hook | P3     |
 
 ---
 

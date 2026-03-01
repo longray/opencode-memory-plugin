@@ -15,8 +15,8 @@
 
 ### 3.1.2 检查工具
 
-| 工具 | 用途 | 配置文件 |
-|------|------|----------|
+| 工具       | 用途                | 配置文件        |
+| ---------- | ------------------- | --------------- |
 | **ESLint** | JavaScript 代码检查 | `.eslintrc.cjs` |
 
 ---
@@ -56,11 +56,11 @@ function test() {
 
 ```javascript
 // ✅ prefer-const - 优先使用 const
-const MAX_SIZE = 100;  // 不再重新赋值
-let currentSize = 0;    // 会重新赋值
+const MAX_SIZE = 100; // 不再重新赋值
+let currentSize = 0; // 会重新赋值
 
 // ✅ no-var - 禁止 var
-let x = 1;  // 使用 let 替代 var
+let x = 1; // 使用 let 替代 var
 
 // ✅ prefer-arrow-callback - 优先使用箭头函数
 const doubled = numbers.map(n => n * 2);
@@ -68,7 +68,9 @@ const doubled = numbers.map(n => n * 2);
 // ✅ object-shorthand - 对象简写
 const obj = {
   value,
-  getValue() { return this.value; },
+  getValue() {
+    return this.value;
+  },
 };
 ```
 
@@ -95,27 +97,27 @@ function b() {}
 
 ### 3.3.1 错误级别规则
 
-| 规则 | 级别 | 说明 |
-|------|------|------|
-| `no-undef` | error | 禁止未定义变量 |
+| 规则          | 级别  | 说明               |
+| ------------- | ----- | ------------------ |
+| `no-undef`    | error | 禁止未定义变量     |
 | `no-debugger` | error | 禁止 debugger 语句 |
-| `no-var` | error | 禁止使用 var |
+| `no-var`      | error | 禁止使用 var       |
 
 ### 3.3.2 警告级别规则
 
-| 规则 | 级别 | 说明 |
-|------|------|------|
-| `no-unused-vars` | error | 禁止未使用变量（忽略 `_` 前缀） |
-| `no-shadow` | warn | 禁止变量遮蔽 |
-| `no-unused-expressions` | warn | 禁止未使用表达式 |
+| 规则                    | 级别  | 说明                            |
+| ----------------------- | ----- | ------------------------------- |
+| `no-unused-vars`        | error | 禁止未使用变量（忽略 `_` 前缀） |
+| `no-shadow`             | warn  | 禁止变量遮蔽                    |
+| `no-unused-expressions` | warn  | 禁止未使用表达式                |
 
 ### 3.3.3 建议级别规则
 
-| 规则 | 级别 | 说明 |
-|------|------|------|
-| `prefer-const` | error | 优先使用 const |
-| `prefer-arrow-callback` | warn | 优先使用箭头函数 |
-| `object-shorthand` | warn | 对象简写 |
+| 规则                    | 级别  | 说明             |
+| ----------------------- | ----- | ---------------- |
+| `prefer-const`          | error | 优先使用 const   |
+| `prefer-arrow-callback` | warn  | 优先使用箭头函数 |
+| `object-shorthand`      | warn  | 对象简写         |
 
 ---
 

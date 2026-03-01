@@ -19,10 +19,13 @@ export default [
     },
     rules: {
       // 🚨 错误级别 (Error)
-      'no-unused-vars': ['error', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_'
-      }],
+      'no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       'no-undef': 'error',
       'no-console': 'off',
       'no-debugger': 'error',
@@ -48,13 +51,6 @@ export default [
     },
   },
   {
-    ignores: [
-      'node_modules/',
-      'dist/',
-      'build/',
-      'coverage/',
-      '*.min.js',
-      '.opencode/',
-    ],
+    ignores: ['node_modules/', 'dist/', 'build/', 'coverage/', '*.min.js', '.opencode/'],
   },
 ];
