@@ -254,6 +254,76 @@ ${content}
             let results;
             const searchMode = mode || config.search?.mode || 'hybrid';
             
+            // Phase 1优化: 动态返回数量
+            // semantic: 10, keyword: 6, hybrid: 5
+            const optimizedLimit = searchMode === 'keyword' ? 6 : 
+                                   searchMode === 'hybrid' ? 5 : 
+                                   limit || 10;
+            
+            if (searchMode === 'vector') {
+              results = await vectorStore.search(query, { limit: optimizedLimit, threshold });
+            } else if (searchMode === 'keyword') {
+              results = vectorStore.keywordSearch(query, { limit: optimizedLimit });
+            } else {
+              // Use vector search only (since we removed hybrid functionality)
+              results = await vectorStore.search(query, { limit: optimizedLimit, threshold: threshold || 0.3 });
+            }
+        description: "Search memory using semantic vector search. Finds relevant content even when keywords don't match exactly.",
+        args: {
+          query: tool.schema.string().describe("The semantic search query"),
+          mode: tool.schema.string().optional().default("hybrid").describe("Search mode: 'vector' (semantic only), 'keyword' (exact match), or 'hybrid' (both)"),
+          limit: tool.schema.number().optional().default(10).describe("Maximum number of results to return"),
+          threshold: tool.schema.number().optional().default(0.3).describe("Minimum similarity score (0-1)")
+        },
+        async execute(args) {
+          const { query, mode, limit, threshold } = args;
+          
+          try {
+            const config = getConfig();
+
+            if (!config) {
+              return {
+                success: false,
+                error: "Memory configuration not found. Please run the initialization script."
+              };
+            }
+
+            // Check if embedding is enabled
+            if (!config.embedding?.enabled && config.embedding?.enabled !== undefined) {
+              return {
+                success: false,
+                error: "Embedding is disabled in configuration",
+                suggestion: "Try using memory_search for keyword search instead"
+              };
+            }
+
+            // Get vector store instance
+            const vectorStore = getVectorStore();
+            
+            // Initialize if needed
+            let initResult;
+            if (!vectorStore.initialized) {
+              initResult = await vectorStore.initialize({ 
+                model: config.embedding?.model 
+              });
+              
+              if (!initResult.success) {
+                // Fall back to keyword search
+                return {
+                  success: true,
+                  query,
+                  mode: 'keyword',
+                  matches: await fallbackKeywordSearch(query, limit),
+                  count: (await fallbackKeywordSearch(query, limit)).length,
+                  note: `Vector search unavailable: ${initResult.error}. Using keyword search instead.`
+                };
+              }
+            }
+
+            // Perform search based on mode
+            let results;
+            const searchMode = mode || config.search?.mode || 'hybrid';
+            
             if (searchMode === 'vector') {
               results = await vectorStore.search(query, { limit, threshold });
             } else if (searchMode === 'keyword') {
@@ -264,6 +334,33 @@ ${content}
             }
 
             return {
+              success: true,
+              query,
+              mode: searchMode,
+              matches: results.map(r => ({
+                source: r.source,
+                line: r.line,
+                text: r.content.substring(0, 200) + (r.content.length > 200 ? '...' : ''),
+                score: Math.round(r.score * 100) / 100,
+                fullContent: r.content
+              })),
+              count: results.length,
+              model: vectorStore.modelName,
+              indexed: vectorStore.getIndexedCount()
+            };
+          } catch (e) {
+            // Fall back to keyword search on error
+            return {
+              success: true,
+              query,
+              mode: 'keyword',
+              matches: await fallbackKeywordSearch(query, 10),
+              count: (await fallbackKeywordSearch(query, 10)).length,
+              note: `Vector search failed: ${e.message}. Using keyword search.`
+            };
+          }
+        }
+      }),
               success: true,
               query,
               mode: searchMode,
@@ -562,7 +659,63 @@ ${content}
  * Fallback BM25 search when vector search is unavailable
  * Uses BM25 algorithm for better relevance ranking
  */
-async function fallbackBM25Search(query, limit = 10) {
+/**
+ * Fallback BM25 search when vector search is unavailable
+ * Uses BM25 algorithm for better relevance ranking
+ * Phase 1优化: 应用动态BM25阈值
+ */
+async function fallbackBM25Search(query, limit = 10, mode = 'keyword') {
+  const files = getMemoryFiles();
+  
+  // Collect all documents
+  const documents = [];
+  let docId = 0;
+  
+  for (const file of files) {
+    try {
+      const content = fs.readFileSync(file.path, 'utf-8');
+      const lines = content.split('\n');
+      
+      // Index each line as a separate document for better granularity
+      lines.forEach((line, index) => {
+        const trimmedLine = line.trim();
+        if (trimmedLine.length > 10) {  // Skip very short lines
+          documents.push({
+            id: `${file.name}:${index + 1}`,
+            content: trimmedLine,
+            metadata: {
+              source: file.name,
+              line: index + 1
+            }
+          });
+        }
+      });
+    } catch (e) {
+      // Skip files that can't be read
+    }
+  }
+  
+  if (documents.length === 0) {
+    return [];
+  }
+  
+  // Phase 1优化: 动态BM25阈值
+  // keyword: 0.5, hybrid: 0.3, semantic: 0.1
+  const minScore = mode === 'keyword' ? 0.5 : 
+                    mode === 'hybrid' ? 0.3 : 
+                    0.1;
+  
+  // Create BM25 index and search with optimized threshold
+  const index = createBM25Index(documents);
+  const results = index.search(query, { limit, minScore });
+  
+  return results.map(r => ({
+    source: r.metadata.source,
+    line: r.metadata.line,
+    text: r.content.substring(0, 200) + (r.content.length > 200 ? '...' : ''),
+    score: Math.min(1, r.score / 5)  // Normalize score to 0-1 range
+  }));
+}
   const files = getMemoryFiles();
   
   // Collect all documents
@@ -613,6 +766,12 @@ async function fallbackBM25Search(query, limit = 10) {
  * Legacy fallback keyword search (kept for compatibility)
  * @deprecated Use fallbackBM25Search instead
  */
+/**
+ * Legacy fallback keyword search (kept for compatibility)
+ * @deprecated Use fallbackBM25Search instead
+ */
 async function fallbackKeywordSearch(query, limit = 10) {
+  return fallbackBM25Search(query, limit, 'keyword');  // 默认使用keyword模式
+}
   return fallbackBM25Search(query, limit);
 }
