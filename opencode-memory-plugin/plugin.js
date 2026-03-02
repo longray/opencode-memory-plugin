@@ -27,7 +27,7 @@ function getConfig() {
  */
 function getMemoryFiles() {
   const files = [];
-  
+
   // Core memory files
   const coreFiles = ['MEMORY.md', 'SOUL.md', 'AGENTS.md', 'USER.md', 'IDENTITY.md', 'TOOLS.md'];
   for (const file of coreFiles) {
@@ -36,7 +36,7 @@ function getMemoryFiles() {
       files.push({ path: filePath, name: file });
     }
   }
-  
+
   // Daily logs
   if (fs.existsSync(DAILY_DIR)) {
     const dailyFiles = fs.readdirSync(DAILY_DIR)
@@ -44,15 +44,15 @@ function getMemoryFiles() {
       .sort()
       .reverse()
       .slice(0, 30); // Last 30 days
-    
+
     for (const file of dailyFiles) {
-      files.push({ 
-        path: path.join(DAILY_DIR, file), 
-        name: `daily/${file}` 
+      files.push({
+        path: path.join(DAILY_DIR, file),
+        name: `daily/${file}`
       });
     }
   }
-  
+
   return files;
 }
 
@@ -62,7 +62,7 @@ function getMemoryFiles() {
  */
 export const MemoryPlugin = async (ctx) => {
   return {
-    tools: {
+    tool: {
       memory_write: tool({
         description: "Write an entry to long-term memory. Use this to save important information that should persist across sessions.",
         args: {
@@ -95,19 +95,13 @@ ${content}
             // Append to memory file
             fs.appendFileSync(MEMORY_FILE, entry, 'utf-8');
 
-            return {
-              success: true,
-              message: "Entry written to memory",
-              file: MEMORY_FILE,
-              type,
-              tags,
-              length: content.length
-            };
+            return `✅ Entry written to memory
+- Type: ${type}
+- Tags: ${tags.join(', ') || 'none'}
+- File: ${MEMORY_FILE}
+- Length: ${content.length} characters`;
           } catch (e) {
-            return {
-              success: false,
-              error: e.message
-            };
+            return `❌ Error writing to memory: ${e.message}`;
           }
         }
       }),
@@ -123,27 +117,22 @@ ${content}
             const filePath = path.join(MEMORY_DIR, file);
 
             if (!fs.existsSync(filePath)) {
-              return {
-                success: false,
-                error: `File not found: ${file}`
-              };
+              return `❌ File not found: ${file}`;
             }
 
             const content = fs.readFileSync(filePath, 'utf-8');
             const lines = content.split('\n').length;
+            const size = Buffer.byteLength(content, 'utf-8');
 
-            return {
-              success: true,
-              file,
-              content,
-              lines,
-              size: Buffer.byteLength(content, 'utf-8')
-            };
+            return `📖 Memory file: ${file}
+- Lines: ${lines}
+- Size: ${size} bytes
+- Path: ${filePath}
+
+---
+${content}`;
           } catch (e) {
-            return {
-              success: false,
-              error: e.message
-            };
+            return `❌ Error reading memory: ${e.message}`;
           }
         }
       }),
@@ -161,10 +150,7 @@ ${content}
             const filePath = path.join(MEMORY_DIR, file);
 
             if (!fs.existsSync(filePath)) {
-              return {
-                success: false,
-                error: `File not found: ${file}`
-              };
+              return `❌ File not found: ${file}`;
             }
 
             const content = fs.readFileSync(filePath, 'utf-8');
@@ -181,18 +167,23 @@ ${content}
               }
             });
 
-            return {
-              success: true,
-              query,
-              file,
-              matches,
-              count: matches.length
-            };
+            if (matches.length === 0) {
+              return `🔍 No matches found for query: "${query}"`;
+            }
+
+            let result = `🔍 Found ${matches.length} matches for "${query}" in ${file}:
+`;
+            matches.slice(0, 10).forEach(m => {
+              result += `\n  Line ${m.line}: ${m.text.substring(0, 100)}${m.text.length > 100 ? '...' : ''}`;
+            });
+
+            if (matches.length > 10) {
+              result += `\n  ... and ${matches.length - 10} more matches`;
+            }
+
+            return result;
           } catch (e) {
-            return {
-              success: false,
-              error: e.message
-            };
+            return `❌ Error searching memory: ${e.message}`;
           }
         }
       }),
@@ -207,93 +198,131 @@ ${content}
         },
         async execute(args) {
           const { query, mode, limit, threshold } = args;
-          
+
           try {
             const config = getConfig();
 
             if (!config) {
-              return {
-                success: false,
-                error: "Memory configuration not found. Please run the initialization script."
-              };
+              return `❌ Memory configuration not found. Please run initialization script.`;
             }
 
             // Check if embedding is enabled
             if (!config.embedding?.enabled && config.embedding?.enabled !== undefined) {
-              return {
-                success: false,
-                error: "Embedding is disabled in configuration",
-                suggestion: "Try using memory_search for keyword search instead"
-              };
+              return `❌ Embedding is disabled in configuration. Try using memory_search for keyword search instead.`;
             }
 
             // Get vector store instance
             const vectorStore = getVectorStore();
-            
+
             // Initialize if needed
             let initResult;
             if (!vectorStore.initialized) {
-              initResult = await vectorStore.initialize({ 
-                model: config.embedding?.model 
+              initResult = await vectorStore.initialize({
+                model: config.embedding?.model
               });
-              
+
               if (!initResult.success) {
                 // Fall back to keyword search
-                return {
-                  success: true,
-                  query,
-                  mode: 'keyword',
-                  matches: await fallbackKeywordSearch(query, limit),
-                  count: (await fallbackKeywordSearch(query, limit)).length,
-                  note: `Vector search unavailable: ${initResult.error}. Using keyword search instead.`
-                };
+                const fallbackResults = await fallbackKeywordSearch(query, limit);
+                return `⚠️ Vector search unavailable: ${initResult.error}. Using keyword search instead.
+
+🔍 Found ${fallbackResults.length} matches for "${query}":
+${fallbackResults.slice(0, 5).map(r => `  [${r.score.toFixed(2)}] ${r.source}:${r.line} - ${r.text.substring(0, 100)}`).join('\n')}`;
               }
             }
 
             // Perform search based on mode
             let results;
             const searchMode = mode || config.search?.mode || 'hybrid';
-            
+
+            // Phase 1 optimization: Dynamic result limits
+            const optimizedLimit = searchMode === 'keyword' ? 6 :
+                                   searchMode === 'hybrid' ? 5 :
+                                   limit;
+
+            // Phase 1 optimization: BM25 thresholds
+            const bm25MinScore = searchMode === 'keyword' ? 0.5 :
+                                   searchMode === 'hybrid' ? 0.3 : 0.1;
+
             if (searchMode === 'vector') {
-              results = await vectorStore.search(query, { limit, threshold });
+              results = await vectorStore.search(query, { limit: optimizedLimit, threshold });
             } else if (searchMode === 'keyword') {
-              results = vectorStore.keywordSearch(query, { limit });
+              // Keyword mode: Use BM25 only
+              const files = getMemoryFiles();
+              const documents = [];
+              for (const file of files) {
+                try {
+                  const content = fs.readFileSync(file.path, 'utf-8');
+                  const lines = content.split('\n');
+                  lines.forEach((line, index) => {
+                    if (line.trim().length > 10) {
+                      documents.push({
+                        id: `${file.name}:${index + 1}`,
+                        content: line.trim(),
+                        metadata: { source: file.name, line: index + 1 }
+                      });
+                    }
+                  });
+                } catch (e) { /* skip */ }
+              }
+              results = vectorStore.keywordSearch(query, documents, {
+                limit: optimizedLimit,
+                minScore: bm25MinScore
+              });
             } else {
-              // Use vector search only (since we removed hybrid functionality)
-              results = await vectorStore.search(query, { limit, threshold: threshold || 0.3 });
+              // Hybrid mode: Use RRF fusion
+              const files = getMemoryFiles();
+              const documents = [];
+              for (const file of files) {
+                try {
+                  const content = fs.readFileSync(file.path, 'utf-8');
+                  const lines = content.split('\n');
+                  lines.forEach((line, index) => {
+                    if (line.trim().length > 10) {
+                      documents.push({
+                        id: `${file.name}:${index + 1}`,
+                        content: line.trim(),
+                        metadata: { source: file.name, line: index + 1 }
+                      });
+                    }
+                  });
+                } catch (e) { /* skip */ }
+              }
+              results = await vectorStore.hybridSearch(query, documents, {
+                limit: optimizedLimit,
+                vectorThreshold: threshold || 0.3,
+                bm25MinScore,
+                fusionStrategy: 'rrf',
+                fusionOptions: { k: 20 }
+              });
             }
 
-            return {
-              success: true,
-              query,
-              mode: searchMode,
-              matches: results.map(r => ({
-                source: r.source,
-                line: r.line,
-                text: r.content.substring(0, 200) + (r.content.length > 200 ? '...' : ''),
-                score: Math.round(r.score * 100) / 100,
-                fullContent: r.content
-              })),
-              count: results.length,
-              model: vectorStore.modelName,
-              indexed: vectorStore.getIndexedCount()
-            };
+            let output = `🔍 Vector search results for "${query}" (mode: ${searchMode}):
+`;
+            results.slice(0, 10).forEach(r => {
+              output += `\n  [${r.score.toFixed(2)}] ${r.source}:${r.line}`;
+              output += `\n    ${r.content.substring(0, 150)}${r.content.length > 150 ? '...' : ''}`;
+            });
+
+            output += `\n\n📊 Statistics:
+- Model: ${vectorStore.modelName}
+- Total indexed: ${vectorStore.getIndexedCount()} chunks
+- Results: ${results.length}`;
+
+            return output;
           } catch (e) {
             // Fall back to keyword search on error
-            return {
-              success: true,
-              query,
-              mode: 'keyword',
-              matches: await fallbackKeywordSearch(query, 10),
-              count: (await fallbackKeywordSearch(query, 10)).length,
-              note: `Vector search failed: ${e.message}. Using keyword search.`
-            };
+            const fallbackResults = await fallbackKeywordSearch(query, 10);
+            return `⚠️ Vector search failed: ${e.message}. Using keyword search instead.
+
+🔍 Found ${fallbackResults.length} matches:
+${fallbackResults.slice(0, 5).map(r => `  [${r.score.toFixed(2)}] ${r.source}:${r.line} - ${r.text.substring(0, 100)}`).join('\n')}`;
           }
         }
       }),
 
       list_daily: tool({
-        description: "List available daily log files from the past N days.",
+        description: "List available daily log files from past N days.",
         args: {
           days: tool.schema.number().optional().default(7).describe("Number of days to look back (default: 7)")
         },
@@ -302,12 +331,7 @@ ${content}
             const { days } = args;
 
             if (!fs.existsSync(DAILY_DIR)) {
-              return {
-                success: true,
-                files: [],
-                count: 0,
-                message: "Daily directory not found"
-              };
+              return `📂 Daily directory not found`;
             }
 
             const allFiles = fs.readdirSync(DAILY_DIR)
@@ -316,26 +340,23 @@ ${content}
               .reverse()
               .slice(0, days);
 
-            const files = allFiles.map(file => {
+            if (allFiles.length === 0) {
+              return `📂 No daily log files found in the last ${days} days`;
+            }
+
+            let output = `📂 Daily log files (last ${days} days):
+`;
+            allFiles.forEach(file => {
               const filePath = path.join(DAILY_DIR, file);
               const stats = fs.statSync(filePath);
-              return {
-                name: file,
-                size: stats.size,
-                modified: stats.mtime
-              };
+              output += `\n  📄 ${file}`;
+              output += `\n     Size: ${(stats.size / 1024).toFixed(2)} KB`;
+              output += `\n     Modified: ${stats.mtime.toISOString()}`;
             });
 
-            return {
-              success: true,
-              files,
-              count: files.length
-            };
+            return output;
           } catch (e) {
-            return {
-              success: false,
-              error: e.message
-            };
+            return `❌ Error listing daily logs: ${e.message}`;
           }
         }
       }),
@@ -349,12 +370,7 @@ ${content}
             const dailyFile = path.join(DAILY_DIR, `${today}.md`);
 
             if (fs.existsSync(dailyFile)) {
-              return {
-                success: true,
-                message: "Daily log already exists",
-                file: dailyFile,
-                date: today
-              };
+              return `✅ Daily log already exists: ${dailyFile}`;
             }
 
             // Create daily directory if needed
@@ -377,17 +393,10 @@ ${content}
 
             fs.writeFileSync(dailyFile, content, 'utf-8');
 
-            return {
-              success: true,
-              message: "Daily log created",
-              file: dailyFile,
-              date: today
-            };
+            return `✅ Daily log created: ${dailyFile}
+- Date: ${today}`;
           } catch (e) {
-            return {
-              success: false,
-              error: e.message
-            };
+            return `❌ Error creating daily log: ${e.message}`;
           }
         }
       }),
@@ -403,26 +412,20 @@ ${content}
             const config = getConfig();
 
             if (!config) {
-              return {
-                success: false,
-                error: "Memory configuration not found. Please run the initialization script."
-              };
+              return `❌ Memory configuration not found. Please run initialization script.`;
             }
 
             // Get vector store instance
             const vectorStore = getVectorStore();
-            
+
             // Initialize
-            const initResult = await vectorStore.initialize({ 
-              model: config.embedding?.model 
+            const initResult = await vectorStore.initialize({
+              model: config.embedding?.model
             });
-            
+
             if (!initResult.success) {
-              return {
-                success: false,
-                error: `Failed to initialize vector store: ${initResult.error}`,
-                fallback: initResult.fallback
-              };
+              return `❌ Failed to initialize vector store: ${initResult.error}
+- Fallback: ${initResult.fallback}`;
             }
 
             // Clear existing index if force rebuild
@@ -432,20 +435,16 @@ ${content}
 
             // Get all memory files
             const files = getMemoryFiles();
-            
+
             if (files.length === 0) {
-              return {
-                success: true,
-                message: "No memory files found to index",
-                indexedFiles: 0,
-                totalChunks: 0
-              };
+              return `✅ No memory files found to index`;
             }
 
             // Index each file
-            const results = [];
+            let output = `🔄 Rebuilding vector search index (force: ${force})...
+`;
             let totalChunks = 0;
-            
+
             for (const file of files) {
               try {
                 const content = fs.readFileSync(file.path, 'utf-8');
@@ -454,32 +453,26 @@ ${content}
                   chunkSize: config.indexing?.chunkSize || 400,
                   overlap: config.indexing?.chunkOverlap || 80
                 });
-                results.push({ file: file.name, indexed: result.indexed });
+                output += `\n  ✓ ${file.name}: ${result.indexed} chunks indexed`;
                 totalChunks += result.indexed;
               } catch (e) {
-                results.push({ file: file.name, error: e.message });
+                output += `\n  ✗ ${file.name}: ${e.message}`;
               }
             }
 
             // Get final status
             const status = vectorStore.getStatus();
 
-            return {
-              success: true,
-              message: "Index rebuild completed",
-              force,
-              model: status.model,
-              dimensions: status.dimensions,
-              indexedFiles: files.length,
-              totalChunks,
-              results,
-              lastIndexed: status.lastIndexed
-            };
+            output += `\n\n📊 Index rebuild completed:
+- Model: ${status.model}
+- Dimensions: ${status.dimensions}
+- Indexed files: ${files.length}
+- Total chunks: ${totalChunks}
+- Last indexed: ${status.lastIndexed}`;
+
+            return output;
           } catch (e) {
-            return {
-              success: false,
-              error: e.message
-            };
+            return `❌ Error rebuilding index: ${e.message}`;
           }
         }
       }),
@@ -492,10 +485,7 @@ ${content}
             const config = getConfig();
 
             if (!config) {
-              return {
-                success: false,
-                error: "Configuration not found"
-              };
+              return `❌ Configuration not found`;
             }
 
             // Check memory files
@@ -519,38 +509,40 @@ ${content}
             // Get vector store status
             const vectorStore = getVectorStore();
             let vectorStatus = { initialized: false };
-            
+
             try {
               vectorStatus = vectorStore.getStatus();
             } catch (e) {
               // Vector store not initialized
             }
 
-            return {
-              success: true,
-              config: {
-                version: config.version,
-                searchMode: config.search?.mode,
-                embeddingEnabled: config.embedding?.enabled !== false,
-                embeddingModel: config.embedding?.model || 'Xenova/all-MiniLM-L6-v2',
-                fallbackMode: config.embedding?.fallbackMode
-              },
-              files,
-              dailyLogCount,
-              vectorIndex: {
-                initialized: vectorStatus.initialized || false,
-                model: vectorStatus.model || null,
-                dimensions: vectorStatus.dimensions || 384,
-                totalChunks: vectorStatus.totalChunks || 0,
-                lastIndexed: vectorStatus.lastIndexed || null,
-                dbPath: vectorStatus.dbPath || null
-              }
-            };
+            let output = `📊 Memory Plugin Status\n\n`;
+            output += `📁 Configuration:\n`;
+            output += `- Version: ${config.version}\n`;
+            output += `- Search Mode: ${config.search?.mode}\n`;
+            output += `- Embedding Enabled: ${config.embedding?.enabled !== false}\n`;
+            output += `- Embedding Model: ${config.embedding?.model || 'Xenova/all-MiniLM-L6-v2'}\n`;
+            output += `- Fallback Mode: ${config.embedding?.fallbackMode}\n\n`;
+
+            output += `📄 Memory Files:\n`;
+            Object.entries(files).forEach(([file, info]) => {
+              output += `- ${file}: ${info.exists ? '✓' : '✗'} (${(info.size / 1024).toFixed(2)} KB)\n`;
+            });
+            output += `- Daily logs: ${dailyLogCount} files\n\n`;
+
+            output += `🔍 Vector Index:\n`;
+            output += `- Initialized: ${vectorStatus.initialized || false}\n`;
+            output += `- Model: ${vectorStatus.model || 'N/A'}\n`;
+            output += `- Dimensions: ${vectorStatus.dimensions || 'N/A'}\n`;
+            output += `- Total chunks: ${vectorStatus.totalChunks || 0}\n`;
+            output += `- Last indexed: ${vectorStatus.lastIndexed || 'Never'}\n`;
+            if (vectorStatus.dbPath) {
+              output += `- Database: ${vectorStatus.dbPath}\n`;
+            }
+
+            return output;
           } catch (e) {
-            return {
-              success: false,
-              error: e.message
-            };
+            return `❌ Error getting status: ${e.message}`;
           }
         }
       })
@@ -564,16 +556,16 @@ ${content}
  */
 async function fallbackBM25Search(query, limit = 10) {
   const files = getMemoryFiles();
-  
+
   // Collect all documents
   const documents = [];
   let docId = 0;
-  
+
   for (const file of files) {
     try {
       const content = fs.readFileSync(file.path, 'utf-8');
       const lines = content.split('\n');
-      
+
       // Index each line as a separate document for better granularity
       lines.forEach((line, index) => {
         const trimmedLine = line.trim();
@@ -592,15 +584,15 @@ async function fallbackBM25Search(query, limit = 10) {
       // Skip files that can't be read
     }
   }
-  
+
   if (documents.length === 0) {
     return [];
   }
-  
+
   // Create BM25 index and search
   const index = createBM25Index(documents);
   const results = index.search(query, { limit, minScore: 0.01 });
-  
+
   return results.map(r => ({
     source: r.metadata.source,
     line: r.metadata.line,
