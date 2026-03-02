@@ -7,6 +7,32 @@ This guide will help you quickly set up and start using the OpenCode Memory Plug
 Before beginning, ensure you have:
 1. **Node.js** (v16 or higher) installed
 2. **OpenCode** installed and running
+3. **Bun Runtime** (optional) - Supported with automatic fallbacks
+
+## Bun Runtime Quick Start
+
+If you're running OpenCode in Bun, the plugin will work automatically with some optimizations:
+
+### Automatic Configuration
+
+The plugin detects Bun and configures itself:
+- Search mode: Automatically set to BM25 (fastest)
+- Embedding: Disabled (falls back to BM25)
+- All tools: Work normally
+
+### What Works in Bun
+
+✅ **Full Functionality**: All 8 tools work normally
+✅ **Fast Search**: BM25 keyword search is very fast (<1ms)
+✅ **Low Memory**: ~50MB RAM usage
+✅ **No Dependencies**: No network calls needed
+
+### Limitations
+
+⚠️ **No Vector Search**: Semantic search not available (Bun doesn't support `better-sqlite3`)
+⚠️ **Manual Indexing**: Index rebuild uses BM25 instead of embeddings
+
+**Recommendation**: Continue using the plugin - keyword search is fast and effective. Vector search will be automatically restored when Bun adds V8 C++ API support (see [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290)).
 
 ## Step 1: Installation
 
@@ -184,20 +210,21 @@ curl -X POST http://localhost:18000/embeddings \
 
 ## Performance Expectations
 
-### With ModelScope API:
+### With ModelScope API (Node.js/OpenCode):
 - Initial search: ~50-100ms (network call)
 - Subsequent searches: ~50-100ms per query
 - Memory usage: ~50MB RAM (minimal local resources)
 
-### With Local Service:
-- Initial search: ~50-100ms (network call to localhost)
-- Subsequent searches: ~50-100ms per query
-- Memory usage: ~50-100MB RAM (depends on your service)
+### With Bun Runtime:
+- Initial search: <1ms (BM25 keyword search)
+- Subsequent searches: <1ms per query
+- Memory usage: ~50MB RAM (no external dependencies)
+- Quality: Good keyword matching (no semantic search)
 
 ### Without Embedding Service (BM25-only):
 - Search time: <1ms
 - Memory usage: ~50MB RAM
-- Quality: Keyword matching only
+- Quality: Keyword matching only (fast but less accurate)
 
 ## Common Workflows
 

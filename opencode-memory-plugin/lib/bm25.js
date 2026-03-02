@@ -28,16 +28,46 @@ export class BM25Index {
   }
 
   /**
-   * Tokenize text into terms
+   * Tokenize text into terms with Chinese support
    * @param {string} text - Text to tokenize
    * @returns {string[]} Array of terms
    */
   tokenize(text) {
-    return text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
-      .filter(term => term.length > 1);
+    const lowerText = text.toLowerCase();
+    
+    // 第一步：按空格分割（处理英文）
+    const spaceSplit = lowerText.replace(/[^\w\u4e00-\u9fa5\s]/g, ' ').split(/\s+/);
+    
+    const tokens = [];
+    
+    for (const part of spaceSplit) {
+      if (!part || part.trim() === '') continue;
+      
+      // 检查是否包含中文
+      const hasChinese = /[\u4e00-\u9fa5]/.test(part);
+      
+      if (hasChinese) {
+        // 中文部分：按字符切分，保留2字以上词组和单个字符
+        // 先提取2字以上连续词组
+        const chineseWords = part.match(/[\u4e00-\u9fa5]{2,}/g) || [];
+        // 提取单个中文字符
+        const singleChars = part.match(/[\u4e00-\u9fa5]/g) || [];
+        
+        tokens.push(...chineseWords);
+        tokens.push(...singleChars);
+        
+        // 同时也保留混合的英文部分
+        const englishParts = part.match(/[a-z0-9]+/g) || [];
+        tokens.push(...englishParts.filter(w => w.length > 1));
+      } else {
+        // 纯英文部分：直接作为token，过滤长度为1的
+        if (part.length > 1) {
+          tokens.push(part);
+        }
+      }
+    }
+    
+    return tokens;
   }
 
   /**

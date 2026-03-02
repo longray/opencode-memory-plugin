@@ -382,9 +382,10 @@ export class VectorStore {
       VALUES (?, ?, ?, ?)
     `);
     
-    const insertVec = this.db.prepare(`
+    // Alternative: use direct SQL execution for vector insertion
+    const insertVecDirect = this.db.prepare(`
       INSERT INTO vec_embeddings (rowid, embedding)
-      VALUES (?, ?)
+      VALUES (CAST(? AS INTEGER), ?)
     `);
 
     this.db.transaction(() => {
@@ -400,9 +401,11 @@ export class VectorStore {
           chunk.index
         );
         
-        // Insert vector
+        // Insert vector - ensure rowid is integer for sqlite-vec
         const vectorBlob = new Float32Array(embedding);
-        insertVec.run(result.lastInsertRowid, vectorBlob);
+        const docId = parseInt(result.lastInsertRowid, 10);
+        console.log(`Debug: lastInsertRowid=${result.lastInsertRowid}, docId=${docId}, type=${typeof docId}`);
+        insertVecDirect.run(docId, vectorBlob);
       }
     })();
 
@@ -548,6 +551,100 @@ export class VectorStore {
       totalChunks: count,
       lastIndexed: metadata?.lastIndexed || null,
       dbPath: VECTOR_DB
+    };
+  }
+
+  /**
+   * Perform search with diagnostic information
+   * Useful for tuning and debugging search quality
+   * 
+   * @param {string} query - Search query
+   * @param {Object} options - Search options
+   * @returns {Promise<{results: Array, diagnostics: Object}>}
+   */
+  async searchWithDiagnostics(query, options = {}) {
+    const startTime = Date.now();
+    
+    if (!this.initialized) {
+      const initResult = await this.initialize();
+      if (!initResult.success) {
+        throw new Error('External embedding service not accessible');
+      }
+    }
+
+    const { 
+      limit = 10, 
+      threshold = 0.5,
+      sourceFile = null 
+    } = options;
+
+    const diagnostics = {
+      query,
+      threshold,
+      limit,
+      totalChunks: this.getIndexedCount(),
+      processingTime: 0,
+      scoreDistribution: {},
+      embeddingTime: 0
+    };
+
+    // Generate query embedding
+    const embedStart = Date.now();
+    const [queryEmbedding] = await this.generateEmbeddings([query]);
+    diagnostics.embeddingTime = Date.now() - embedStart;
+    
+    const queryVector = new Float32Array(queryEmbedding);
+
+    // Get all results above threshold
+    let allSql = `
+      SELECT 
+        d.id, d.content, d.source_file, d.line_number, v.distance
+      FROM documents d
+      JOIN vec_embeddings v ON d.id = v.rowid
+      WHERE vec_distance_cosine(v.embedding, ?) < ?
+    `;
+    const allParams = [queryVector, threshold];
+    
+    if (sourceFile) {
+      allSql += ` AND d.source_file = ?`;
+      allParams.push(sourceFile);
+    }
+    allSql += ` ORDER BY v.distance ASC`;
+
+    const allResults = this.db.prepare(allSql).all(...allParams);
+    const allScores = allResults.map(r => 1 - r.distance);
+    
+    // Calculate score distribution
+    if (allScores.length > 0) {
+      const sorted = [...allScores].sort((a, b) => a - b);
+      diagnostics.scoreDistribution = {
+        count: allScores.length,
+        min: sorted[0],
+        max: sorted[sorted.length - 1],
+        mean: allScores.reduce((a, b) => a + b, 0) / allScores.length,
+        median: sorted[Math.floor(sorted.length / 2)],
+        percentiles: {
+          p25: sorted[Math.floor(sorted.length * 0.25)],
+          p50: sorted[Math.floor(sorted.length * 0.50)],
+          p75: sorted[Math.floor(sorted.length * 0.75)],
+          p90: sorted[Math.floor(sorted.length * 0.90)]
+        }
+      };
+    }
+
+    const topResults = allResults.slice(0, limit).map(r => ({
+      id: r.id,
+      content: r.content,
+      source: r.source_file,
+      line: r.line_number,
+      score: 1 - r.distance
+    }));
+
+    diagnostics.processingTime = Date.now() - startTime;
+
+    return {
+      results: topResults,
+      diagnostics
     };
   }
 

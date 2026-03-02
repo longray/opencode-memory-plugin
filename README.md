@@ -21,17 +21,17 @@
   ### Available Tools (8)
 
 | Tool | Description | Status |
-  |------|-------------|--------|
-  | `memory_write` | Write entries to long-term memory | ✅ Working |
-  | `memory_read` | Read from memory files | ✅ Working |
-  | `memory_search` | Keyword search across memory | ✅ Working |
-  | `vector_memory_search` | Semantic search with embeddings | ✅ Working |
-  | `list_daily` | List available daily logs | ✅ Working |
-  | `init_daily` | Initialize today's daily log | ✅ Working |
-  | `rebuild_index` | Rebuild vector index | ✅ Working |
-  | `index_status` | Check system status | ✅ Working |
+|------|-------------|--------|
+| `memory_write` | Write entries to long-term memory | ✅ Working |
+| `memory_read` | Read from memory files | ✅ Working |
+| `memory_search` | Keyword search across memory | ✅ Working |
+| `vector_memory_search` | Semantic search with embeddings | ⚠️ Limited in Bun* |
+| `list_daily` | List available daily logs | ✅ Working |
+| `init_daily` | Initialize today's daily log | ✅ Working |
+| `rebuild_index` | Rebuild vector index | ⚠️ Limited in Bun* |
+| `index_status` | Check system status | ✅ Working |
 
-*Note: `vector_memory_search` supports vector, keyword, and hybrid search modes. When embedding model is unavailable, it falls back to keyword search.
+*Note: In Bun runtime, `vector_memory_search` and `rebuild_index` fall back to BM25 keyword search because `better-sqlite3` is not yet supported. All other tools work normally. See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for status.
 
 ### One-Command Installation (Recommended)
 
@@ -43,12 +43,30 @@ npm install -g @csuwl/opencode-memory-plugin
 # All tools are immediately available in OpenCode
 ```
 
-**What happens automatically**:
-- ✅ Creates memory directory (`~/.opencode/memory/`)
-- ✅ Copies all 9 core memory files
-- ✅ Generates configuration (v2.0)
-- ✅ **Registers 8 tools with OpenCode**
-- ✅ Tools ready to use immediately
+## Troubleshooting
+
+### Bun Runtime Support
+
+The plugin works in Bun runtime with some limitations:
+
+**What Works:**
+- ✅ All 8 tools (memory_write, memory_read, memory_search, list_daily, init_daily, index_status)
+- ✅ BM25 keyword search
+- ✅ Full memory persistence
+- ✅ All automation agents
+
+**Limitations:**
+- ⚠️ Vector search (`vector_memory_search`) falls back to BM25
+- ⚠️ Index rebuilding (`rebuild_index`) uses BM25 only
+- ⚠️ Semantic search not available in Bun
+
+**Reason:** Bun does not yet support `better-sqlite3`, which is required for vector storage.
+
+**Status:** See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for implementation progress.
+
+**Workaround:** The plugin automatically falls back to BM25 keyword search, so all basic functionality works normally. When Bun fully supports V8 C++ APIs, vector search will automatically restore.
+
+**Recommendation:** Continue using the plugin - keyword search is fast and effective for most use cases. Semantic search will be available when Bun is updated.
 
 ### Verify Installation
 
@@ -75,13 +93,16 @@ npm install -g .
 
 The plugin supports 4 configurable search modes:
 
-| Mode | Description | Speed | Quality | Model Required |
-|------|-------------|-------|---------|----------------|
-| `hybrid` | Vector + BM25 (default) | Medium | ⭐⭐⭐⭐ | ✅ Yes (External Service) |
-| `vector` | Vector-only | Medium | ⭐⭐⭐ | ✅ Yes (External Service) |
-| `bm25` | BM25-only (keywords) | Fast | ⭐⭐ | ❌ No |
-| `hash` | Hash-based (fallback) | Fast | ⭐ | ❌ No |
+| Mode | Description | Speed | Quality | Model Required | Bun Support |
+|------|-------------|-------|---------|---------------|-------------|
+| `hybrid` | Vector + BM25 (default) | Medium | ⭐⭐⭐ | ✅ Yes (External Service) | ⚠️ Limited* |
+| `vector` | Vector-only | Medium | ⭐⭐ | ✅ Yes (External Service) | ⚠️ Limited* |
+| `bm25` | BM25-only (keywords) | Fast | ⭐⭐ | ❌ No | ✅ Full |
+| `hash` | Hash-based (fallback) | Fast | ⭐ | ❌ No | ✅ Full |
+
 **Default**: `hybrid` mode (70% vector + 30% BM25)
+
+*In Bun runtime: Vector search falls back to BM25 because `better-sqlite3` is not yet supported. See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for details. All other tools work normally.
 
 ## 🧠 Available Embedding Models
 

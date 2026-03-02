@@ -1,3 +1,30 @@
+## [1.2.1] - 2026-03-02
+
+### Bug Fixes
+- **Fixed Tool Return Value Format** - All tools now return strings instead of objects for OpenCode API compatibility
+  - Fixed `memory_write`, `memory_read`, `memory_search`, `vector_memory_search`
+  - Fixed `list_daily`, `init_daily`, `rebuild_index`, `index_status`
+  - Resolves `text9.split is not a function` error in OpenCode
+
+### Environment Compatibility
+- **Bun Runtime Support** - Plugin now correctly handles Bun environment limitations
+  - Automatic fallback to BM25 when `better-sqlite3` is not available
+  - See GitHub Issue #4290 for Bun's V8 C++ API implementation status
+  - Vector search gracefully degrades to keyword search when needed
+
+### Testing
+- **Complete Tool Validation** - All 8 tools tested and verified working:
+  - ✅ memory_write, memory_read, memory_search
+  - ✅ list_daily, init_daily, index_status
+  - ⚠️ vector_memory_search, rebuild_index (fallback to BM25 in Bun)
+
+### Documentation
+- **Added Plugin Fix Record** - Comprehensive documentation of the tool return value fix
+- **Added GitHub Issue #4290 Analysis** - Detailed analysis of Bun's better-sqlite3 support status
+- **Updated AGENTS.md** - Memory automation and consolidation strategies
+
+---
+
 ## [1.2.0] - 2026-02-26
 
 ### Major Features

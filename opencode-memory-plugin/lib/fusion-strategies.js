@@ -139,19 +139,8 @@ export function rrfFusion(vectorResults, bm25Results, options = {}) {
     k = 20,  // Phase 3: 优化后的k值 (推荐20-60，越小区分度越高)
     limit = 10
   } = options;
-  const {
-    k = 20,  // Phase 3: 优化后的k值 (原来是60，根据测试结果改为20)
-    limit = 10
-  } = options;
-  const {
-    k = 20,  // Phase 3: 优化后的k值 (原来是60)
-    limit = 10
-  } = options;
-  const {
-    k = 60,  // RRF常数，文献推荐60
-    limit = 10
-  } = options;
   
+  // 创建分数累加器
   // 创建分数累加器
   const scoreMap = new Map();
   

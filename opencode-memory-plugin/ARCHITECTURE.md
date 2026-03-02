@@ -129,14 +129,50 @@ Direct array:
 
 ## Performance Characteristics
 
+### Node.js/OpenCode Environment
 - **Latency**: ~50-100ms per embedding request
 - **Memory Usage**: ~50-100MB RAM (much less than local model)
 - **Scalability**: Can handle multiple concurrent requests via external service
-- **Network Dependency**: Requires connectivity to localhost:18000
+- **Network Dependency**: Requires connectivity to embedding service
+
+### Bun Runtime Environment
+- **Latency**: <1ms per search (BM25 keyword matching)
+- **Memory Usage**: ~50MB RAM (no external dependencies)
+- **Search Quality**: Good keyword matching with BM25 scoring
+- **Limitations**: No vector search (falls back to BM25)
+- **Status**: See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290)
+
+### Performance Comparison
+
+| Environment | Search | Memory | Quality | Embedding Support |
+|-------------|--------|--------|---------|------------------|
+| Node.js (with ModelScope API) | 50-100ms | ~50MB | ⭐⭐⭐⭐ | ✅ Yes |
+| Bun Runtime | <1ms | ~50MB | ⭐⭐ | ⚠️ Fallback to BM25 |
 
 ## Error Handling
 
 - Graceful degradation to keyword search when external service is down
+- Graceful degradation to BM25 when `better-sqlite3` is unavailable (Bun runtime)
 - Dimension validation to prevent index corruption
 - Connection timeout handling
 - Retry logic for transient failures
+
+### Bun Runtime Error Handling
+
+In Bun runtime, the plugin has additional error handling:
+
+1. **Vector Store Initialization Failure**
+   - Detects when `better-sqlite3` is not available
+   - Falls back to BM25-based search automatically
+   - Logs warning message with GitHub issue reference
+
+2. **Graceful Degradation**
+   - `vector_memory_search`: Uses BM25 instead of embeddings
+   - `rebuild_index`: Builds BM25 index instead of vector index
+   - All other tools: Work normally (no degradation)
+
+3. **User Experience**
+   - All tools remain functional
+   - Search quality: Good (BM25 keyword search)
+   - Performance: Faster (no network calls to embedding service)
+   - Error messages: Clear explanations about Bun limitations

@@ -270,6 +270,58 @@ For faster searches:
 2. Use ModelScope API instead of local models
 3. Use a smaller model
 4. Reduce chunk size (faster indexing)
+## Bun Runtime Configuration
+
+If you're running OpenCode in Bun, there are some special considerations:
+
+### Automatic Configuration
+
+The plugin will automatically detect Bun and configure itself accordingly:
+
+```json
+{
+  "version": "2.0",
+  "search": {
+    "mode": "bm25"  // Automatically set in Bun
+  },
+  "embedding": {
+    "enabled": true,
+    "fallbackMode": "bm25"  // Automatic fallback to BM25
+  }
+}
+```
+
+### Limitations in Bun
+
+**What Works:**
+- ✅ All 8 memory tools
+- ✅ BM25 keyword search (fast and effective)
+- ✅ Full memory persistence
+- ✅ All automation agents
+
+**What Doesn't Work:**
+- ⚠️ Vector search (`vector_memory_search` falls back to BM25)
+- ⚠️ Index rebuilding with embeddings (`rebuild_index` uses BM25)
+- ⚠️ Full semantic search with embeddings
+
+**Reason:** Bun does not yet support `better-sqlite3`, which is required for vector storage operations.
+
+**Status:** See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for implementation progress.
+
+**Recommendation:**
+- Continue using the plugin - all basic functionality works
+- Keyword search is fast and effective for most use cases
+- Vector search will be automatically restored when Bun adds V8 C++ API support
+
+### Performance in Bun
+
+| Operation | Time | Notes |
+|-----------|-------|-------|
+| BM25 search | <1ms | Very fast keyword matching |
+| memory_write | <10ms | File append operation |
+| memory_read | <5ms | File read operation |
+| Index rebuild | <5s | BM25-only indexing |
+
 ## Migration from v1.0
 
 The plugin automatically supports v1.0 configs. To upgrade to v2.0:

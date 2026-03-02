@@ -59,19 +59,24 @@ If you prefer to run a local embedding service (fallback option), the plugin sup
 
 The plugin can be configured to connect to a local embedding service at `http://localhost:18000/embeddings`.
 
+### Setup Local Service
+
 ```json
 {
+  "version": "2.0",
   "embedding": {
     "enabled": true,
     "provider": "external",
-    "endpoint": "http://localhost:18000/embeddings",
-    "model": "local-embedding-model",
+    "endpoint": "http://localhost:18000/embeddings",  // Default local service port
+    "model": "Qwen/Qwen3-Embedding-0.6B",
     "fallbackMode": "bm25"
   }
 }
 ```
 
-## Expected API Formats
+### Supported Response Formats
+
+Your local service should return embeddings in one of these formats:
 
 ### ModelScope Inference API (Recommended)
 

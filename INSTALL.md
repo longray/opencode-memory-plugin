@@ -2,14 +2,66 @@
 
 ## Simple Installation (No Docker Required)
 
-The OpenCode Memory Plugin is designed to be simple to install and use. You don't need Docker or complex configurations - just run one script!
+The OpenCode Memory Plugin is designed to be simple to install and use. You don't need Docker or complex configurations - just run one command!
 
-### Step 1: Download the Plugin
+### System Requirements
+
+- **Node.js**: v16 or higher
+- **OpenCode**: Installed and running
+- **Bun Runtime**: Supported with some limitations (see below)
+
+### Step 1: Download Plugin
 
 ```bash
 # Clone the repository
 git clone https://github.com/YOUR_USERNAME/opencode-memory-plugin.git
 cd opencode-memory-plugin
+```
+
+Or download and extract the zip file from GitHub releases.
+
+### Step 2: Run Installation
+
+```bash
+# Run the initialization script
+bash scripts/init.sh
+```
+
+### Step 3: Configure OpenCode
+
+**For Node.js/OpenCode:**
+The plugin will be automatically detected and tools will be available.
+
+**For Bun Runtime:**
+If you're running OpenCode in Bun, you may need to configure the plugin path manually:
+
+1. Edit `~/.config/opencode/opencode.json`
+2. Add the plugin path:
+```json
+{
+  "plugin": [
+    "file:///path/to/opencode-memory-plugin/opencode-memory-plugin/plugin.js"
+  ]
+}
+```
+
+### Bun Runtime Notes
+
+The plugin works in Bun with automatic fallbacks:
+
+- ✅ All tools work normally (memory_write, memory_read, memory_search, etc.)
+- ✅ BM25 keyword search is fully functional
+- ⚠️ Vector search falls back to BM25 (Bun doesn't support `better-sqlite3`)
+- ✅ Memory persistence works completely
+
+For more details, see [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290).
+
+### Step 4: Start Using OpenCode
+
+OpenCode will now automatically have memory in every session!
+
+```bash
+opencode
 ```
 
 Or download and extract the zip file from GitHub releases.
