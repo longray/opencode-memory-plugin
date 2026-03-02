@@ -331,10 +331,20 @@ The plugin supports multiple external embedding services:
   - Use when internet is unavailable or for privacy
 ## 📚 Documentation
 
+### Current Version (v1.2.0)
 - [Configuration Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
 - [Architecture Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/ARCHITECTURE.md) - System architecture and data flows
 - [Quick Start Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/QUICK_START.md) - Getting started with external service
 - [Troubleshooting Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/TROUBLESHOOTING.md) - Deployment and troubleshooting
+
+### Future Development (v2.0 Design)
+- [Design Overview](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_OVERVIEW.md) - SurrealDB integration design overview
+- [Architecture Design](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_ARCHITECTURE.md) - Complete system architecture
+- [Component Specifications](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_COMPONENTS.md) - Core component details
+- [API Specifications](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_API.md) - Wrapper Service API
+- [Development Roadmap](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_ROADMAP.md) - Implementation plan
+
+### External Resources
 - [OpenCode Docs](https://docs.opencode.ai) - Official OpenCode documentation
 
 We welcome contributions! Here's how you can help:
