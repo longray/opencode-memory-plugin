@@ -175,9 +175,11 @@ ${content}
             }
 
             fs.appendFileSync(MEMORY_FILE, entry, 'utf-8');
-
             // Async upload to backend (non-blocking)
+            let backendStatus = '❌ Disabled';
+            let memoryId = null;
             const backendEnabled = config?.backend?.enabled !== false;
+
             if (backendEnabled) {
               const projectId = await resolveProjectId(config);
               const tenantId = config?.backend?.tenant_id || process.env.USERNAME || 'default';
@@ -195,10 +197,13 @@ ${content}
               };
 
               try {
-                await client.uploadMemory(memory);
+                const result = await client.uploadMemory(memory);
+                memoryId = result.id;
+                backendStatus = `✅ Synced (${result.id})`;
               } catch (e) {
                 // Add to queue for retry
                 uploadQueue.addToQueue(memory);
+                backendStatus = `⏳ Queued (${e.message})`;
               }
             }
 
@@ -206,7 +211,8 @@ ${content}
 - Type: ${type}
 - Tags: ${tags.join(', ') || 'none'}
 - File: ${MEMORY_FILE}
-- Length: ${content.length} characters${backendEnabled ? '\n- Sync: Queued for backend upload' : ''}`;
+- Length: ${content.length} characters
+- Backend: ${backendStatus}${memoryId ? `\n- Memory ID: ${memoryId}` : ''}`;
           } catch (e) {
             return `❌ Error writing to memory: ${e.message}`;
           }
