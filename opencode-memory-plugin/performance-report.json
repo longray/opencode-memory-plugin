@@ -1,0 +1,194 @@
+{
+  "timestamp": "2026-03-11T12:28:15.605Z",
+  "results": [
+    {
+      "test": "Single Upload Latency",
+      "stats": {
+        "count": 250,
+        "min": 68,
+        "max": 191,
+        "avg": 89,
+        "p50": 84,
+        "p95": 119,
+        "p99": 161,
+        "total": 22213
+      }
+    },
+    {
+      "test": "Batch Upload Performance",
+      "batches": [
+        {
+          "operation": "batch_upload",
+          "count": 5,
+          "min": 5857,
+          "max": 48816,
+          "avg": 14959,
+          "p50": 6888,
+          "p95": 48816,
+          "p99": 48816,
+          "total": 74793
+        }
+      ]
+    },
+    {
+      "test": "Search Latency",
+      "modes": [
+        {
+          "mode": "keyword",
+          "stats": {
+            "count": 10,
+            "min": 3,
+            "max": 29,
+            "avg": 13,
+            "p50": 7,
+            "p95": 29,
+            "p99": 29,
+            "total": 128
+          }
+        },
+        {
+          "mode": "vector",
+          "stats": {
+            "count": 10,
+            "min": 84,
+            "max": 155,
+            "avg": 116,
+            "p50": 103,
+            "p95": 155,
+            "p99": 155,
+            "total": 1158
+          }
+        },
+        {
+          "mode": "hybrid",
+          "stats": {
+            "count": 10,
+            "min": 42,
+            "max": 106,
+            "avg": 71,
+            "p50": 62,
+            "p95": 106,
+            "p99": 106,
+            "total": 710
+          }
+        }
+      ]
+    },
+    {
+      "test": "Large Scale Import",
+      "total": 1000,
+      "success": 1000,
+      "failed": 0,
+      "duration": 20316,
+      "throughput": 49
+    },
+    {
+      "test": "Concurrent Performance",
+      "stats": [
+        {
+          "operation": "concurrent_upload",
+          "count": 3,
+          "min": 417,
+          "max": 983,
+          "avg": 679,
+          "p50": 637,
+          "p95": 983,
+          "p99": 983,
+          "total": 2037
+        }
+      ]
+    },
+    {
+      "test": "Embedding Performance",
+      "stats": {
+        "count": 4,
+        "min": 104,
+        "max": 192,
+        "avg": 139,
+        "p50": 128,
+        "p95": 192,
+        "p99": 192,
+        "total": 554
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "operation": "single_upload",
+      "count": 250,
+      "min": 68,
+      "max": 191,
+      "avg": 89,
+      "p50": 84,
+      "p95": 119,
+      "p99": 161,
+      "total": 22213
+    },
+    {
+      "operation": "batch_upload",
+      "count": 5,
+      "min": 5857,
+      "max": 48816,
+      "avg": 14959,
+      "p50": 6888,
+      "p95": 48816,
+      "p99": 48816,
+      "total": 74793
+    },
+    {
+      "operation": "search_keyword",
+      "count": 10,
+      "min": 3,
+      "max": 29,
+      "avg": 13,
+      "p50": 7,
+      "p95": 29,
+      "p99": 29,
+      "total": 128
+    },
+    {
+      "operation": "search_vector",
+      "count": 10,
+      "min": 84,
+      "max": 155,
+      "avg": 116,
+      "p50": 103,
+      "p95": 155,
+      "p99": 155,
+      "total": 1158
+    },
+    {
+      "operation": "search_hybrid",
+      "count": 10,
+      "min": 42,
+      "max": 106,
+      "avg": 71,
+      "p50": 62,
+      "p95": 106,
+      "p99": 106,
+      "total": 710
+    },
+    {
+      "operation": "concurrent_upload",
+      "count": 3,
+      "min": 417,
+      "max": 983,
+      "avg": 679,
+      "p50": 637,
+      "p95": 983,
+      "p99": 983,
+      "total": 2037
+    },
+    {
+      "operation": "embedding",
+      "count": 4,
+      "min": 104,
+      "max": 192,
+      "avg": 139,
+      "p50": 128,
+      "p95": 192,
+      "p99": 192,
+      "total": 554
+    }
+  ]
+}
