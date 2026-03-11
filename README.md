@@ -13,6 +13,30 @@
 ## 🎯 Features
 
 - ✅ **Native OpenCode Plugin** - Using @opencode-ai/plugin API for seamless integration
+- ✅ **10 Memory Tools** - All tools available immediately after installation
+- ✅ **SurrealDB Backend** - External memory service with HNSW vector search
+- ✅ **Graph Relations** - Connect memories with semantic relationships
+- ✅ **Project Isolation** - Multi-tenant support with tenant_id and project_id
+- ✅ **Hybrid Mode** - Local files + Backend service with automatic fallback
+- ✅ **Zero Configuration** - Just install and use, no setup required
+- ✅ **OpenClaw-Style Memory** - Complete 9 core memory files (SOUL, AGENTS, USER, IDENTITY, TOOLS, MEMORY, HEARTBEAT, BOOT, BOOTSTRAP)
+
+### Available Tools (10)
+
+| Tool                   | Description                       | Backend Required   |
+| ---------------------- | --------------------------------- | ------------------ |
+| `memory_write`         | Write entries to long-term memory | Syncs to backend   |
+| `memory_read`          | Read from memory files            | Local only         |
+| `memory_search`        | Keyword search                    | Backend + fallback |
+| `vector_memory_search` | Semantic search (hybrid/vector)   | Backend + fallback |
+| `memory_relate`        | Create/query graph relations      | ✅ Yes             |
+| `memory_graph`         | Graph traversal                   | ✅ Yes             |
+| `list_daily`           | List available daily logs         | Local only         |
+| `init_daily`           | Initialize today's daily log      | Local only         |
+| `rebuild_index`        | Sync local files to backend       | ✅ Yes             |
+| `index_status`         | Check system status               | Backend + local    |
+
+- ✅ **Native OpenCode Plugin** - Using @opencode-ai/plugin API for seamless integration
 - ✅ **8 Memory Tools** - All tools available immediately after installation
 - ✅ **Zero Configuration** - Just install and use, no setup required
 - ✅ **OpenClaw-Style Memory** - Complete 9 core memory files (SOUL, AGENTS, USER, IDENTITY, TOOLS, MEMORY, HEARTBEAT, BOOT, BOOTSTRAP)
@@ -20,18 +44,18 @@
 
   ### Available Tools (8)
 
-| Tool | Description | Status |
-|------|-------------|--------|
-| `memory_write` | Write entries to long-term memory | ✅ Working |
-| `memory_read` | Read from memory files | ✅ Working |
-| `memory_search` | Keyword search across memory | ✅ Working |
-| `vector_memory_search` | Semantic search with embeddings | ⚠️ Limited in Bun* |
-| `list_daily` | List available daily logs | ✅ Working |
-| `init_daily` | Initialize today's daily log | ✅ Working |
-| `rebuild_index` | Rebuild vector index | ⚠️ Limited in Bun* |
-| `index_status` | Check system status | ✅ Working |
+| Tool                   | Description                       | Status              |
+| ---------------------- | --------------------------------- | ------------------- |
+| `memory_write`         | Write entries to long-term memory | ✅ Working          |
+| `memory_read`          | Read from memory files            | ✅ Working          |
+| `memory_search`        | Keyword search across memory      | ✅ Working          |
+| `vector_memory_search` | Semantic search with embeddings   | ⚠️ Limited in Bun\* |
+| `list_daily`           | List available daily logs         | ✅ Working          |
+| `init_daily`           | Initialize today's daily log      | ✅ Working          |
+| `rebuild_index`        | Rebuild vector index              | ⚠️ Limited in Bun\* |
+| `index_status`         | Check system status               | ✅ Working          |
 
-*Note: In Bun runtime, `vector_memory_search` and `rebuild_index` fall back to BM25 keyword search because `better-sqlite3` is not yet supported. All other tools work normally. See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for status.
+\*Note: In Bun runtime, `vector_memory_search` and `rebuild_index` fall back to BM25 keyword search because `better-sqlite3` is not yet supported. All other tools work normally. See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for status.
 
 ### One-Command Installation (Recommended)
 
@@ -50,12 +74,14 @@ npm install -g @csuwl/opencode-memory-plugin
 The plugin works in Bun runtime with some limitations:
 
 **What Works:**
+
 - ✅ All 8 tools (memory_write, memory_read, memory_search, list_daily, init_daily, index_status)
 - ✅ BM25 keyword search
 - ✅ Full memory persistence
 - ✅ All automation agents
 
 **Limitations:**
+
 - ⚠️ Vector search (`vector_memory_search`) falls back to BM25
 - ⚠️ Index rebuilding (`rebuild_index`) uses BM25 only
 - ⚠️ Semantic search not available in Bun
@@ -79,6 +105,7 @@ opencode
 ```
 
 All tools work out of the box - no configuration needed!
+
 ### Alternative: Install from Source
 
 ```bash
@@ -89,20 +116,21 @@ cd opencode-memory-plugin
 # Install globally
 npm install -g .
 ```
+
 ## 🔍 Search Modes
 
 The plugin supports 4 configurable search modes:
 
-| Mode | Description | Speed | Quality | Model Required | Bun Support |
-|------|-------------|-------|---------|---------------|-------------|
-| `hybrid` | Vector + BM25 (default) | Medium | ⭐⭐⭐ | ✅ Yes (External Service) | ⚠️ Limited* |
-| `vector` | Vector-only | Medium | ⭐⭐ | ✅ Yes (External Service) | ⚠️ Limited* |
-| `bm25` | BM25-only (keywords) | Fast | ⭐⭐ | ❌ No | ✅ Full |
-| `hash` | Hash-based (fallback) | Fast | ⭐ | ❌ No | ✅ Full |
+| Mode     | Description             | Speed  | Quality | Model Required            | Bun Support  |
+| -------- | ----------------------- | ------ | ------- | ------------------------- | ------------ |
+| `hybrid` | Vector + BM25 (default) | Medium | ⭐⭐⭐  | ✅ Yes (External Service) | ⚠️ Limited\* |
+| `vector` | Vector-only             | Medium | ⭐⭐    | ✅ Yes (External Service) | ⚠️ Limited\* |
+| `bm25`   | BM25-only (keywords)    | Fast   | ⭐⭐    | ❌ No                     | ✅ Full      |
+| `hash`   | Hash-based (fallback)   | Fast   | ⭐      | ❌ No                     | ✅ Full      |
 
 **Default**: `hybrid` mode (70% vector + 30% BM25)
 
-*In Bun runtime: Vector search falls back to BM25 because `better-sqlite3` is not yet supported. See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for details. All other tools work normally.
+\*In Bun runtime: Vector search falls back to BM25 because `better-sqlite3` is not yet supported. See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for details. All other tools work normally.
 
 ## 🧠 Available Embedding Models
 
@@ -110,12 +138,13 @@ The plugin supports multiple embedding options:
 
 ### External API Services (Recommended) ⭐
 
-| Provider | Model | Dimensions | Size | Quality | Speed |
-|----------|-------|------------|------|---------|-------|
-| **ModelScope API** | Qwen3-Embedding-0.6B | 1024 | 0MB | ⭐⭐⭐⭐⭐ | ⚡⚡ |
-| Custom | Your choice | Variable | 0MB | ⭐⭐⭐⭐ | ⚡⚡ |
+| Provider           | Model                | Dimensions | Size | Quality    | Speed |
+| ------------------ | -------------------- | ---------- | ---- | ---------- | ----- |
+| **ModelScope API** | Qwen3-Embedding-0.6B | 1024       | 0MB  | ⭐⭐⭐⭐⭐ | ⚡⚡  |
+| Custom             | Your choice          | Variable   | 0MB  | ⭐⭐⭐⭐   | ⚡⚡  |
 
 **Setup ModelScope API:**
+
 ```bash
 export MODELSCOPE_API_KEY='your-api-key-here'
 ```
@@ -124,11 +153,12 @@ export MODELSCOPE_API_KEY='your-api-key-here'
 
 If you prefer to run your own embedding service:
 
-| Endpoint | Model | Dimensions |
-|----------|-------|------------|
-| `http://localhost:18000/embeddings` | Custom | Dynamic |
+| Endpoint                            | Model  | Dimensions |
+| ----------------------------------- | ------ | ---------- |
+| `http://localhost:18000/embeddings` | Custom | Dynamic    |
 
 **Note**: Configure `endpoint` and `model` in config to use local service.
+
 ## ⚙️ Configuration
 
 The plugin creates a configuration file at `~/.opencode/memory/memory-config.json`:
@@ -136,6 +166,7 @@ The plugin creates a configuration file at `~/.opencode/memory/memory-config.jso
 ### Quick Configuration Examples
 
 **Default (ModelScope API)** - Works out of box:
+
 ```json
 {
   "search": { "mode": "hybrid" },
@@ -149,6 +180,7 @@ The plugin creates a configuration file at `~/.opencode/memory/memory-config.jso
 ```
 
 **Fast Search** (No model, keywords only):
+
 ```json
 {
   "search": { "mode": "bm25" },
@@ -157,6 +189,7 @@ The plugin creates a configuration file at `~/.opencode/memory/memory-config.jso
 ```
 
 **Local Service** (Custom endpoint):
+
 ```json
 {
   "search": { "mode": "vector" },
@@ -166,8 +199,6 @@ The plugin creates a configuration file at `~/.opencode/memory/memory-config.jso
   }
 }
 ```
-
-
 
 For complete configuration guide, see [CONFIGURATION.md](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md).
 
@@ -202,6 +233,7 @@ rebuild_index force=true
 ### ⚠️ Feature Status
 
 **Fully Implemented:**
+
 - `memory_write` - Save memories to long-term storage
 - `memory_read` - Read memory files
 - `memory_search` - Keyword-based text search
@@ -212,6 +244,7 @@ rebuild_index force=true
 - `index_status` - Check system status including vector index info
 
 **Fallback Behavior:**
+
 - When external embedding service is unavailable, `vector_memory_search` falls back to keyword search
 - Network access required to connect to external service endpoint
 
@@ -222,6 +255,7 @@ rebuild_index force=true
 # Organize daily logs
 @memory-consolidate review and consolidate recent memories
 ```
+
 ### CLI Tool (Bonus Feature)
 
 We also include a CLI tool for command-line access:
@@ -233,7 +267,7 @@ opencode-memory write "User prefers TypeScript" --type "preference" --tags "type
 # Read memory
 opencode-memory read
 
-# Search memory  
+# Search memory
 opencode-memory search "typescript"
 
 # List daily logs
@@ -283,6 +317,7 @@ opencode-memory-plugin/
 ### Embedding Service
 
 **Primary Provider**: ModelScope Inference API
+
 - **Endpoint**: `https://api-inference.modelscope.cn/v1/embeddings`
 - **Model**: `Qwen/Qwen3-Embedding-0.6B`
 - **Dimensions**: 1024
@@ -291,12 +326,14 @@ opencode-memory-plugin/
 - **Setup**: Set `MODELSCOPE_API_KEY` environment variable
 
 **Fallback Provider**: Local service (optional)
+
 - **Endpoint**: `http://localhost:18000/embeddings`
 - **Dimensions**: Dynamically detected from response
 - **Latency**: ~50-100ms per request
 - **Inference**: Local (via HTTP API)
 
 **Performance**:
+
 - First search: ~50-100ms (network call + inference)
 - Subsequent searches: ~50-100ms per query
 - Memory usage: ~50-100MB RAM (minimal as embeddings computed externally)
@@ -329,15 +366,18 @@ The plugin supports multiple external embedding services:
   - Multiple pre-configured models available
   - Requires more RAM and CPU
   - Use when internet is unavailable or for privacy
+
 ## 📚 Documentation
 
 ### Current Version (v1.2.0)
+
 - [Configuration Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
 - [Architecture Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/ARCHITECTURE.md) - System architecture and data flows
 - [Quick Start Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/QUICK_START.md) - Getting started with external service
 - [Troubleshooting Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/TROUBLESHOOTING.md) - Deployment and troubleshooting
 
 ### Future Development (v2.0 Design)
+
 - [Design Overview](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_OVERVIEW.md) - SurrealDB integration design overview
 - [Architecture Design](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_ARCHITECTURE.md) - Complete system architecture
 - [Component Specifications](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_COMPONENTS.md) - Core component details
@@ -345,6 +385,7 @@ The plugin supports multiple external embedding services:
 - [Development Roadmap](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_ROADMAP.md) - Implementation plan
 
 ### External Resources
+
 - [OpenCode Docs](https://docs.opencode.ai) - Official OpenCode documentation
 
 We welcome contributions! Here's how you can help:
@@ -380,6 +421,7 @@ MIT License - see [LICENSE](LICENSE) for details
 ### Latest Release: v1.2.0 (2026-02-26)
 
 **New Features**:
+
 - ✨ External embedding services (ModelScope API + local service)
 - ✨ Primary: ModelScope Inference API (Qwen3-Embedding-0.6B, 1024 dimensions)
 - ✨ Fallback: Local embedding service at localhost:18000
@@ -402,11 +444,13 @@ MIT License - see [LICENSE](LICENSE) for details
 ### Previous Releases
 
 **v1.1.3** (2026-02-26):
+
 - 🐛 Fixed ES Module/CommonJS compatibility
 - 🐛 Fixed version mismatch
 - 📝 Updated documentation
 
 **v1.1.2** (2026-02-25):
+
 - 🎉 Native OpenCode Plugin Integration
 - ✅ All 8 tools implemented
 
@@ -414,4 +458,4 @@ For detailed changes, see [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
-*Your OpenCode instance now has perfect memory with native plugin integration! 🧠✨*
+_Your OpenCode instance now has perfect memory with native plugin integration! 🧠✨_

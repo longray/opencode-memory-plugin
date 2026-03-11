@@ -1,24 +1,117 @@
+## [2.0.0] - 2026-03-11
+
+### Major Features - Backend Integration
+
+- **SurrealDB Backend Integration** - Full integration with external memory service
+  - Wrapper service connection at `localhost:17999`
+  - HNSW vector indexing for semantic search
+  - BM25 full-text search with Chinese support
+  - Hybrid search with RRF fusion
+- **Project Isolation** - Multi-level memory organization
+  - `tenant_id`: User-level isolation (OS username)
+  - `project_id`: Project-level isolation (git/packag.json/directory)
+  - `source_id`: Content-based deduplication
+- **Graph Relations** - Connect memories with semantic relationships
+  - `memory_relate` tool: Create/query/delete relations
+  - `memory_graph` tool: Multi-hop graph traversal
+  - Supported relation types: related, follow_up, elaboration, contradiction, reference, derived_from
+
+- **Hybrid Sync Mode** - Local files + Backend service
+  - `memory_write`: Local append + async backend upload
+  - `memory_search`: Backend keyword search with local BM25 fallback
+  - `vector_memory_search`: Backend hybrid/vector search with fallback
+  - `rebuild_index`: Batch sync local files to backend
+
+### Added
+
+- `lib/wrapper-client.js` - HTTP client for backend API
+  - Health checking with automatic retry
+  - Search with 3 modes: vector, keyword, hybrid
+  - Memory upload (single and batch)
+  - Graph relations and traversal
+- `lib/project-resolver.js` - Project ID detection
+  - Environment variable: `MEMORY_PROJECT_ID`
+  - Git remote URL parsing
+  - package.json name field
+  - Directory name fallback
+  - Persistent mappings for multi-directory projects
+- `lib/upload-queue.js` - Failed upload queue
+  - Automatic retry with max 3 attempts
+  - Persistent queue storage
+  - Queue stats and management
+
+- `memory_relate` tool - Graph relations
+  - Create relations between memories
+  - Query incoming/outgoing/both relations
+  - Delete relations
+- `memory_graph` tool - Graph traversal
+  - Multi-hop traversal (depth 1-3)
+  - Find related memories through connections
+
+### Changed
+
+- `memory_write` - Now syncs to backend asynchronously
+- `memory_search` - Uses backend BM25 with local fallback
+- `vector_memory_search` - Uses backend hybrid search with fallback
+- `rebuild_index` - Changed to batch sync to backend
+- `index_status` - Shows backend health and queue status
+- Configuration version updated to 3.0
+
+### Configuration
+
+New `backend` section in `memory-config.json`:
+
+```json
+{
+  "backend": {
+    "enabled": true,
+    "url": "http://localhost:17999",
+    "tenant_id": "your_username",
+    "project_resolution": {
+      "strategy": "auto",
+      "priority": ["env", "git", "package", "dirname"]
+    },
+    "sync": {
+      "mode": "async",
+      "batch_size": 10
+    }
+  }
+}
+```
+
+### Environment Variables
+
+- `MEMORY_BACKEND_URL` - Backend service URL
+- `MEMORY_TENANT_ID` - Override tenant ID
+- `MEMORY_PROJECT_ID` - Override project ID
+
+---
+
 ## [1.2.1] - 2026-03-02
 
 ### Bug Fixes
+
 - **Fixed Tool Return Value Format** - All tools now return strings instead of objects for OpenCode API compatibility
   - Fixed `memory_write`, `memory_read`, `memory_search`, `vector_memory_search`
   - Fixed `list_daily`, `init_daily`, `rebuild_index`, `index_status`
   - Resolves `text9.split is not a function` error in OpenCode
 
 ### Environment Compatibility
+
 - **Bun Runtime Support** - Plugin now correctly handles Bun environment limitations
   - Automatic fallback to BM25 when `better-sqlite3` is not available
   - See GitHub Issue #4290 for Bun's V8 C++ API implementation status
   - Vector search gracefully degrades to keyword search when needed
 
 ### Testing
+
 - **Complete Tool Validation** - All 8 tools tested and verified working:
   - ✅ memory_write, memory_read, memory_search
   - ✅ list_daily, init_daily, index_status
   - ⚠️ vector_memory_search, rebuild_index (fallback to BM25 in Bun)
 
 ### Documentation
+
 - **Added Plugin Fix Record** - Comprehensive documentation of the tool return value fix
 - **Added GitHub Issue #4290 Analysis** - Detailed analysis of Bun's better-sqlite3 support status
 - **Updated AGENTS.md** - Memory automation and consolidation strategies
@@ -28,6 +121,7 @@
 ## [1.2.0] - 2026-02-26
 
 ### Major Features
+
 - **Real Vector Search Implementation** - Full semantic search using @huggingface/transformers embeddings
 - **sqlite-vec Integration** - Vector storage and similarity search using sqlite-vec
 - **Multiple Search Modes** - Support for vector, keyword, and hybrid search
@@ -35,6 +129,7 @@
 - **Enhanced index_status** - Shows vector index status, model, and dimensions
 
 ### Added
+
 - `lib/vector-store.js` - VectorStore class for embeddings and search
   - Uses all-MiniLM-L6-v2 model (384 dimensions) for embeddings
   - Chunks text with configurable size and overlap
@@ -45,6 +140,7 @@
 - `scripts/test-vector-search.sh` - Comprehensive test script
 
 ### Changed
+
 - `vector_memory_search` - Now performs real semantic search with fallback to keyword
 - `rebuild_index` - Fully implemented to index all memory files
 - `index_status` - Returns vector index information
@@ -52,6 +148,7 @@
 - `package.json` - Added `lib/` to files array, version 1.2.0
 
 ### Technical Details
+
 - Uses @huggingface/transformers for embedding generation
 - Uses sqlite-vec for vector operations
 - Uses better-sqlite3 for database
@@ -65,10 +162,11 @@
 ## [1.1.2] - 2026-02-25
 
 ### Major Features
+
 - **Native OpenCode Plugin Integration** - Full implementation using @opencode-ai/plugin API
 - **All 8 Memory Tools Implemented** - Complete tool definitions with proper validation:
   - memory_write - Write entries to long-term memory
-  - memory_read - Read from memory files  
+  - memory_read - Read from memory files
   - memory_search - Keyword search across memory
   - vector_memory_search - Semantic search with embeddings
   - list_daily - List available daily logs
@@ -79,6 +177,7 @@
 - **Production Ready** - 100% test pass rate in Docker
 
 ### Added
+
 - `plugin.js` (407 lines) - OpenCode plugin implementation using tool() function
 - `bin/cli.js` (353 lines) - Command-line interface for direct access
 - `test-tools.mjs` - Comprehensive tool execution tests
@@ -87,38 +186,43 @@
 - Package exports field for proper module resolution
 
 ### Changed
+
 - `bin/install.js` → `bin/install.cjs` - Converted to CommonJS for compatibility
 - Updated package.json with ES module configuration
 - Tools now auto-register with OpenCode on installation
 
 ### Testing
+
 - All 8 tools tested in Docker environment
 - Tool execution tests: 5/5 passed
 - Integration tests: 100% pass rate
 - Performance: <20ms per tool execution
 
 ### Documentation
+
 - Added `OPENCODE_PLUGIN_IMPLEMENTATION_REPORT.md` - Complete implementation details
 - Added `DOCKER_INTEGRATION_TEST_REPORT.md` - Docker testing documentation
 - Added `FINAL_DOCKER_TEST_REPORT_CN.md` - Chinese test report
 - Updated README with OpenCode integration highlights
 
 ### Technical Details
+
 - Implemented with @opencode-ai/plugin v1.1.48
 - Uses tool() function for proper tool definitions
 - Complete error handling and success responses
 - Type-safe with Zod schemas
 - ES modules throughout
 
-
 ## [1.1.1] - 2026-02-24
 
 ### Bug Fixes
+
 - Fixed duplicate config declarations in `tools/vector-memory.ts`
   - Removed redundant `const config` declarations at lines 156 and 168
   - This fixes potential variable scope issues during embedding fallback
 
 ### Docker Environment
+
 - Added comprehensive Docker testing environment
 - Created multiple Dockerfile variants:
   - `Dockerfile` - Standard Docker testing
@@ -133,6 +237,7 @@
 - Added `.dockerignore` for build optimization
 
 ### Testing
+
 - Added comprehensive test scripts:
   - `test-docker.sh` - Basic Docker environment tests
   - `test-functional.sh` - Complete functional test suite
@@ -142,6 +247,7 @@
 - Test automation infrastructure
 
 ### Documentation
+
 - Added `DOCKER_TEST_RESULTS.md` - Docker environment test results
 - Added `FUNCTIONAL_TEST_RESULTS.md` - Functional testing detailed report
 - Added `OPENCODE_REAL_TEST_REPORT.md` - OpenCode integration test results
@@ -151,18 +257,21 @@
 - Added various summary and completion documents
 
 ### Platform Compatibility
+
 - Identified and documented sharp/onnxruntime-node platform issues
 - Explained npm's optionalDependencies mechanism
 - Documented correct Docker installation methods
 - Provided solutions for cross-platform development
 
 ### Improvements
+
 - Enhanced error messages in test scripts
 - Better documentation structure
 - Comprehensive test coverage
 - Real-world usage examples
 
 ### Technical Details
+
 - Package size: 30.3 kB
 - Unpacked size: 119.3 kB
 - Total files: 23
@@ -172,6 +281,7 @@
 ## [1.1.0] - 2026-02-24
 
 ### Major Features
+
 - ✨ True semantic search with @huggingface/transformers
 - ✨ Flexible configuration system (v2.0)
 - ✨ 5 embedding models available
@@ -181,6 +291,7 @@
 - ✨ Complete documentation
 
 ### New Features
+
 - Implemented true vector embeddings using Transformers.js
 - Created configuration system v2.0
 - Added support for 5 embedding models:
@@ -199,12 +310,14 @@
 - Automatic consolidation settings
 
 ### Documentation
+
 - Added `CONFIGURATION.md` with complete configuration guide
 - Updated README with npm installation badges
 - Added detailed usage examples
 - Added configuration comparison tables
 
 ### Installation
+
 - npm global installation now supported
 - Automatic configuration on install
 - Memory directory structure auto-created
@@ -214,7 +327,7 @@
 
 ## Version Summary
 
-| Version | Date | Type | Changes |
-|--------|------|------|---------|
-| 1.1.1 | 2026-02-24 | Patch | Bug fix, testing, documentation |
-| 1.1.0 | 2026-02-24 | Major | True vector search, config v2.0 |
+| Version | Date       | Type  | Changes                         |
+| ------- | ---------- | ----- | ------------------------------- |
+| 1.1.1   | 2026-02-24 | Patch | Bug fix, testing, documentation |
+| 1.1.0   | 2026-02-24 | Major | True vector search, config v2.0 |
