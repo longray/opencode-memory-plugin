@@ -22,14 +22,14 @@
 **What this means for you**:
 
 - All memory tools work the same way
-- `vector_memory_search` now uses backend service exclusively
+- `memory_search` supports all search modes (vector/keyword/hybrid) via backend service
 - Better performance and reliability
 - No need to worry about local vector index management
 
 ## 🎯 Features
 
 - ✅ **Native OpenCode Plugin** - Using @opencode-ai/plugin API for seamless integration
-- ✅ **10 Memory Tools** - All tools available immediately after installation
+- ✅ **9 Memory Tools** - All tools available immediately after installation
 - ✅ **SurrealDB Backend** - External memory service with HNSW vector search
 - ✅ **Graph Relations** - Connect memories with semantic relationships
 - ✅ **Project Isolation** - Multi-tenant support with tenant_id and project_id
@@ -37,20 +37,19 @@
 - ✅ **Zero Configuration** - Just install and use, no setup required
 - ✅ **OpenClaw-Style Memory** - Complete 9 core memory files (SOUL, AGENTS, USER, IDENTITY, TOOLS, MEMORY, HEARTBEAT, BOOT, BOOTSTRAP)
 
-### Available Tools (10)
+### Available Tools (9)
 
-| Tool                   | Description                       | Backend Required   |
-| ---------------------- | --------------------------------- | ------------------ |
-| `memory_write`         | Write entries to long-term memory | Syncs to backend   |
-| `memory_read`          | Read from memory files            | Local only         |
-| `memory_search`        | Keyword search                    | Backend + fallback |
-| `vector_memory_search` | Semantic search (hybrid/vector)   | Backend + fallback |
-| `memory_relate`        | Create/query graph relations      | ✅ Yes             |
-| `memory_graph`         | Graph traversal                   | ✅ Yes             |
-| `list_daily`           | List available daily logs         | Local only         |
-| `init_daily`           | Initialize today's daily log      | Local only         |
-| `rebuild_index`        | Sync local files to backend       | ✅ Yes             |
-| `index_status`         | Check system status               | Backend + local    |
+| Tool            | Description                              | Backend Required   |
+| --------------- | ---------------------------------------- | ------------------ |
+| `memory_write`  | Write entries to long-term memory        | Syncs to backend   |
+| `memory_read`   | Read from memory files                   | Local only         |
+| `memory_search` | All search modes (vector/keyword/hybrid) | Backend + fallback |
+| `memory_relate` | Create/query graph relations             | ✅ Yes             |
+| `memory_graph`  | Graph traversal                          | ✅ Yes             |
+| `list_daily`    | List available daily logs                | Local only         |
+| `init_daily`    | Initialize today's daily log             | Local only         |
+| `rebuild_index` | Sync local files to backend              | ✅ Yes             |
+| `index_status`  | Check system status                      | Backend + local    |
 
 ### One-Command Installation (Recommended)
 
