@@ -2,7 +2,6 @@ import { tool } from '@opencode-ai/plugin/tool';
 import fs from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
-import { getVectorStore } from './lib/vector-store.js';
 import { createBM25Index } from './lib/bm25.js';
 import { getWrapperClient } from './lib/wrapper-client.js';
 import { resolveProjectId } from './lib/project-resolver.js';
@@ -566,15 +565,6 @@ ${totalFailed > 0 ? '⚠️ Failed uploads queued for retry.' : ''}`;
               dailyLogCount = fs.readdirSync(DAILY_DIR).filter(f => f.endsWith('.md')).length;
             }
 
-            // Vector store status (legacy)
-            const vectorStore = getVectorStore();
-            let vectorStatus = { initialized: false };
-            try {
-              vectorStatus = vectorStore.getStatus();
-            } catch {
-              // Vector store not initialized
-            }
-
             // Queue status
             const queueStats = uploadQueue.getQueueStats();
 
@@ -614,11 +604,6 @@ ${totalFailed > 0 ? '⚠️ Failed uploads queued for retry.' : ''}`;
             output += `- Daily logs: ${dailyLogCount} files\n`;
             output += `- Upload queue: ${queueStats.pending} pending, ${queueStats.exhausted} exhausted\n`;
             output += `\n`;
-
-            output += `🔍 Legacy Vector Index:\n`;
-            output += `- Initialized: ${vectorStatus.initialized || false}\n`;
-            output += `- Model: ${vectorStatus.model || 'N/A'}\n`;
-            output += `- Total chunks: ${vectorStatus.totalChunks || 0}\n`;
 
             return output;
           } catch (e) {
