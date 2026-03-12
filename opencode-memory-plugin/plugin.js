@@ -3,9 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
 import { getVectorStore } from './lib/vector-store.js';
-import { BM25Index, createBM25Index } from './lib/bm25.js';
-import { WrapperClient, getWrapperClient } from './lib/wrapper-client.js';
-import { ProjectResolver, resolveProjectId } from './lib/project-resolver.js';
+import { createBM25Index } from './lib/bm25.js';
+import { getWrapperClient } from './lib/wrapper-client.js';
+import { resolveProjectId } from './lib/project-resolver.js';
 import * as uploadQueue from './lib/upload-queue.js';
 
 const HOME = process.env.HOME || process.env.USERPROFILE;
@@ -18,7 +18,7 @@ function getConfig() {
   try {
     const content = fs.readFileSync(CONFIG_FILE, 'utf-8');
     return JSON.parse(content);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -111,7 +111,7 @@ async function fallbackBM25Search(query, limit = 10) {
           });
         }
       });
-    } catch (e) {
+    } catch {
       // Skip files that can't be read
     }
   }
@@ -131,7 +131,7 @@ async function fallbackBM25Search(query, limit = 10) {
   }));
 }
 
-export const MemoryPlugin = async ctx => {
+export const MemoryPlugin = async _ctx => {
   const config = getConfig();
   const client = getWrapperClient(config);
 
@@ -284,7 +284,7 @@ ${content}`;
 
                   return formatBackendResults(results.results, query, 'keyword');
                 }
-              } catch (e) {
+              } catch {
                 // Fall back to local
               }
             }
@@ -309,87 +309,6 @@ ${content}`;
             }
 
             return result;
-          } catch (e) {
-            return `❌ Error searching memory: ${e.message}`;
-          }
-        },
-      }),
-
-      vector_memory_search: tool({
-        description:
-          'Search memory using semantic vector search. Uses backend service for hybrid/vector search with fallback to local BM25.',
-        args: {
-          query: tool.schema.string().describe('The semantic search query'),
-          mode: tool.schema
-            .string()
-            .optional()
-            .default('hybrid')
-            .describe(
-              "Search mode: 'vector' (semantic only), 'keyword' (exact match), or 'hybrid' (both)"
-            ),
-          limit: tool.schema
-            .number()
-            .optional()
-            .default(10)
-            .describe('Maximum number of results to return'),
-          threshold: tool.schema
-            .number()
-            .optional()
-            .default(0.3)
-            .describe('Minimum similarity score (0-1)'),
-        },
-        async execute(args) {
-          const { query, mode, limit, threshold } = args;
-
-          try {
-            const backendEnabled = config?.backend?.enabled !== false;
-            const searchMode = mode || config?.search?.mode || 'hybrid';
-
-            if (backendEnabled) {
-              try {
-                const health = await client.health();
-                if (health.status === 'healthy') {
-                  const projectId = await resolveProjectId(config);
-                  const tenantId = config?.backend?.tenant_id || process.env.USERNAME || 'default';
-
-                  const results = await client.search({
-                    query,
-                    mode: searchMode,
-                    limit: limit || 10,
-                    threshold: threshold || 0.3,
-                    tenant_id: tenantId,
-                    project_id: projectId,
-                  });
-
-                  return formatBackendResults(results.results, query, searchMode);
-                }
-              } catch (e) {
-                // Fall back to local
-              }
-            }
-
-            // Fallback to local BM25
-            const fallbackResults = await fallbackBM25Search(query, limit);
-
-            if (fallbackResults.length === 0) {
-              return `🔍 No matches found for "${query}" (backend unavailable, local fallback)`;
-            }
-
-            let output = `🔍 Found ${fallbackResults.length} matches for "${query}" (local fallback):
-`;
-            fallbackResults.slice(0, 10).forEach(r => {
-              output += `
-  [${r.score.toFixed(2)}] ${r.source}:${r.line}: ${r.text.substring(0, 100)}${r.text.length > 100 ? '...' : ''}`;
-            });
-
-            if (fallbackResults.length > 10) {
-              output += `
-  ... and ${fallbackResults.length - 10} more matches`;
-            }
-
-            output += `\n\n⚠️ Backend service unavailable. Using local BM25 search instead.`;
-
-            return output;
           } catch (e) {
             return `❌ Error searching memory: ${e.message}`;
           }
@@ -445,7 +364,7 @@ ${content}`;
       init_daily: tool({
         description: "Initialize today's daily log file if it doesn't exist.",
         args: {},
-        async execute(args) {
+        async execute(_args) {
           try {
             const today = new Date().toISOString().split('T')[0];
             const dailyFile = path.join(DAILY_DIR, `${today}.md`);
@@ -560,7 +479,7 @@ ${content}`;
                     });
                   }
                 }
-              } catch (e) {
+              } catch {
                 // Skip files that can't be read
               }
             }
@@ -594,7 +513,7 @@ ${entries
                 const result = await client.uploadMemories(batch);
                 totalSuccess += result.success;
                 totalFailed += result.failed;
-              } catch (e) {
+              } catch {
                 totalFailed += batch.length;
                 // Add failed entries to queue for retry
                 batch.forEach(entry => uploadQueue.addToQueue(entry));
@@ -618,7 +537,7 @@ ${totalFailed > 0 ? '⚠️ Failed uploads queued for retry.' : ''}`;
       index_status: tool({
         description: 'Check the status of the memory system including backend service health.',
         args: {},
-        async execute(args) {
+        async execute(_args) {
           try {
             const backendEnabled = config?.backend?.enabled !== false;
             let backendStatus = null;
@@ -652,7 +571,7 @@ ${totalFailed > 0 ? '⚠️ Failed uploads queued for retry.' : ''}`;
             let vectorStatus = { initialized: false };
             try {
               vectorStatus = vectorStore.getStatus();
-            } catch (e) {
+            } catch {
               // Vector store not initialized
             }
 
@@ -780,7 +699,7 @@ ${totalFailed > 0 ? '⚠️ Failed uploads queued for retry.' : ''}`;
               const result = await client.getRelations({
                 memory_id,
                 direction: direction || 'both',
-                relationship_type,
+                relationship_type: relation_type,
               });
 
               if (!result.relations || result.relations.length === 0) {

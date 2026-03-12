@@ -8,14 +8,6 @@
  * @version 1.0.0
  */
 
-import { createHash } from 'crypto';
-import fs from 'fs';
-import path from 'path';
-
-const HOME = process.env.HOME || process.env.USERPROFILE;
-const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
-const QUEUE_FILE = path.join(MEMORY_DIR, 'upload-queue.json');
-
 /**
  * Wrapper API 错误分类
  */
@@ -168,30 +160,6 @@ export class WrapperClient {
   async isHealthy() {
     const health = await this.health();
     return health.status === 'healthy';
-  }
-
-  /**
-   * 获取文本嵌入向量
-   * @param {string} text - 输入文本
-   * @param {string} model - 模型名称 (可选)
-   * @returns {Promise<number[]>} - 1024维向量
-   */
-  async getEmbedding(text, model = 'Qwen3-Embedding-0.6B') {
-    const response = await withRetry(
-      () =>
-        this.http.post('/v1/embeddings', {
-          input: text,
-          model,
-          encoding_format: 'float',
-        }),
-      this.maxRetries
-    );
-
-    if (response.data && response.data[0] && response.data[0].embedding) {
-      return response.data[0].embedding;
-    }
-
-    throw new WrapperError('Invalid embedding response format', 500, false);
   }
 
   /**

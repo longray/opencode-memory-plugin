@@ -1,4 +1,221 @@
-# 📚 OpenCode Memory Plugin 代码质量标准
+# 📚 OpenCode Memory Plugin - 架构文档
+
+**版本**: v2.1.0  
+**状态**: 实施中  
+**项目**: @csuwl/opencode-memory-plugin
+**更新时间**: 2026-03-12
+
+---
+
+## 📋 架构概览
+
+### 统一 API 入口
+
+插件仅通过 **Wrapper 服务（端口 17999）**访问所有后端功能，不再直接访问 Embedding 服务或 Meilisearch。
+
+```javascript
+// 用户请求 → 插件 → Wrapper 服务
+Wrapper Client (localhost:17999)
+  ├─ POST /api/v1/memories/search  // 搜索记忆
+ ├─ POST /api/v1/memories         // 上传记忆
+ ├─ POST /api/v1/memories/relations  // 创建关系
+ ├─ POST /api/v1/memories/{id}/relations // 查询关系
+ ├─ DELETE /api/v1/memories/relations/{id}  // 删除关系
+ ├─ POST /api/v1/memories/{id}/graph  // 图遍历
+ └─ WebSocket /ws/memories/live      // 实时推送
+```
+
+### 服务职责划分
+
+| 服务             | 端口  | 职责              | 说明                    |
+| ---------------- | ----- | ----------------- | ----------------------- |
+| **Wrapper 服务** | 17999 | 统一 API 网关     | ✅ 对外提供所有功能     |
+| Embedding 服务   | 18000 | 向量生成          | ⚠️ 内部服务，不对外暴露 |
+| LLM 服务         | 18001 | 文本生成          | ⚠️ 内部服务，不对外暴露 |
+| SurrealDB        | 08002 | 向量存储 + 图关系 | ⚠️ 内部服务，不对外暴露 |
+| Meilisearch      | 18003 | 全文搜索          | ⚠️ 内部服务，不对外暴露 |
+
+### 数据流
+
+```mermaid
+graph LR
+    A[用户] --> B[OpenCode Plugin]
+    B --> C[Wrapper Service:17999]
+    C --> D[SurrealDB:18002]
+    C --> E[Meilisearch:18003]
+    C --> F[Embedding Service:18000]
+```
+
+---
+
+## 🔒 安全架构
+
+### 单一入口点
+
+✅ **仅 Wrapper 服务对外暴露**（端口 17999）
+
+- 所有请求通过 Wrapper 服务认证和路由
+- 内部服务（18000, 18001, 18002, 18003）仅监听本地回环地址
+- 无需配置额外的防火墙规则
+
+### 服务隔离
+
+- **网络隔离**: 内部服务仅监听 localhost
+- **认证隔离**: Wrapper 服务统一管理认证逻辑
+- **依赖隔离**: Embedding 服务仅被 Wrapper 调用
+
+### 权限控制
+
+- **当前状态**: 所有端点公开访问
+- **未来计划**: 添加 API Key 认证机制
+
+---
+
+## 📦 可用工具（更新）
+
+| 工具                   | 功能          | 状态    | 后端依赖            |
+| ---------------------- | ------------- | ------- | ------------------- |
+| `memory_write`         | 写入记忆      | ✅ 正常 | ✅ Wrapper 服务     |
+| `memory_read`          | 读取记忆文件  | ✅ 正常 | - 本地文件          |
+| `memory_search`        | 关键词搜索    | ✅ 正常 | ✅ Wrapper 服务     |
+| `list_daily`           | 列出日志      | ✅ 正常 | - 本地文件          |
+| `init_daily`           | 初始化日志    | ✅ 正常 | - 本地文件          |
+| `rebuild_index`        | 同步到后端    | ✅ 正常 | ✅ Wrapper 服务     |
+| `index_status`         | 状态检查      | ✅ 正常 | ✅ Wrapper 服务     |
+| `memory_relate`        | 创建/查询关系 | ✅ 正常 | ✅ Wrapper 服务     |
+| `memory_graph`         | 图遍历        | ✅ 正常 | ✅ Wrapper 服务     |
+| `vector_memory_search` | ❌ 已移除     | ❌ -    | ️ 改用 memory_search |
+
+**移除的工具**:
+
+- ❌ `vector_memory_search` - 已移除（统一使用 `memory_search`）
+- ❌ 直接访问 Embedding 服务的代码 - 已移除
+
+---
+
+## 🔧 配置说明
+
+### 环境变量
+
+| 变量名               | 说明         | 默认值                   |
+| -------------------- | ------------ | ------------------------ |
+| `MEMORY_BACKEND_URL` | 后端服务地址 | `http://localhost:17999` |
+| `MEMORY_TENANT_ID`   | 租户 ID      | `default`                |
+
+### 配置文件（~/.opencode/memory/memory-config.json）
+
+```json
+{
+  "version": "2.1.0",
+  "search": {
+    "mode": "hybrid"
+  },
+  "backend": {
+    "enabled": true,
+    "url": "http://localhost:17999",
+    "tenant_id": "default"
+  },
+  "auto_save": true,
+  "consolidation": {
+    "enabled": true,
+    "run_daily": true
+  }
+}
+```
+
+---
+
+## 🚀 快速开始
+
+### 安装
+
+```bash
+npm install -g @csuwl/opencode-memory-plugin
+```
+
+### 验证安装
+
+```bash
+# 启动 OpenCode
+opencode
+
+# 验证后端服务
+index_status
+```
+
+### 使用示例
+
+```bash
+# 写入记忆
+memory_write content="用户偏好 TypeScript" type="preference" tags=["typescript","code-style"]
+
+# 搜索记忆
+memory_search query="async patterns" mode="hybrid"
+
+# 创建关系
+memory_relate from_id="id1" to_id="id2" relationship_type="related"
+
+# 图遍历
+memory_graph memory_id="id1" depth=2
+```
+
+---
+
+## 📊 版本历史
+
+### v2.1.0 (2026-03-12)
+
+**重大变更**:
+
+- 🏗️ **架构重构**: 统一 API 入口，仅通过 Wrapper 服务（17999）访问
+- ❌ 移除 `vector_memory_search` 工具
+- ❌ 移除直接访问 Embedding 服务的代码
+- ✅ 删除未使用的 `embedding` 配置
+- ✅ 简化配置文件结构
+
+**影响**:
+
+- 所有搜索功能通过 `memory_search` 统一调用
+- Embedding 服务（18000）成为内部服务
+- 安全性提升：单一入口点
+
+### v2.0.0 (2026-02-26)
+
+**初始版本**:
+
+- ✅ 后端 SurrealDB 集成
+- ✅ 10 个记忆工具
+- ✅ OpenClaw 风格记忆文件
+- ✅ 向量搜索 + 关键词搜索
+- ✅ 图关系支持
+
+---
+
+## 🎯 核心价值
+
+### 简化
+
+✅ **统一接口** - 所有操作通过 Wrapper 服务
+✅ **清晰架构** - 明确的职责划分
+✅ **易于维护** - 减少服务间依赖
+
+### 安全
+
+✅ **单一入口** - 简化认证和授权
+✅ **服务隔离** - 内部服务仅本地访问
+✅ **可扩展** - 易于添加新功能
+
+---
+
+## 🔗 相关链接
+
+- [项目 README](../README.npm.md)
+- [配置指南](../CONFIGURATION.md)
+- [后端服务文档](../../embedding_service/README.md)
+
+---
+
+_最后更新: 2026-03-12_
 
 > **版本**: 1.0.0  
 > **状态**: 实施中  
