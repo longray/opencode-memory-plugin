@@ -10,6 +10,22 @@
 [![External Services](https://img.shields.io/badge/Embedding-External%20Services-blue.svg)](https://github.com/csuwl/opencode-memory-plugin#-external-embedding-service)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/opencode-memory-plugin/blob/main/LICENSE)
 
+## 🔄 Architecture Update (v2.1.0+)
+
+**Plugin Architecture Simplified**: The plugin now uses a **backend-first architecture**:
+
+- ✅ **All vector search** is handled by the backend service (localhost:17999)
+- ✅ **No local vector storage** in the plugin (removed better-sqlite3 dependency)
+- ✅ **No Bun compatibility issues** - plugin works seamlessly in all runtimes
+- ✅ **Simplified codebase** - removed 1300+ lines of vector storage code
+
+**What this means for you**:
+
+- All memory tools work the same way
+- `vector_memory_search` now uses backend service exclusively
+- Better performance and reliability
+- No need to worry about local vector index management
+
 ## 🎯 Features
 
 - ✅ **Native OpenCode Plugin** - Using @opencode-ai/plugin API for seamless integration
@@ -36,27 +52,6 @@
 | `rebuild_index`        | Sync local files to backend       | ✅ Yes             |
 | `index_status`         | Check system status               | Backend + local    |
 
-- ✅ **Native OpenCode Plugin** - Using @opencode-ai/plugin API for seamless integration
-- ✅ **8 Memory Tools** - All tools available immediately after installation
-- ✅ **Zero Configuration** - Just install and use, no setup required
-- ✅ **OpenClaw-Style Memory** - Complete 9 core memory files (SOUL, AGENTS, USER, IDENTITY, TOOLS, MEMORY, HEARTBEAT, BOOT, BOOTSTRAP)
-- ✅ **Keyword Search** - Fast text-based search across all memory files
-
-  ### Available Tools (8)
-
-| Tool                   | Description                       | Status              |
-| ---------------------- | --------------------------------- | ------------------- |
-| `memory_write`         | Write entries to long-term memory | ✅ Working          |
-| `memory_read`          | Read from memory files            | ✅ Working          |
-| `memory_search`        | Keyword search across memory      | ✅ Working          |
-| `vector_memory_search` | Semantic search with embeddings   | ⚠️ Limited in Bun\* |
-| `list_daily`           | List available daily logs         | ✅ Working          |
-| `init_daily`           | Initialize today's daily log      | ✅ Working          |
-| `rebuild_index`        | Rebuild vector index              | ⚠️ Limited in Bun\* |
-| `index_status`         | Check system status               | ✅ Working          |
-
-\*Note: In Bun runtime, `vector_memory_search` and `rebuild_index` fall back to BM25 keyword search because `better-sqlite3` is not yet supported. All other tools work normally. See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for status.
-
 ### One-Command Installation (Recommended)
 
 ```bash
@@ -68,29 +63,6 @@ npm install -g @csuwl/opencode-memory-plugin
 ```
 
 ## Troubleshooting
-
-### Bun Runtime Support
-
-The plugin works in Bun runtime with some limitations:
-
-**What Works:**
-
-- ✅ All 8 tools (memory_write, memory_read, memory_search, list_daily, init_daily, index_status)
-- ✅ BM25 keyword search
-- ✅ Full memory persistence
-- ✅ All automation agents
-
-**Limitations:**
-
-- ⚠️ Vector search (`vector_memory_search`) falls back to BM25
-- ⚠️ Index rebuilding (`rebuild_index`) uses BM25 only
-- ⚠️ Semantic search not available in Bun
-
-**Reason:** Bun does not yet support `better-sqlite3`, which is required for vector storage.
-
-**Status:** See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for implementation progress.
-
-**Workaround:** The plugin automatically falls back to BM25 keyword search, so all basic functionality works normally. When Bun fully supports V8 C++ APIs, vector search will automatically restore.
 
 **Recommendation:** Continue using the plugin - keyword search is fast and effective for most use cases. Semantic search will be available when Bun is updated.
 
@@ -121,16 +93,14 @@ npm install -g .
 
 The plugin supports 4 configurable search modes:
 
-| Mode     | Description             | Speed  | Quality | Model Required            | Bun Support  |
-| -------- | ----------------------- | ------ | ------- | ------------------------- | ------------ |
-| `hybrid` | Vector + BM25 (default) | Medium | ⭐⭐⭐  | ✅ Yes (External Service) | ⚠️ Limited\* |
-| `vector` | Vector-only             | Medium | ⭐⭐    | ✅ Yes (External Service) | ⚠️ Limited\* |
-| `bm25`   | BM25-only (keywords)    | Fast   | ⭐⭐    | ❌ No                     | ✅ Full      |
-| `hash`   | Hash-based (fallback)   | Fast   | ⭐      | ❌ No                     | ✅ Full      |
+| Mode     | Description             | Speed  | Quality | Backend Required |
+| -------- | ----------------------- | ------ | ------- | ---------------- |
+| `hybrid` | Vector + BM25 (default) | Medium | ⭐⭐⭐  | ✅ Yes           |
+| `vector` | Vector-only             | Medium | ⭐⭐    | ✅ Yes           |
+| `bm25`   | BM25-only (keywords)    | Fast   | ⭐⭐    | ❌ No            |
+| `hash`   | Hash-based (fallback)   | Fast   | ⭐      | ❌ No            |
 
 **Default**: `hybrid` mode (70% vector + 30% BM25)
-
-\*In Bun runtime: Vector search falls back to BM25 because `better-sqlite3` is not yet supported. See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for details. All other tools work normally.
 
 ## 🧠 Available Embedding Models
 
@@ -301,9 +271,7 @@ opencode-memory-plugin/
 │   ├── uninstall.sh        # Uninstall script
 │   └── test-memory-functions.sh # Test script
 ├── lib/                 # Core library files
-│   ├── vector-store.js    # Vector storage and external API integration
-│   ├── bm25.js            # BM25 keyword search algorithm
-│   └── service-validator.js # External service validation utility
+│   └── bm25.js            # BM25 keyword search algorithm
 ├── bin/                 # CLI and install scripts
 │   ├── cli.cjs            # Command-line interface
 │   └── install.cjs        # NPM install hook
@@ -313,6 +281,8 @@ opencode-memory-plugin/
 ```
 
 ## 🔬 Under the Hood
+
+> **Note**: The following describes the backend service implementation. The plugin itself is now lightweight and delegates all vector operations to the backend service at `localhost:17999`.
 
 ### Embedding Service
 
