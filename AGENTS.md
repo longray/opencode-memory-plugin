@@ -1,8 +1,15 @@
 # AGENTS.md - OpenCode Memory Plugin 核心指南
 
-**生成时间**: 2026-02-28  
+**生成时间**: 2026-03-16  
 **分支**: main  
-**当前版本**: v1.2.0
+**当前版本**: v1.2.1
+
+## 📝 最近更新 (2026-03-16)
+
+- ✅ 实现 daily 日志路由功能（memory_write 支持 type="daily"）
+- ✅ 自动创建 daily/YYYY-MM-DD.md 文件
+- ✅ memory-automation 代理支持智能识别 daily 类型
+- ✅ 完善数据一致性分析和智能增量同步设计
 
 ## 🔧 快速上手
 

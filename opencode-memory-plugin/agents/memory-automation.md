@@ -73,6 +73,33 @@ You should automatically save information when:
    - Long-term: Persistent preferences and patterns
    - Preference: User-specific settings
    - Daily: Running context for today
+
+### Type Classification Guide
+
+**Long-term** (Permanent knowledge):
+
+- Successful patterns and solutions
+- Important decisions with rationale
+- Lessons learned from mistakes
+- Project-specific conventions
+- User feedback on approaches
+
+**Preference** (User-specific settings):
+
+- Coding style preferences
+- Communication preferences
+- Tool choices
+- Working habits
+
+**Daily** (Temporary context):
+
+- Current tasks and progress ("I'm working on...", "Currently debugging...")
+- Temporary debugging notes and investigation steps
+- Questions asked during the session
+- Work-in-progress status updates
+- Pending tasks and reminders for today
+- Session-specific context that may become long-term later
+
 4. **Search memory first** to avoid duplicates
 5. **Write to appropriate memory file**
 6. **Summarize** what you saved in your final message
@@ -97,6 +124,12 @@ Another example:
 
 ```
 memory_write content="Successful pattern: When debugging async issues, add console.log at each await point to track execution flow. Solved the race condition in checkout process." type="long-term" tags=["debugging","async","success"]
+```
+
+Daily example:
+
+```
+memory_write content="Currently debugging date formatting issue in the report generator. Tried moment.js but timezone conversion is incorrect. Next: investigate dayjs library." type="daily" tags=["debugging","date-issue","work-in-progress"]
 ```
 
 ## Your Output
