@@ -390,7 +390,7 @@ async search({ query, mode = 'hybrid', limit = 10, threshold = 0.3 }) {
 - 返回前 10 个匹配结果
 ```
 
-**vector_memory_search** (第 191-322 行):
+**memory_search** (第 191-322 行):
 
 ```javascript
 // 当前实现：调用 VectorStore
@@ -413,7 +413,7 @@ async search({ query, mode = 'hybrid', limit = 10, threshold = 0.3 }) {
 
 1. **Phase 1**: 仅集成 MemoryManager 到 memory_write 和 memory_read
 2. **Phase 2**: 实现 NetworkChecker 和 WrapperClient
-3. **Phase 3**: 集成到 vector_memory_search
+3. **Phase 3**: 集成到 memory_search
 4. **Phase 4**: 实现自动上传功能
 
 #### 策略 2：一次性重构
@@ -561,10 +561,10 @@ memory_read: tool({
 
 按照上述 NetworkChecker 和 WrapperClient 的实现步骤完成。
 
-#### Phase 3: 集成到 vector_memory_search (1h)
+#### Phase 3: 集成到 memory_search (1h)
 
 ```javascript
-vector_memory_search: tool({
+memory_search: tool({
   description:
     "Search memory using semantic vector search with remote service support.",
   args: {
@@ -713,7 +713,7 @@ memory_upload: tool({
 - ✅ 项目标签自动检测
 - ✅ 文件映射规则正确
 - ✅ 向后兼容现有功能
-- ✅ vector_memory_search 支持远程服务
+- ✅ memory_search 支持远程服务
 
 ### 5.3 测试计划
 
@@ -789,7 +789,7 @@ describe("MemoryManager Integration", () => {
 ### Day 3: Plugin.js 集成
 
 - **Morning**: 集成 MemoryManager 到 memory_write + memory_read
-- **Afternoon**: 集成 NetworkChecker 和 WrapperClient 到 vector_memory_search
+- **Afternoon**: 集成 NetworkChecker 和 WrapperClient 到 memory_search
 - **Evening**: 集成测试
 
 ### Day 4: 测试和修复
@@ -808,12 +808,12 @@ describe("MemoryManager Integration", () => {
 
 ## 📊 七、风险和缓解
 
-| 风险           | 影响                            | 概率 | 缓解措施              |
-| -------------- | ------------------------------- | ---- | --------------------- |
-| 外部服务不可用 | vector_memory_search 回退到本地 | 中   | 完善的回退机制        |
-| 网络检查失败   | 状态不准确                      | 低   | 超时重试 + 错误日志   |
-| 向后兼容性破坏 | 现有功能失效                    | 低   | 渐进式集成 + 充分测试 |
-| 性能下降       | 8 标签增加处理时间              | 低   | 优化标签生成逻辑      |
+| 风险           | 影响                     | 概率 | 缓解措施              |
+| -------------- | ------------------------ | ---- | --------------------- |
+| 外部服务不可用 | memory_search 回退到本地 | 中   | 完善的回退机制        |
+| 网络检查失败   | 状态不准确               | 低   | 超时重试 + 错误日志   |
+| 向后兼容性破坏 | 现有功能失效             | 低   | 渐进式集成 + 充分测试 |
+| 性能下降       | 8 标签增加处理时间       | 低   | 优化标签生成逻辑      |
 
 ---
 
@@ -837,7 +837,7 @@ describe("MemoryManager Integration", () => {
 
 - ✅ memory_write 响应时间 < 100ms
 - ✅ memory_read 响应时间 < 50ms
-- ✅ vector_memory_search 响应时间 < 200ms
+- ✅ memory_search 响应时间 < 200ms
 
 ### 向后兼容性
 

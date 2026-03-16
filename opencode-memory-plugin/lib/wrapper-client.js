@@ -20,6 +20,16 @@ export class WrapperError extends Error {
   }
 }
 
+export class DuplicateError extends WrapperError {
+  constructor(message, duplicateType, existingId, similarity = null) {
+    super(message, 409, false);
+    this.name = 'DuplicateError';
+    this.duplicateType = duplicateType;
+    this.existingId = existingId;
+    this.similarity = similarity;
+  }
+}
+
 /**
  * HTTP 请求包装类
  */
@@ -205,7 +215,19 @@ export class WrapperClient {
     }
 
     if (result.errors && result.errors.length > 0) {
-      throw new WrapperError(result.errors[0], 400, false);
+      const error = result.errors[0];
+
+      if (typeof error === 'object' && error.type === 'duplicate') {
+        throw new DuplicateError(
+          error.message,
+          error.duplicate_type,
+          error.existing_id,
+          error.similarity
+        );
+      }
+
+      const errorMessage = typeof error === 'string' ? error : error.message || 'Upload failed';
+      throw new WrapperError(errorMessage, 400, false);
     }
 
     throw new WrapperError('Upload failed', 500, true);

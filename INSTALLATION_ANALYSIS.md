@@ -1,6 +1,7 @@
 # OpenCode Memory Plugin - 安装流程深度分析
 
 ## 📋 目录
+
 1. [执行入口](#执行入口)
 2. [安装阶段](#安装阶段)
 3. [配置生成](#配置生成)
@@ -16,6 +17,7 @@
 ### npm install 触发机制
 
 当用户执行：
+
 ```bash
 npm install -g @csuwl/opencode-memory-plugin
 ```
@@ -44,6 +46,7 @@ npm install -g @csuwl/opencode-memory-plugin
 ```
 
 **关键点**:
+
 - `"scripts": { "install": "node bin/install.cjs" }` - npm install 时自动执行
 - `"main": "plugin.js"` - OpenCode 加载插件的入口点
 - `"bin"` - 全局 CLI 命令注册
@@ -72,16 +75,18 @@ Step 5/5: Initializing today's daily log...
 ### 1. 目录结构创建
 
 **路径定义** (install.cjs: 24-37):
+
 ```javascript
 const HOME = process.env.HOME || process.env.USERPROFILE;
-const MEMORY_ROOT = path.join(HOME, '.opencode');
-const MEMORY_DIR = path.join(MEMORY_ROOT, 'memory');
-const DAILY_DIR = path.join(MEMORY_DIR, 'daily');
-const OPENCORE_CONFIG_DIR = path.join(HOME, '.config', 'opencode');
-const OPENCORE_CONFIG = path.join(OPENCORE_CONFIG_DIR, 'opencode.json');
+const MEMORY_ROOT = path.join(HOME, ".opencode");
+const MEMORY_DIR = path.join(MEMORY_ROOT, "memory");
+const DAILY_DIR = path.join(MEMORY_DIR, "daily");
+const OPENCORE_CONFIG_DIR = path.join(HOME, ".config", "opencode");
+const OPENCORE_CONFIG = path.join(OPENCORE_CONFIG_DIR, "opencode.json");
 ```
 
 **创建的目录** (install.cjs: 334-341):
+
 ```bash
 ~/.opencode/
 └── memory/                    # 记忆系统根目录
@@ -92,6 +97,7 @@ const OPENCORE_CONFIG = path.join(OPENCORE_CONFIG_DIR, 'opencode.json');
 ```
 
 **实现函数**:
+
 ```javascript
 function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) {
@@ -106,35 +112,37 @@ function ensureDir(dirPath) {
 
 **9个核心记忆文件** (install.cjs: 41-51):
 
-| 文件 | 大小 | 用途 |
-|------|------|------|
-| SOUL.md | 959B | AI 助手个性、语调、边界 |
-| AGENTS.md | 2.5KB | 操作指令和记忆规则 |
-| USER.md | 986B | 用户画像和偏好 |
-| IDENTITY.md | 1.2KB | AI 助手身份标识 |
-| TOOLS.md | 3KB | 工具使用约定 |
-| MEMORY.md | 557B | 长期记忆（初始为空） |
-| HEARTBEAT.md | 721B | 健康检查清单 |
-| BOOT.md | 1.1KB | 启动检查清单 |
-| BOOTSTRAP.md | 2.4KB | 一次性初始化仪式 |
+| 文件         | 大小  | 用途                    |
+| ------------ | ----- | ----------------------- |
+| SOUL.md      | 959B  | AI 助手个性、语调、边界 |
+| AGENTS.md    | 2.5KB | 操作指令和记忆规则      |
+| USER.md      | 986B  | 用户画像和偏好          |
+| IDENTITY.md  | 1.2KB | AI 助手身份标识         |
+| TOOLS.md     | 3KB   | 工具使用约定            |
+| MEMORY.md    | 557B  | 长期记忆（初始为空）    |
+| HEARTBEAT.md | 721B  | 健康检查清单            |
+| BOOT.md      | 1.1KB | 启动检查清单            |
+| BOOTSTRAP.md | 2.4KB | 一次性初始化仪式        |
 
 **复制逻辑** (install.cjs: 65-79):
+
 ```javascript
 function copyFileIfNotExists(source, dest) {
   if (fs.existsSync(dest)) {
-    log(`  ⊙ Exists: ${path.basename(dest)} (skipped)`, 'blue');
-    return false;  // 不覆盖现有文件
+    log(`  ⊙ Exists: ${path.basename(dest)} (skipped)`, "blue");
+    return false; // 不覆盖现有文件
   }
 
   if (fs.existsSync(source)) {
     fs.copyFileSync(source, dest);
-    log(`  ✓ Created: ${path.basename(dest)}`, 'green');
+    log(`  ✓ Created: ${path.basename(dest)}`, "green");
     return true;
   }
 }
 ```
 
 **关键特性**:
+
 - ✅ 不覆盖现有文件（保护用户数据）
 - ✅ 首次安装时复制所有模板
 - ✅ 支持增量更新（新文件会被添加）
@@ -237,21 +245,22 @@ function copyFileIfNotExists(source, dest) {
 
 **配置说明**:
 
-| 配置项 | 默认值 | 说明 |
-|--------|---------|------|
-| `search.mode` | `"hybrid"` | 搜索模式：hybrid/vector/bm25/hash |
-| `embedding.enabled` | `true` | 是否启用embedding |
-| `embedding.provider` | `"external"` | 提供者：external/transformers |
-| `embedding.endpoint` | ModelScope API | 外部API端点 |
-| `embedding.model` | Qwen3-Embedding-0.6B | 模型名称 |
-| `embedding.fallbackMode` | `"bm25"` | 失败时的回退模式 |
-| `indexing.chunkSize` | `400` | 文本分块大小（token） |
-| `indexing.chunkOverlap` | `80` | 分块重叠大小 |
-| `consolidation.run_daily` | `true` | 每日自动整理 |
-| `consolidation.archive_days` | `30` | 30天后归档 |
-| `consolidation.delete_days` | `90` | 90天后删除 |
+| 配置项                       | 默认值               | 说明                              |
+| ---------------------------- | -------------------- | --------------------------------- |
+| `search.mode`                | `"hybrid"`           | 搜索模式：hybrid/vector/bm25/hash |
+| `embedding.enabled`          | `true`               | 是否启用embedding                 |
+| `embedding.provider`         | `"external"`         | 提供者：external/transformers     |
+| `embedding.endpoint`         | ModelScope API       | 外部API端点                       |
+| `embedding.model`            | Qwen3-Embedding-0.6B | 模型名称                          |
+| `embedding.fallbackMode`     | `"bm25"`             | 失败时的回退模式                  |
+| `indexing.chunkSize`         | `400`                | 文本分块大小（token）             |
+| `indexing.chunkOverlap`      | `80`                 | 分块重叠大小                      |
+| `consolidation.run_daily`    | `true`               | 每日自动整理                      |
+| `consolidation.archive_days` | `30`                 | 30天后归档                        |
+| `consolidation.delete_days`  | `90`                 | 90天后删除                        |
 
 **环境变量支持**:
+
 ```bash
 # 设置 ModelScope API 密钥（推荐）
 export MODELSCOPE_API_KEY='your-api-key-here'
@@ -274,7 +283,7 @@ $env:MODELSCOPE_API_KEY='your-api-key-here'
 if (fs.existsSync(OPENCORE_CONFIG)) {
   const backup = `${OPENCORE_CONFIG}.backup.${timestamp}`;
   fs.copyFileSync(OPENCORE_CONFIG, backup);
-  log('  ⊙ Backed up existing config', 'blue');
+  log("  ⊙ Backed up existing config", "blue");
 }
 ```
 
@@ -282,12 +291,12 @@ if (fs.existsSync(OPENCORE_CONFIG)) {
 
 ```javascript
 config.instructions = [
-  '~/.opencode/memory/SOUL.md',
-  '~/.opencode/memory/AGENTS.md',
-  '~/.opencode/memory/USER.md',
-  '~/.opencode/memory/IDENTITY.md',
-  '~/.opencode/memory/TOOLS.md',
-  '~/.opencode/memory/MEMORY.md'
+  "~/.opencode/memory/SOUL.md",
+  "~/.opencode/memory/AGENTS.md",
+  "~/.opencode/memory/USER.md",
+  "~/.opencode/memory/IDENTITY.md",
+  "~/.opencode/memory/TOOLS.md",
+  "~/.opencode/memory/MEMORY.md",
 ];
 ```
 
@@ -296,6 +305,7 @@ config.instructions = [
 #### 4.3 注册自动化代理
 
 **@memory-automation** (install.cjs: 226-244):
+
 ```json
 {
   "description": "Automatically saves important information to memory",
@@ -303,14 +313,12 @@ config.instructions = [
   "tools": {
     "memory_write": true,
     "memory_read": true,
-    "memory_search": true,
-    "vector_memory_search": true
+    "memory_search": true
   },
   "permission": {
     "memory_write": "allow",
     "memory_read": "allow",
-    "memory_search": "allow",
-    "vector_memory_search": "allow"
+    "memory_search": "allow"
   }
 }
 ```
@@ -318,6 +326,7 @@ config.instructions = [
 **用途**: 自动检测并保存对话中的重要信息。
 
 **@memory-consolidate** (install.cjs: 246-268):
+
 ```json
 {
   "description": "Consolidates daily logs into long-term memory",
@@ -326,7 +335,6 @@ config.instructions = [
     "memory_write": true,
     "memory_read": true,
     "memory_search": true,
-    "vector_memory_search": true,
     "list_daily": true,
     "rebuild_index": true
   },
@@ -334,7 +342,6 @@ config.instructions = [
     "memory_write": "allow",
     "memory_read": "allow",
     "memory_search": "allow",
-    "vector_memory_search": "allow",
     "list_daily": "allow",
     "rebuild_index": "allow"
   }
@@ -346,19 +353,19 @@ config.instructions = [
 #### 4.4 注册工具
 
 **8个记忆工具** (install.cjs: 275-276):
+
 ```javascript
 const tools = [
-  'memory_write',
-  'memory_read',
-  'memory_search',
-  'vector_memory_search',
-  'list_daily',
-  'init_daily',
-  'rebuild_index',
-  'index_status'
+  "memory_write",
+  "memory_read",
+  "memory_search",
+  "list_daily",
+  "init_daily",
+  "rebuild_index",
+  "index_status",
 ];
 
-config.tools[tool] = true;  // 启用每个工具
+config.tools[tool] = true; // 启用每个工具
 ```
 
 ---
@@ -368,10 +375,11 @@ config.tools[tool] = true;  // 启用每个工具
 **日志文件位置**: `~/.opencode/memory/daily/YYYY-MM-DD.md`
 
 **模板内容** (install.cjs: 298-322):
+
 ```markdown
 # Daily Memory Log - 2026-02-28
 
-*Session starts: 2026-02-28T15:30:00.000Z*
+_Session starts: 2026-02-28T15:30:00.000Z_
 
 ## Notes
 
@@ -383,13 +391,14 @@ config.tools[tool] = true;  // 启用每个工具
 ```
 
 **创建逻辑**:
+
 ```javascript
-const today = new Date().toISOString().split('T')[0];
+const today = new Date().toISOString().split("T")[0];
 const dailyFile = path.join(DAILY_DIR, `${today}.md`);
 
 if (!fs.existsSync(dailyFile)) {
   fs.writeFileSync(dailyFile, templateContent);
-  log(`  ✓ Created daily log: ${today}.md`, 'green');
+  log(`  ✓ Created daily log: ${today}.md`, "green");
 }
 ```
 
@@ -419,7 +428,6 @@ export const MemoryPlugin = async (ctx) => {
       }),
       memory_read: tool({ ... }),
       memory_search: tool({ ... }),
-      vector_memory_search: tool({ ... }),
       list_daily: tool({ ... }),
       init_daily: tool({ ... }),
       rebuild_index: tool({ ... }),
@@ -490,27 +498,32 @@ export const MemoryPlugin = async (ctx) => {
 # AI Assistant Personality
 
 ## Core Identity
+
 You are OpenCode Memory, an AI coding assistant with persistent memory and semantic search capabilities.
 
 ## Tone and Style
+
 - Professional, friendly, and concise
 - Prefer direct answers over long explanations
 - Use code examples when helpful
 - Always maintain context of previous conversations through memory
 
 ## Boundaries
+
 - Always ask before making destructive changes
 - Respect user's time and attention
 - Admit when you don't know something
 - Never hallucinate information - check memory first
 
 ## Memory Awareness
+
 - You have access to persistent memory through the memory tools
 - Always consult memory before answering questions
 - Proactively save important information to memory
 - Use semantic search to find relevant past information
 
 ## Working Principles
+
 - Quality over quantity
 - Clarity over cleverness
 - Test your assumptions
@@ -534,11 +547,13 @@ You are OpenCode Memory, an AI coding assistant with persistent memory and seman
 ## How to Use Memory
 
 ### When to Read Memory
+
 - At the start of every conversation (already injected)
 - When answering questions about preferences, conventions, or past decisions
 - Before suggesting solutions to check if similar problems were solved before
 
 ### When to Write Memory
+
 - User states a preference or rule
 - A successful pattern or approach is discovered
 - An important decision is made with rationale
@@ -546,7 +561,9 @@ You are OpenCode Memory, an AI coding assistant with persistent memory and seman
 - Project-specific conventions are established
 
 ### Memory Priority
+
 **Long-term (MEMORY.md)**:
+
 - User preferences and coding style
 - Project-specific conventions and rules
 - Successful patterns and solutions
@@ -554,6 +571,7 @@ You are OpenCode Memory, an AI coding assistant with persistent memory and seman
 - Lessons learned from mistakes
 
 **Daily (memory/YYYY-MM-DD.md)**:
+
 - Running context for current work
 - Temporary notes that might become long-term
 - Questions asked and answered
@@ -568,18 +586,21 @@ You are OpenCode Memory, an AI coding assistant with persistent memory and seman
 # User Profile & Preferences
 
 ## User Identity
+
 - Name: Your Name
 - Communication Style: Professional, direct, concise
 - Language Preference: English
 - Timezone: UTC
 
 ## Preferred Communication
+
 - Get straight to the point
 - Show, don't just tell
 - Use examples
 - Summarize key takeaways
 
 ## Working Style
+
 - Provide context upfront
 - Ask clarifying questions when uncertain
 - Prefer multiple options over single approach
@@ -596,22 +617,28 @@ You are OpenCode Memory, an AI coding assistant with persistent memory and seman
 This file stores important information that should persist across all sessions and projects.
 
 ## User Preferences & Habits
+
 - (To be populated as user interacts)
 
 ## Project-Specific Knowledge
+
 - (To be populated as user interacts)
 
 ## Successful Patterns & Solutions
+
 - (To be populated as user interacts)
 
 ## Important Decisions & Rationale
+
 - (To be populated as user interacts)
 
 ## Lessons Learned
+
 - (To be populated from mistakes and their fixes)
 
 ---
-*Last Updated: 2026-02-28*
+
+_Last Updated: 2026-02-28_
 ```
 
 **作用**: 存储跨会话持久化的重要信息。
@@ -633,16 +660,16 @@ if (!vectorStore.initialized) {
   const initResult = await vectorStore.initialize({
     dbPath: config.dbPath,
     useExternalService: config.embedding?.enabled,
-    externalEndpoint: config.embedding?.endpoint
+    externalEndpoint: config.embedding?.endpoint,
   });
 
   if (!initResult.success) {
     // 回退到 BM25 搜索
     return {
       success: true,
-      mode: 'keyword',
+      mode: "keyword",
       matches: await fallbackBM25Search(query, limit),
-      note: `Vector search unavailable: ${initResult.error}. Using keyword search.`
+      note: `Vector search unavailable: ${initResult.error}. Using keyword search.`,
     };
   }
 }
@@ -673,7 +700,7 @@ if (!vectorStore.initialized) {
 
 ### 搜索流程
 
-**vector_memory_search 工具** (plugin.js: 200-293):
+**memory_search 工具** (统一搜索，支持所有模式):
 
 ```javascript
 async execute(args) {
@@ -726,6 +753,7 @@ Layer 4: 简单关键词搜索（最后的回退）
 ```
 
 **实现** (plugin.js: 281-291):
+
 ```javascript
 catch (e) {
   return {
@@ -789,13 +817,13 @@ npm install -g @csuwl/opencode-memory-plugin
 
 ### 关键特性
 
-| 特性 | 描述 |
-|------|------|
-| ✅ 零配置 | 开箱即用，无需手动设置 |
-| ✅ 不覆盖 | 保护现有文件和数据 |
-| ✅ 自动回退 | 多层回退机制保证可用性 |
-| ✅ 灵活配置 | 支持多种 embedding 服务 |
-| ✅ 自动化 | 内置自动保存和整理代理 |
+| 特性        | 描述                     |
+| ----------- | ------------------------ |
+| ✅ 零配置   | 开箱即用，无需手动设置   |
+| ✅ 不覆盖   | 保护现有文件和数据       |
+| ✅ 自动回退 | 多层回退机制保证可用性   |
+| ✅ 灵活配置 | 支持多种 embedding 服务  |
+| ✅ 自动化   | 内置自动保存和整理代理   |
 | ✅ 向量搜索 | 支持语义搜索和关键词搜索 |
 
 ### 文件统计
@@ -811,5 +839,5 @@ npm install -g @csuwl/opencode-memory-plugin
 
 ---
 
-*生成时间: 2026-02-28*
-*版本: v1.2.0*
+_生成时间: 2026-02-28_
+_版本: v1.2.0_

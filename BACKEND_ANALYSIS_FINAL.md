@@ -9,12 +9,15 @@
 ## 🔍 问题诊断过程
 
 ### 初始问题
+
 用户反馈："为什么没有看到访问后端？"
 
 ### 诊断步骤
 
 #### 步骤 1: 代码审查 ✅
+
 检查 `plugin.js` 发现后端调用逻辑完整：
+
 ```javascript
 // plugin.js 第 200 行
 const result = await client.uploadMemory(memory);
@@ -23,7 +26,9 @@ backendStatus = `✅ Synced (${result.id})`;
 ```
 
 #### 步骤 2: 配置检查 ✅
+
 检查 `memory-config.json`：
+
 ```json
 "backend": {
   "enabled": true,
@@ -31,37 +36,49 @@ backendStatus = `✅ Synced (${result.id})`;
   "tenant_id": "longray"
 }
 ```
+
 配置正确，后端已启用。
 
 #### 步骤 3: 直接测试 ✅
+
 运行独立测试脚本：
+
 ```bash
 node test-plugin-backend.mjs
 ```
+
 结果：✅ 后端调用成功！
+
 ```
 Memory ID: memory:k4tom28yotxsa44nmolp
 Success: true
 ```
 
 #### 步骤 4: OpenCode 测试 ❌
+
 通过 OpenCode 调用 `memory_write`：
 结果：**未显示 Backend 状态**
 
 #### 步骤 5: 根因定位 🔍
+
 **原因**: OpenCode 缓存了旧版本的 plugin.js
+
 - Bun 运行时缓存机制
 - 插件加载后不会自动刷新
 - 代码已更新但运行时未重新加载
 
 #### 步骤 6: 解决方案 ✅
+
 **操作**: 重启 OpenCode
+
 ```bash
 # 关闭并重新打开 OpenCode
 ```
 
 #### 步骤 7: 验证 ✅
+
 重启后再次测试：
+
 ```
 ✅ Entry written to memory
 - Type: test
@@ -77,6 +94,7 @@ Success: true
 ## ✅ 最终验证结果
 
 ### 1. memory_write ✅
+
 ```
 ✅ Entry written to memory
 - Type: test
@@ -86,11 +104,13 @@ Success: true
 - Backend: ✅ Synced (memory:0ax4cevgxezew9dupyg5)
 - Memory ID: memory:0ax4cevgxezew9dupyg5
 ```
+
 **状态**: ✅ 正常调用后端，显示同步状态
 
 ---
 
 ### 2. memory_search ✅
+
 ```
 🔍 Found 1 matches for "重启后测试" (mode: keyword):
 
@@ -98,11 +118,13 @@ Success: true
     重启后测试：验证 OpenCode 插件是否正确调用后端服务并显示同步状态
     Tags: backend, restart, test
 ```
+
 **状态**: ✅ 从后端搜索到记忆
 
 ---
 
-### 3. vector_memory_search ✅
+### 3. memory_search ✅
+
 ```
 🔍 Found 1 matches for "验证后端服务" (mode: hybrid):
 
@@ -110,11 +132,13 @@ Success: true
     直接测试后端调用 1773253068050
     Tags: direct, test
 ```
+
 **状态**: ✅ 后端语义搜索工作正常
 
 ---
 
 ### 4. index_status ✅
+
 ```
 📊 Memory Plugin Status
 
@@ -136,6 +160,7 @@ Success: true
 - Daily logs: 5 files
 - Upload queue: 0 pending, 0 exhausted
 ```
+
 **状态**: ✅ 完整显示后端健康状态
 
 ---
@@ -144,29 +169,32 @@ Success: true
 
 ### 7 个工具成功调用后端 ✅
 
-| 工具 | 后端 API | 测试状态 | 结果 |
-|------|----------|----------|------|
-| `memory_write` | POST /api/v1/memories | ✅ 通过 | memory:0ax4cevgxezew9dupyg5 |
-| `memory_search` | POST /api/v1/memories/search | ✅ 通过 | 找到 1 条结果 |
-| `vector_memory_search` | POST /api/v1/memories/search | ✅ 通过 | 找到 1 条结果 |
-| `index_status` | GET /health | ✅ 通过 | healthy, cache 14.3% |
-| `memory_relate` | POST /api/v1/memories/relations | ✅ 已验证* | 测试通过 |
-| `memory_graph` | POST /api/v1/memories/{id}/graph | ✅ 已验证* | 测试通过 |
-| `rebuild_index` | POST /api/v1/memories (批量) | ✅ 已验证* | 测试通过 |
+| 工具            | 后端 API                         | 测试状态    | 结果                        |
+| --------------- | -------------------------------- | ----------- | --------------------------- |
+| `memory_write`  | POST /api/v1/memories            | ✅ 通过     | memory:0ax4cevgxezew9dupyg5 |
+| `memory_search` | POST /api/v1/memories/search     | ✅ 通过     | 找到 1 条结果               |
+| `memory_search` | POST /api/v1/memories/search     | ✅ 通过     | 找到 1 条结果               |
+| `index_status`  | GET /health                      | ✅ 通过     | healthy, cache 14.3%        |
+| `memory_relate` | POST /api/v1/memories/relations  | ✅ 已验证\* | 测试通过                    |
+| `memory_graph`  | POST /api/v1/memories/{id}/graph | ✅ 已验证\* | 测试通过                    |
+| `rebuild_index` | POST /api/v1/memories (批量)     | ✅ 已验证\* | 测试通过                    |
 
-*已通过 `test-backend-api.mjs` 验证
+\*已通过 `test-backend-api.mjs` 验证
 
 ---
 
 ## 🎯 核心发现
 
 ### 问题根因
+
 **OpenCode 缓存机制**
+
 - Bun 运行时会缓存已加载的模块
 - 修改 plugin.js 后不会自动刷新
 - 需要重启 OpenCode 才能加载新版本
 
 ### 解决方案
+
 ```bash
 # 当修改 plugin.js 后
 1. 保存代码变更
@@ -181,12 +209,13 @@ Success: true
 
 ### CLI 与插件的区别
 
-| 工具 | 类型 | 调用后端 | 说明 |
-|------|------|----------|------|
-| `opencode-memory` CLI | 独立程序 | ❌ 否 | 仅操作本地文件 |
-| OpenCode 插件 | OpenCode 集成 | ✅ 是 | 调用后端服务 |
+| 工具                  | 类型          | 调用后端 | 说明           |
+| --------------------- | ------------- | -------- | -------------- |
+| `opencode-memory` CLI | 独立程序      | ❌ 否    | 仅操作本地文件 |
+| OpenCode 插件         | OpenCode 集成 | ✅ 是    | 调用后端服务   |
 
 **CLI 为什么不调后端？**
+
 - CLI 是独立的命令行工具
 - 设计初衷：简单的本地文件操作
 - 如果需要后端功能，使用 OpenCode 插件
@@ -227,7 +256,7 @@ memory_write content="内容" type="note"
 
 # 后端搜索
 memory_search query="关键词"
-vector_memory_search query="语义查询" mode="hybrid"
+memory_search query="语义查询" mode="hybrid"
 
 # 查看状态
 index_status
@@ -240,9 +269,10 @@ index_status
 ### 后端调用状态: ✅ 完全正常
 
 **证据**:
+
 1. ✅ memory_write 显示 `Backend: ✅ Synced (memory:xxx)`
 2. ✅ memory_search 从后端返回结果
-3. ✅ vector_memory_search 工作正常
+3. ✅ memory_search 工作正常
 4. ✅ index_status 显示后端健康状态
 5. ✅ test-backend-api.mjs 12/12 测试通过
 
@@ -254,15 +284,15 @@ index_status
 
 ## 📁 相关文件
 
-| 文件 | 说明 |
-|------|------|
-| `test-plugin-backend.mjs` | 直接测试后端调用 |
-| `test-backend-api.mjs` | 全面后端 API 测试 |
-| `diagnose-backend.mjs` | 诊断脚本 |
-| `plugin.js` | 插件主代码 |
-| `memory-config.json` | 用户配置文件 |
+| 文件                      | 说明              |
+| ------------------------- | ----------------- |
+| `test-plugin-backend.mjs` | 直接测试后端调用  |
+| `test-backend-api.mjs`    | 全面后端 API 测试 |
+| `diagnose-backend.mjs`    | 诊断脚本          |
+| `plugin.js`               | 插件主代码        |
+| `memory-config.json`      | 用户配置文件      |
 
 ---
 
-*分析完成时间: 2026-03-11*  
-*分析结果: ✅ 后端调用完全正常*
+_分析完成时间: 2026-03-11_  
+_分析结果: ✅ 后端调用完全正常_

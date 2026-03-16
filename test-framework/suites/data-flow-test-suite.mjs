@@ -8,32 +8,32 @@
  */
 export function createDataFlowTestSuite() {
   return {
-    name: '数据流动测试套件',
+    name: "数据流动测试套件",
     testCases: [
       // TC-090: 写入→关键词搜索→验证
       {
-        name: 'TC-090: 写入→关键词搜索→验证',
-        category: '完整流程',
+        name: "TC-090: 写入→关键词搜索→验证",
+        category: "完整流程",
         execute: async (engine) => {
-          const testContent = '数据流动测试关键词搜索';
-          const testTags = 'data-flow,keyword';
+          const testContent = "数据流动测试关键词搜索";
+          const testTags = "data-flow,keyword";
 
           // 写入
           const writeResult = await engine.options.tools.memory_write({
             content: testContent,
-            type: 'long-term',
+            type: "long-term",
             tags: testTags,
           });
 
           // 搜索
           const searchResult = await engine.options.tools.memory_search({
-            query: '数据流动',
-            scope: 'all',
+            query: "数据流动",
+            scope: "all",
           });
 
           // 验证
-          const found = searchResult.some(r =>
-            r.content.includes(testContent)
+          const found = searchResult.some((r) =>
+            r.content.includes(testContent),
           );
 
           return {
@@ -47,29 +47,27 @@ export function createDataFlowTestSuite() {
 
       // TC-091: 写入→语义搜索→验证
       {
-        name: 'TC-091: 写入→语义搜索→验证',
-        category: '完整流程',
+        name: "TC-091: 写入→语义搜索→验证",
+        category: "完整流程",
         execute: async (engine) => {
-          const testContent = '使用Redis缓存提高性能';
-          const testTags = 'data-flow,semantic';
+          const testContent = "使用Redis缓存提高性能";
+          const testTags = "data-flow,semantic";
 
           // 写入
           const writeResult = await engine.options.tools.memory_write({
             content: testContent,
-            type: 'long-term',
+            type: "long-term",
             tags: testTags,
           });
 
           // 语义搜索
-          const searchResult = await engine.options.tools.vector_memory_search({
-            query: '缓存优化',
-            mode: 'hybrid',
+          const searchResult = await engine.options.tools.memory_search({
+            query: "缓存优化",
+            mode: "hybrid",
           });
 
           // 验证
-          const found = searchResult.some(r =>
-            r.content.includes('缓存')
-          );
+          const found = searchResult.some((r) => r.content.includes("缓存"));
 
           return {
             writeResult,
@@ -82,29 +80,29 @@ export function createDataFlowTestSuite() {
 
       // TC-092: 写入→跨日搜索→验证
       {
-        name: 'TC-092: 写入→跨日搜索→验证',
-        category: '完整流程',
+        name: "TC-092: 写入→跨日搜索→验证",
+        category: "完整流程",
         execute: async (engine) => {
-          const testContent = '跨日搜索测试数据';
+          const testContent = "跨日搜索测试数据";
 
           // 写入到long-term
           await engine.options.tools.memory_write({
             content: testContent,
-            type: 'long-term',
-            tags: 'cross-day',
+            type: "long-term",
+            tags: "cross-day",
           });
 
           // 写入到daily
           await engine.options.tools.memory_write({
-            content: testContent + ' daily',
-            type: 'daily',
-            tags: 'cross-day',
+            content: testContent + " daily",
+            type: "daily",
+            tags: "cross-day",
           });
 
           // 跨scope搜索
           const searchResult = await engine.options.tools.memory_search({
-            query: '跨日',
-            scope: 'all',
+            query: "跨日",
+            scope: "all",
           });
 
           // 验证找到两条记录
@@ -120,17 +118,17 @@ export function createDataFlowTestSuite() {
 
       // TC-093: 写入→重建索引→搜索→验证
       {
-        name: 'TC-093: 写入→重建索引→搜索→验证',
-        category: '完整流程',
+        name: "TC-093: 写入→重建索引→搜索→验证",
+        category: "完整流程",
         execute: async (engine) => {
-          const testContent = '索引重建后搜索测试';
-          const testTags = 'index-rebuild';
+          const testContent = "索引重建后搜索测试";
+          const testTags = "index-rebuild";
 
           // 写入多条数据
           for (let i = 0; i < 20; i++) {
             await engine.options.tools.memory_write({
               content: `${testContent} ${i}`,
-              type: 'long-term',
+              type: "long-term",
               tags: testTags,
             });
           }
@@ -140,8 +138,8 @@ export function createDataFlowTestSuite() {
 
           // 搜索
           const searchResult = await engine.options.tools.memory_search({
-            query: '索引',
-            scope: 'all',
+            query: "索引",
+            scope: "all",
           });
 
           // 验证找到所有记录
@@ -157,27 +155,27 @@ export function createDataFlowTestSuite() {
 
       // TC-100: 跨会话访问
       {
-        name: 'TC-100: 跨会话访问',
-        category: '长期记忆持久化',
+        name: "TC-100: 跨会话访问",
+        category: "长期记忆持久化",
         execute: async (engine) => {
-          const testContent = '跨会话测试数据';
-          const testTags = 'cross-session';
+          const testContent = "跨会话测试数据";
+          const testTags = "cross-session";
 
           // 写入
           const writeResult = await engine.options.tools.memory_write({
             content: testContent,
-            type: 'long-term',
+            type: "long-term",
             tags: testTags,
           });
 
           // 模拟新会话（重新读取）
           const searchResult = await engine.options.tools.memory_search({
-            query: '跨会话',
-            scope: 'all',
+            query: "跨会话",
+            scope: "all",
           });
 
-          const found = searchResult.some(r =>
-            r.content.includes(testContent)
+          const found = searchResult.some((r) =>
+            r.content.includes(testContent),
           );
 
           return {
@@ -191,27 +189,27 @@ export function createDataFlowTestSuite() {
 
       // TC-101: 重启后访问
       {
-        name: 'TC-101: 重启后访问',
-        category: '长期记忆持久化',
+        name: "TC-101: 重启后访问",
+        category: "长期记忆持久化",
         execute: async (engine) => {
-          const testContent = '重启后访问测试数据';
-          const testTags = 'restart-test';
+          const testContent = "重启后访问测试数据";
+          const testTags = "restart-test";
 
           // 写入
           await engine.options.tools.memory_write({
             content: testContent,
-            type: 'long-term',
+            type: "long-term",
             tags: testTags,
           });
 
           // 模拟重启（重新初始化）
           const searchResult = await engine.options.tools.memory_search({
-            query: '重启',
-            scope: 'all',
+            query: "重启",
+            scope: "all",
           });
 
-          const found = searchResult.some(r =>
-            r.content.includes(testContent)
+          const found = searchResult.some((r) =>
+            r.content.includes(testContent),
           );
 
           return {
@@ -224,32 +222,32 @@ export function createDataFlowTestSuite() {
 
       // TC-102: 多次写入同一主题
       {
-        name: 'TC-102: 多次写入同一主题',
-        category: '长期记忆持久化',
+        name: "TC-102: 多次写入同一主题",
+        category: "长期记忆持久化",
         execute: async (engine) => {
-          const topic = 'TypeScript类型系统';
+          const topic = "TypeScript类型系统";
 
           // 写入多条相关内容
           await engine.options.tools.memory_write({
             content: `${topic}基础用法`,
-            type: 'long-term',
-            tags: 'typescript,types',
+            type: "long-term",
+            tags: "typescript,types",
           });
           await engine.options.tools.memory_write({
             content: `${topic}高级特性`,
-            type: 'long-term',
-            tags: 'typescript,advanced',
+            type: "long-term",
+            tags: "typescript,advanced",
           });
           await engine.options.tools.memory_write({
             content: `${topic}最佳实践`,
-            type: 'long-term',
-            tags: 'typescript,best-practice',
+            type: "long-term",
+            tags: "typescript,best-practice",
           });
 
           // 搜索
           const searchResult = await engine.options.tools.memory_search({
-            query: 'TypeScript',
-            scope: 'all',
+            query: "TypeScript",
+            scope: "all",
           });
 
           // 验证找到所有记录
@@ -265,35 +263,35 @@ export function createDataFlowTestSuite() {
 
       // TC-103: 长时间间隔访问
       {
-        name: 'TC-103: 长时间间隔访问',
-        category: '长期记忆持久化',
+        name: "TC-103: 长时间间隔访问",
+        category: "长期记忆持久化",
         execute: async (engine) => {
-          const testContent = '长时间间隔测试数据';
+          const testContent = "长时间间隔测试数据";
 
           // 第一次写入
           await engine.options.tools.memory_write({
             content: testContent,
-            type: 'long-term',
-            tags: 'long-interval',
+            type: "long-term",
+            tags: "long-interval",
           });
 
           // 模拟长时间间隔（通过多次其他操作）
           for (let i = 0; i < 50; i++) {
             await engine.options.tools.memory_write({
               content: `其他操作 ${i}`,
-              type: 'daily',
-              tags: 'other',
+              type: "daily",
+              tags: "other",
             });
           }
 
           // 长时间后访问
           const searchResult = await engine.options.tools.memory_search({
-            query: '长时间',
-            scope: 'all',
+            query: "长时间",
+            scope: "all",
           });
 
-          const found = searchResult.some(r =>
-            r.content.includes(testContent)
+          const found = searchResult.some((r) =>
+            r.content.includes(testContent),
           );
 
           return {
@@ -306,19 +304,19 @@ export function createDataFlowTestSuite() {
 
       // TC-110: API超时降级
       {
-        name: 'TC-110: API超时降级',
-        category: '错误处理',
+        name: "TC-110: API超时降级",
+        category: "错误处理",
         execute: async (engine) => {
           await engine.options.tools.memory_write({
-            content: 'API超时测试',
-            type: 'long-term',
-            tags: 'error-handling',
+            content: "API超时测试",
+            type: "long-term",
+            tags: "error-handling",
           });
 
           // 使用keyword模式（不依赖API）
-          const result = await engine.options.tools.vector_memory_search({
-            query: '超时',
-            mode: 'keyword',
+          const result = await engine.options.tools.memory_search({
+            query: "超时",
+            mode: "keyword",
           });
 
           return { result, fallback: true };
@@ -327,19 +325,19 @@ export function createDataFlowTestSuite() {
 
       // TC-111: API返回错误降级
       {
-        name: 'TC-111: API返回错误降级',
-        category: '错误处理',
+        name: "TC-111: API返回错误降级",
+        category: "错误处理",
         execute: async (engine) => {
           await engine.options.tools.memory_write({
-            content: 'API错误测试',
-            type: 'long-term',
-            tags: 'error-handling',
+            content: "API错误测试",
+            type: "long-term",
+            tags: "error-handling",
           });
 
           // 使用keyword模式（不依赖API）
-          const result = await engine.options.tools.vector_memory_search({
-            query: '错误',
-            mode: 'keyword',
+          const result = await engine.options.tools.memory_search({
+            query: "错误",
+            mode: "keyword",
           });
 
           return { result, fallback: true };
@@ -348,28 +346,28 @@ export function createDataFlowTestSuite() {
 
       // TC-112: 数据完整性验证
       {
-        name: 'TC-112: 数据完整性验证',
-        category: '错误处理',
+        name: "TC-112: 数据完整性验证",
+        category: "错误处理",
         execute: async (engine) => {
-          const testContent = '数据完整性测试';
-          const testTags = 'integrity';
+          const testContent = "数据完整性测试";
+          const testTags = "integrity";
 
           // 写入
           const writeResult = await engine.options.tools.memory_write({
             content: testContent,
-            type: 'long-term',
+            type: "long-term",
             tags: testTags,
           });
 
           // 立即读取
           const searchResult = await engine.options.tools.memory_search({
             query: testContent,
-            scope: 'all',
+            scope: "all",
           });
 
           // 验证内容一致
-          const contentMatch = searchResult.some(r =>
-            r.content === testContent
+          const contentMatch = searchResult.some(
+            (r) => r.content === testContent,
           );
 
           return {
@@ -383,24 +381,24 @@ export function createDataFlowTestSuite() {
 
       // TC-130: 多个并发写入
       {
-        name: 'TC-130: 多个并发写入',
-        category: '并发测试',
+        name: "TC-130: 多个并发写入",
+        category: "并发测试",
         execute: async (engine) => {
           const promises = [];
           for (let i = 0; i < 20; i++) {
             promises.push(
               engine.options.tools.memory_write({
                 content: `并发写入测试 ${i}`,
-                type: 'daily',
-                tags: 'concurrent',
-              })
+                type: "daily",
+                tags: "concurrent",
+              }),
             );
           }
 
           const results = await Promise.all(promises);
 
           // 验证所有写入成功
-          const allSuccess = results.every(r => r !== undefined);
+          const allSuccess = results.every((r) => r !== undefined);
 
           return {
             count: results.length,
@@ -412,8 +410,8 @@ export function createDataFlowTestSuite() {
 
       // TC-131: 并发写入和搜索
       {
-        name: 'TC-131: 并发写入和搜索',
-        category: '并发测试',
+        name: "TC-131: 并发写入和搜索",
+        category: "并发测试",
         execute: async (engine) => {
           const promises = [];
 
@@ -422,9 +420,9 @@ export function createDataFlowTestSuite() {
             promises.push(
               engine.options.tools.memory_write({
                 content: `并发测试 ${i}`,
-                type: 'daily',
-                tags: 'concurrent',
-              })
+                type: "daily",
+                tags: "concurrent",
+              }),
             );
           }
 
@@ -432,16 +430,16 @@ export function createDataFlowTestSuite() {
           for (let i = 0; i < 5; i++) {
             promises.push(
               engine.options.tools.memory_search({
-                query: '并发',
-                scope: 'all',
-              })
+                query: "并发",
+                scope: "all",
+              }),
             );
           }
 
           const results = await Promise.all(promises);
 
           // 验证所有操作成功
-          const allSuccess = results.every(r => r !== undefined);
+          const allSuccess = results.every((r) => r !== undefined);
 
           return {
             count: results.length,
@@ -453,8 +451,8 @@ export function createDataFlowTestSuite() {
 
       // TC-140: 连续1000次写入
       {
-        name: 'TC-140: 连续1000次写入',
-        category: '压力测试',
+        name: "TC-140: 连续1000次写入",
+        category: "压力测试",
         execute: async (engine) => {
           const startTime = Date.now();
           const results = [];
@@ -462,8 +460,8 @@ export function createDataFlowTestSuite() {
           for (let i = 0; i < 1000; i++) {
             const result = await engine.options.tools.memory_write({
               content: `压力测试 ${i}`,
-              type: 'daily',
-              tags: 'stress',
+              type: "daily",
+              tags: "stress",
             });
             results.push(result);
           }
@@ -475,7 +473,7 @@ export function createDataFlowTestSuite() {
             count: results.length,
             duration,
             avgTime,
-            target: '< 1s',
+            target: "< 1s",
             verified: duration < 1000,
           };
         },
@@ -483,15 +481,15 @@ export function createDataFlowTestSuite() {
 
       // TC-141: 连续1000次搜索
       {
-        name: 'TC-141: 连续1000次搜索',
-        category: '压力测试',
+        name: "TC-141: 连续1000次搜索",
+        category: "压力测试",
         execute: async (engine) => {
           // 先写入一些数据
           for (let i = 0; i < 100; i++) {
             await engine.options.tools.memory_write({
               content: `搜索测试数据 ${i}`,
-              type: 'long-term',
-              tags: 'search-stress',
+              type: "long-term",
+              tags: "search-stress",
             });
           }
 
@@ -500,8 +498,8 @@ export function createDataFlowTestSuite() {
 
           for (let i = 0; i < 1000; i++) {
             const result = await engine.options.tools.memory_search({
-              query: '搜索',
-              scope: 'all',
+              query: "搜索",
+              scope: "all",
             });
             results.push(result);
           }
@@ -513,7 +511,7 @@ export function createDataFlowTestSuite() {
             count: results.length,
             duration,
             avgTime,
-            target: '< 60s',
+            target: "< 60s",
             verified: duration < 60000,
           };
         },
@@ -521,8 +519,8 @@ export function createDataFlowTestSuite() {
 
       // TC-142: 混合操作1000次
       {
-        name: 'TC-142: 混合操作1000次',
-        category: '压力测试',
+        name: "TC-142: 混合操作1000次",
+        category: "压力测试",
         execute: async (engine) => {
           const startTime = Date.now();
           const results = [];
@@ -532,22 +530,22 @@ export function createDataFlowTestSuite() {
               // 写入
               const result = await engine.options.tools.memory_write({
                 content: `混合操作 ${i}`,
-                type: 'daily',
-                tags: 'mixed',
+                type: "daily",
+                tags: "mixed",
               });
               results.push(result);
             } else if (i % 3 === 1) {
               // 搜索
               const result = await engine.options.tools.memory_search({
-                query: '混合',
-                scope: 'all',
+                query: "混合",
+                scope: "all",
               });
               results.push(result);
             } else {
               // 语义搜索
-              const result = await engine.options.tools.vector_memory_search({
-                query: '操作',
-                mode: 'hybrid',
+              const result = await engine.options.tools.memory_search({
+                query: "操作",
+                mode: "hybrid",
               });
               results.push(result);
             }
@@ -566,8 +564,8 @@ export function createDataFlowTestSuite() {
 
       // TC-143: 长时间运行测试
       {
-        name: 'TC-143: 长时间运行测试（1小时）',
-        category: '压力测试',
+        name: "TC-143: 长时间运行测试（1小时）",
+        category: "压力测试",
         execute: async (engine) => {
           const startTime = Date.now();
           const operations = [];
@@ -578,13 +576,13 @@ export function createDataFlowTestSuite() {
             if (i % 2 === 0) {
               await engine.options.tools.memory_write({
                 content: `长时间测试 ${i}`,
-                type: 'daily',
-                tags: 'long-run',
+                type: "daily",
+                tags: "long-run",
               });
             } else {
               await engine.options.tools.memory_search({
-                query: '长时间',
-                scope: 'all',
+                query: "长时间",
+                scope: "all",
               });
             }
             operations.push(i++);

@@ -8,20 +8,20 @@
 
 ## 测试摘要
 
-| 测试项 | 状态 | 性能 | 备注 |
-|--------|------|------|------|
-| 后端健康检查 | ✅ 通过 | - | healthy |
-| 单条记忆上传 | ✅ 通过 | - | memory:yil2kzijpdvjsc6pezpb |
-| Keyword搜索 | ✅ 通过 | 9ms | 极快 |
-| Vector搜索 | ✅ 通过 | 627ms | 正常 |
-| Hybrid搜索 | ✅ 通过 | 183ms | 良好 |
-| 批量上传(5条) | ✅ 通过 | 117ms | 43条/秒 |
-| 图关系创建 | ✅ 通过 | - | 成功创建关系 |
-| 图关系查询 | ✅ 通过 | - | 1条关系 |
-| 图遍历 | ✅ 通过 | - | 1个节点 |
-| Embedding(10字符) | ✅ 通过 | 11ms | 极快 |
-| Embedding(30字符) | ✅ 通过 | 87ms | 优秀 |
-| Embedding(46字符) | ✅ 通过 | 70ms | 优秀 |
+| 测试项            | 状态    | 性能  | 备注                        |
+| ----------------- | ------- | ----- | --------------------------- |
+| 后端健康检查      | ✅ 通过 | -     | healthy                     |
+| 单条记忆上传      | ✅ 通过 | -     | memory:yil2kzijpdvjsc6pezpb |
+| Keyword搜索       | ✅ 通过 | 9ms   | 极快                        |
+| Vector搜索        | ✅ 通过 | 627ms | 正常                        |
+| Hybrid搜索        | ✅ 通过 | 183ms | 良好                        |
+| 批量上传(5条)     | ✅ 通过 | 117ms | 43条/秒                     |
+| 图关系创建        | ✅ 通过 | -     | 成功创建关系                |
+| 图关系查询        | ✅ 通过 | -     | 1条关系                     |
+| 图遍历            | ✅ 通过 | -     | 1个节点                     |
+| Embedding(10字符) | ✅ 通过 | 11ms  | 极快                        |
+| Embedding(30字符) | ✅ 通过 | 87ms  | 优秀                        |
+| Embedding(46字符) | ✅ 通过 | 70ms  | 优秀                        |
 
 **总体评级**: ⭐⭐⭐⭐⭐ 优秀
 
@@ -62,6 +62,7 @@
 **Memory ID**: memory:yil2kzijpdvjsc6pezpb
 
 **请求体**:
+
 ```json
 {
   "content": "Test memory ...",
@@ -79,13 +80,14 @@
 
 ### 3. 搜索性能对比 ✅
 
-| 模式 | 延迟 | 结果数 | 评级 |
-|------|------|--------|------|
-| **Keyword** | **9ms** | 1 | ⭐⭐⭐⭐⭐ 极快 |
-| **Hybrid** | **183ms** | 1 | ⭐⭐⭐⭐ 良好 |
-| **Vector** | **627ms** | 1 | ⭐⭐⭐ 正常 |
+| 模式        | 延迟      | 结果数 | 评级            |
+| ----------- | --------- | ------ | --------------- |
+| **Keyword** | **9ms**   | 1      | ⭐⭐⭐⭐⭐ 极快 |
+| **Hybrid**  | **183ms** | 1      | ⭐⭐⭐⭐ 良好   |
+| **Vector**  | **627ms** | 1      | ⭐⭐⭐ 正常     |
 
 **分析**:
+
 - Keyword 搜索最快（纯 BM25）
 - Hybrid 平衡了精度和速度（RRF 融合）
 - Vector 较慢但语义理解最好（需要 embedding）
@@ -102,6 +104,7 @@
 **吞吐量**: 43 条/秒
 
 **结果**:
+
 - Total: 5
 - Success: 5 ✅
 - Failed: 0
@@ -141,11 +144,11 @@
 
 ### 6. Embedding 性能 ✅
 
-| 文本长度 | 延迟 | 维度 | 评级 |
-|---------|------|------|------|
-| 10 字符 | 11ms | 1024 | ⭐⭐⭐⭐⭐ 极快 |
-| 30 字符 | 87ms | 1024 | ⭐⭐⭐⭐ 优秀 |
-| 46 字符 | 70ms | 1024 | ⭐⭐⭐⭐ 优秀 |
+| 文本长度 | 延迟 | 维度 | 评级            |
+| -------- | ---- | ---- | --------------- |
+| 10 字符  | 11ms | 1024 | ⭐⭐⭐⭐⭐ 极快 |
+| 30 字符  | 87ms | 1024 | ⭐⭐⭐⭐ 优秀   |
+| 46 字符  | 70ms | 1024 | ⭐⭐⭐⭐ 优秀   |
 
 **模型**: Qwen/Qwen3-Embedding-0.6B  
 **GPU**: NVIDIA GeForce GTX 1060  
@@ -159,24 +162,23 @@
 
 ### 已验证调用的工具
 
-| 工具 | 后端 API | 测试状态 |
-|------|----------|----------|
-| `memory_write` | POST /api/v1/memories | ✅ 已验证 |
-| `memory_search` | POST /api/v1/memories/search (keyword) | ✅ 已验证 |
-| `vector_memory_search` | POST /api/v1/memories/search (vector/hybrid) | ✅ 已验证 |
-| `rebuild_index` | POST /api/v1/memories (批量) | ✅ 已验证 |
-| `memory_relate` (create) | POST /api/v1/memories/relations | ✅ 已验证 |
-| `memory_relate` (query) | POST /api/v1/memories/{id}/relations | ✅ 已验证 |
-| `memory_graph` | POST /api/v1/memories/{id}/graph | ✅ 已验证 |
-| `index_status` | GET /health | ✅ 已验证 |
+| 工具                     | 后端 API                                             | 测试状态  |
+| ------------------------ | ---------------------------------------------------- | --------- |
+| `memory_write`           | POST /api/v1/memories                                | ✅ 已验证 |
+| `memory_search`          | POST /api/v1/memories/search (keyword/vector/hybrid) | ✅ 已验证 |
+| `rebuild_index`          | POST /api/v1/memories (批量)                         | ✅ 已验证 |
+| `memory_relate` (create) | POST /api/v1/memories/relations                      | ✅ 已验证 |
+| `memory_relate` (query)  | POST /api/v1/memories/{id}/relations                 | ✅ 已验证 |
+| `memory_graph`           | POST /api/v1/memories/{id}/graph                     | ✅ 已验证 |
+| `index_status`           | GET /health                                          | ✅ 已验证 |
 
 ### 不调用后端的工具
 
-| 工具 | 操作 | 说明 |
-|------|------|------|
+| 工具          | 操作         | 说明   |
+| ------------- | ------------ | ------ |
 | `memory_read` | 本地文件读取 | 纯本地 |
-| `list_daily` | 本地目录列表 | 纯本地 |
-| `init_daily` | 本地文件创建 | 纯本地 |
+| `list_daily`  | 本地目录列表 | 纯本地 |
+| `init_daily`  | 本地文件创建 | 纯本地 |
 
 ---
 
@@ -184,12 +186,12 @@
 
 ### 与目标对比
 
-| 指标 | 目标 | 实测 | 状态 |
-|------|------|------|------|
-| 单条上传 | < 500ms | ✓ 通过 | ✅ |
-| 搜索延迟 | < 200ms | 9-627ms | ✅ |
-| 批量吞吐 | > 20/s | 43/s | ✅ |
-| Embedding | < 100ms | 11-87ms | ✅ |
+| 指标      | 目标    | 实测    | 状态 |
+| --------- | ------- | ------- | ---- |
+| 单条上传  | < 500ms | ✓ 通过  | ✅   |
+| 搜索延迟  | < 200ms | 9-627ms | ✅   |
+| 批量吞吐  | > 20/s  | 43/s    | ✅   |
+| Embedding | < 100ms | 11-87ms | ✅   |
 
 ### 系统资源
 
@@ -206,6 +208,7 @@
 ### ✅ 后端服务状态: 优秀
 
 所有功能测试通过，性能指标优秀：
+
 - ✅ 健康检查正常
 - ✅ 上传功能正常（单条/批量）
 - ✅ 搜索功能正常（三种模式）
@@ -216,7 +219,7 @@
 
 1. **日常写入**: `memory_write` (自动同步后端)
 2. **快速搜索**: `memory_search` (后端 BM25，9ms)
-3. **语义搜索**: `vector_memory_search` (后端 Hybrid，183ms)
+3. **语义搜索**: `memory_search` mode="hybrid" (后端 Hybrid，183ms)
 4. **关系管理**: `memory_relate` / `memory_graph`
 5. **批量同步**: `rebuild_index` (批量上传本地→后端)
 
@@ -258,7 +261,7 @@ memory_write content="测试内容" type="note"
 
 # 后端搜索
 memory_search query="关键词"
-vector_memory_search query="语义查询" mode="hybrid"
+memory_search query="语义查询" mode="hybrid"
 
 # 图关系
 memory_relate action=create from_id=memory:xxx to_id=memory:yyy
@@ -267,5 +270,5 @@ memory_graph memory_id=memory:xxx depth=2
 
 ---
 
-*报告生成时间: 2026-03-11 21:23:07*  
-*测试工具: test-backend-api.mjs*
+_报告生成时间: 2026-03-11 21:23:07_  
+_测试工具: test-backend-api.mjs_

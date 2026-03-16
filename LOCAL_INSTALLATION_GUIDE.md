@@ -1,6 +1,7 @@
 # 本地安装 OpenCode Memory Plugin 开发环境
 
 ## 📋 目录
+
 1. [克隆仓库](#克隆仓库)
 2. [安装依赖](#安装依赖)
 3. [本地开发模式安装](#本地开发模式安装)
@@ -138,6 +139,7 @@ ls -la ~/.opencode/memory/
 ```
 
 **预期输出**：
+
 ```
 drwxr-xr-x  SOUL.md
 drwxr-xr-x  AGENTS.md
@@ -160,6 +162,7 @@ cat ~/.opencode/memory/memory-config.json
 ```
 
 **预期输出**：
+
 ```json
 {
   "version": "2.0",
@@ -189,6 +192,7 @@ cat ~/.config/opencode/opencode.json | grep -A 20 "agent"
 ```
 
 **预期输出**：
+
 ```json
 "agent": {
   "memory-automation": {
@@ -198,13 +202,13 @@ cat ~/.config/opencode/opencode.json | grep -A 20 "agent"
       "memory_write": true,
       "memory_read": true,
       "memory_search": true,
-      "vector_memory_search": true
+      "memory_search": true
     },
     "permission": {
       "memory_write": "allow",
       "memory_read": "allow",
       "memory_search": "allow",
-      "vector_memory_search": "allow"
+      "memory_search": "allow"
     }
   },
   "memory-consolidate": {
@@ -283,7 +287,7 @@ memory_write content="Local development test" type="test"
 memory_search query="test"
 
 # 向量搜索测试
-vector_memory_search query="local development"
+memory_search query="local development"
 ```
 
 ---
@@ -302,25 +306,25 @@ mkdir tests
 **示例测试文件**：`tests/vector-store.test.js`
 
 ```javascript
-import { describe, it, expect } from '@jest/globals';
-import { getVectorStore } from '../lib/vector-store.js';
+import { describe, it, expect } from "@jest/globals";
+import { getVectorStore } from "../lib/vector-store.js";
 
-describe('VectorStore', () => {
-  it('should initialize successfully', async () => {
+describe("VectorStore", () => {
+  it("should initialize successfully", async () => {
     const vectorStore = getVectorStore();
     const result = await vectorStore.initialize({
-      dbPath: ':memory:',
-      useExternalService: false
+      dbPath: ":memory:",
+      useExternalService: false,
     });
 
     expect(result.success).toBe(true);
   });
 
-  it('should generate embeddings', async () => {
+  it("should generate embeddings", async () => {
     const vectorStore = getVectorStore();
     await vectorStore.initialize({ useExternalService: false });
 
-    const embeddings = await vectorStore.generateEmbeddings(['test']);
+    const embeddings = await vectorStore.generateEmbeddings(["test"]);
     expect(embeddings).toBeDefined();
     expect(embeddings.length).toBe(1);
   });
@@ -338,16 +342,16 @@ npm test
 创建集成测试文件：`tests/integration.test.js`
 
 ```javascript
-import { describe, it, expect } from '@jest/globals';
-import { MemoryPlugin } from '../plugin.js';
+import { describe, it, expect } from "@jest/globals";
+import { MemoryPlugin } from "../plugin.js";
 
-describe('MemoryPlugin Integration', () => {
-  it('should register all tools', async () => {
+describe("MemoryPlugin Integration", () => {
+  it("should register all tools", async () => {
     const plugin = await MemoryPlugin({});
     expect(plugin.tools).toBeDefined();
     expect(plugin.tools.memory_write).toBeDefined();
     expect(plugin.tools.memory_search).toBeDefined();
-    expect(plugin.tools.vector_memory_search).toBeDefined();
+    expect(plugin.tools.memory_search).toBeDefined();
   });
 });
 ```
@@ -367,7 +371,7 @@ memory_read file="MEMORY.md"
 memory_search query="test"
 
 // 测试 4：向量搜索
-vector_memory_search query="test entry"
+memory_search query="test entry"
 
 // 测试 5：列出日志
 list_daily days=7
@@ -389,6 +393,7 @@ index_status
 ### 问题 1：npm link 后找不到插件
 
 **症状**：
+
 ```
 Error: Cannot find module '@csuwl/opencode-memory-plugin'
 ```
@@ -428,6 +433,7 @@ npm list -g --depth=0 | grep opencode-memory
 ### 问题 3：安装脚本运行失败
 
 **症状**：
+
 ```
 Error: Cannot find module 'fs'
 ```
@@ -445,6 +451,7 @@ node bin/install.cjs
 ### 问题 4：权限错误
 
 **症状**：
+
 ```
 Error: EACCES: permission denied
 ```
@@ -460,6 +467,7 @@ sudo node bin/install.cjs
 ```
 
 **Windows**：
+
 ```powershell
 # 以管理员身份运行 PowerShell
 # 右键点击 PowerShell → "以管理员身份运行"
@@ -469,6 +477,7 @@ npm link
 ### 问题 5：模块导入错误
 
 **症状**：
+
 ```
 Error: Unexpected token 'export'
 ```
@@ -673,16 +682,16 @@ rm -rf ~/.opencode
 
 ### 关键命令速查
 
-| 命令 | 用途 |
-|------|------|
-| `npm install` | 安装依赖 |
-| `npm link` | 链接到全局（开发）|
-| `npm unlink -g` | 取消链接 |
-| `npm run install` | 运行安装脚本 |
-| `npm test` | 运行测试 |
-| `opencode` | 启动 OpenCode |
+| 命令              | 用途               |
+| ----------------- | ------------------ |
+| `npm install`     | 安装依赖           |
+| `npm link`        | 链接到全局（开发） |
+| `npm unlink -g`   | 取消链接           |
+| `npm run install` | 运行安装脚本       |
+| `npm test`        | 运行测试           |
+| `opencode`        | 启动 OpenCode      |
 
 ---
 
-*生成时间: 2026-02-28*
-*版本: v1.2.0*
+_生成时间: 2026-02-28_
+_版本: v1.2.0_

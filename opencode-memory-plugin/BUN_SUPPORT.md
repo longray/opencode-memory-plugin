@@ -10,16 +10,16 @@ The OpenCode Memory Plugin works in Bun runtime with automatic fallbacks to ensu
 
 All 8 memory tools work without issues:
 
-| Tool | Functionality | Status |
-|------|--------------|--------|
-| `memory_write` | Write entries to long-term memory | ✅ Full |
-| `memory_read` | Read from memory files | ✅ Full |
-| `memory_search` | Keyword search across memory | ✅ Full |
-| `vector_memory_search` | Semantic/search | ⚠️ Fallback to BM25 |
-| `list_daily` | List available daily logs | ✅ Full |
-| `init_daily` | Initialize today's daily log | ✅ Full |
-| `rebuild_index` | Rebuild vector/index | ⚠️ BM25-only |
-| `index_status` | Check system status | ✅ Full |
+| Tool            | Functionality                     | Status              |
+| --------------- | --------------------------------- | ------------------- |
+| `memory_write`  | Write entries to long-term memory | ✅ Full             |
+| `memory_read`   | Read from memory files            | ✅ Full             |
+| `memory_search` | Keyword search across memory      | ✅ Full             |
+| `memory_search` | Semantic/search                   | ⚠️ Fallback to BM25 |
+| `list_daily`    | List available daily logs         | ✅ Full             |
+| `init_daily`    | Initialize today's daily log      | ✅ Full             |
+| `rebuild_index` | Rebuild vector/index              | ⚠️ BM25-only        |
+| `index_status`  | Check system status               | ✅ Full             |
 
 ### Automation Agents (✅)
 
@@ -35,18 +35,21 @@ Both automation agents work normally:
 **What Doesn't Work:**
 
 ⚠️ **Vector Search with Embeddings**: The plugin cannot use `better-sqlite3` for vector storage in Bun
-- `vector_memory_search`: Falls back to BM25 keyword search
+
+- `memory_search`: Falls back to BM25 keyword search
 - `rebuild_index`: Builds BM25 index instead of vector index with embeddings
 
 **Reason:**
 
 Bun does not yet implement all required V8 C++ APIs that `better-sqlite3` depends on, specifically:
+
 - `node_module_register`
 - Various V8 handle and object template functions
 
 **Status:**
 
 See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for implementation progress.
+
 - **Opened**: 2023-08-24 (1.5+ years ago)
 - **Status**: Open, actively being worked on
 - **Progress**: ~50 V8 C++ API functions implemented, key ones still missing
@@ -55,12 +58,12 @@ See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for impleme
 
 ### Search Performance
 
-| Operation | Time | Notes |
-|-----------|-------|-------|
-| BM25 keyword search | <1ms | Very fast text matching |
-| memory_write | <10ms | File append operation |
-| memory_read | <5ms | File read operation |
-| Index rebuild (BM25) | <5s | Fast local indexing |
+| Operation            | Time  | Notes                   |
+| -------------------- | ----- | ----------------------- |
+| BM25 keyword search  | <1ms  | Very fast text matching |
+| memory_write         | <10ms | File append operation   |
+| memory_read          | <5ms  | File read operation     |
+| Index rebuild (BM25) | <5s   | Fast local indexing     |
 
 ### Memory Usage
 
@@ -78,11 +81,11 @@ The plugin automatically detects Bun and configures itself:
 {
   "version": "2.0",
   "search": {
-    "mode": "bm25"  // Automatically set for best performance
+    "mode": "bm25" // Automatically set for best performance
   },
   "embedding": {
     "enabled": true,
-    "fallbackMode": "bm25"  // Automatic fallback enabled
+    "fallbackMode": "bm25" // Automatic fallback enabled
   }
 }
 ```
@@ -95,10 +98,10 @@ If you want to customize the configuration:
 {
   "version": "2.0",
   "search": {
-    "mode": "bm25"  // Recommended for Bun
+    "mode": "bm25" // Recommended for Bun
   },
   "embedding": {
-    "enabled": false  // Disable embedding requests
+    "enabled": false // Disable embedding requests
   }
 }
 ```
@@ -108,16 +111,19 @@ If you want to customize the configuration:
 ### Continue Using the Plugin
 
 ✅ **All basic functionality works normally**
+
 - Write, read, search memory
 - List and manage daily logs
 - Automation agents save important information
 
 ✅ **BM25 search is fast and effective**
+
 - <1ms search time
 - Good keyword matching
 - Supports Chinese and English text
 
 ✅ **Low resource usage**
+
 - ~50MB RAM
 - No network calls needed
 - No external dependencies
@@ -136,16 +142,19 @@ When Bun fully implements V8 C++ APIs (GitHub Issue #4290), vector search will a
 If you need semantic search urgently, you have options:
 
 **Option 1: Use Node.js/OpenCode**
+
 - Vector search works fully
 - All embeddings supported
 - No workarounds needed
 
 **Option 2: Run Embedding Service**
+
 - Start local embedding service on port 18000
 - Configure plugin to use it
 - See [EXTERNAL_EMBEDDING.md](./EXTERNAL_EMBEDDING.md) for details
 
 **Option 3: Continue with BM25**
+
 - Fast and effective for most use cases
 - Good keyword matching
 - Automatic phrase extraction
@@ -180,13 +189,13 @@ If you see high memory usage:
 
 ## Summary
 
-| Aspect | Bun Support | Notes |
-|--------|------------|-------|
-| Basic Tools | ✅ Full | All 8 tools work normally |
-| Keyword Search | ✅ Full | BM25 is fast and effective |
-| Vector Search | ⚠️ Limited | Falls back to BM25 |
-| Automation Agents | ✅ Full | Both agents work normally |
-| Performance | ✅ Fast | <1ms search, ~50MB RAM |
-| Future Support | 🔄 Pending | Auto-restores when Bun adds V8 APIs |
+| Aspect            | Bun Support | Notes                               |
+| ----------------- | ----------- | ----------------------------------- |
+| Basic Tools       | ✅ Full     | All 8 tools work normally           |
+| Keyword Search    | ✅ Full     | BM25 is fast and effective          |
+| Vector Search     | ⚠️ Limited  | Falls back to BM25                  |
+| Automation Agents | ✅ Full     | Both agents work normally           |
+| Performance       | ✅ Fast     | <1ms search, ~50MB RAM              |
+| Future Support    | 🔄 Pending  | Auto-restores when Bun adds V8 APIs |
 
 **Bottom Line**: The plugin works well in Bun with some limitations on vector search. All basic functionality works, and vector search will be automatically restored when Bun implements the required V8 C++ APIs.

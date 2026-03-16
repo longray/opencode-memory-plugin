@@ -13,6 +13,7 @@ You've installed the OpenClaw-style memory system for OpenCode. Let's personaliz
 ## Step 1: Define Your Assistant's Personality
 
 Edit **SOUL.md** to define:
+
 - Tone and communication style
 - Boundaries and what it should never do
 - Core values and working principles
@@ -22,6 +23,7 @@ Edit **SOUL.md** to define:
 ## Step 2: Tell Me About Yourself
 
 Edit **USER.md** to share:
+
 - Your preferred communication style
 - How you like to work
 - Your pet peeves (what annoys you)
@@ -32,6 +34,7 @@ Edit **USER.md** to share:
 ## Step 3: Customize Assistant Identity
 
 Edit **IDENTITY.md** to define:
+
 - Assistant's name
 - Its vibe/emoji
 - What makes it special
@@ -41,6 +44,7 @@ Edit **IDENTITY.md** to define:
 ## Step 4: Document Your Tools
 
 Edit **TOOLS.md** to add:
+
 - Project-specific tool usage patterns
 - Bash command conventions
 - File operation guidelines
@@ -50,6 +54,7 @@ Edit **TOOLS.md** to add:
 ## Step 5: Set Initial Preferences
 
 Edit **AGENTS.md** to specify:
+
 - How you want decisions made
 - Memory priority rules
 - Workflow patterns
@@ -59,9 +64,10 @@ Edit **AGENTS.md** to specify:
 ## Step 6: Test Memory System
 
 Try these commands:
+
 1. `memory_write content="Test memory entry" type="daily"`
 2. `memory_search query="test"` to find it
-3. `vector_memory_search query="test entry"` for semantic search
+3. `memory_search query="test entry"` for semantic search
 
 ---
 
@@ -81,6 +87,7 @@ git commit -m "Initial memory setup"
 ## Step 8: You're Ready! 🚀
 
 Your AI assistant now has:
+
 - ✅ Persistent memory that survives sessions
 - ✅ Semantic search to find relevant past context
 - ✅ Automatic memory saving (fully automated)
@@ -93,7 +100,7 @@ Your AI assistant now has:
 
 - **Privacy**: Memory files contain personal preferences. Keep them private or use a private Git repo.
 - **Automation**: The system will automatically save important information. You can also manually save with `memory_write`.
-- **Search**: Use semantic search (`vector_memory_search`) when you don't remember exact words.
+- **Search**: Use semantic search (`memory_search`) when you don't remember exact words.
 - **Backup**: Set up Git backup if you want to preserve memory across machines.
 
 ---
@@ -102,4 +109,4 @@ Your AI assistant now has:
 
 ---
 
-*Enjoy having an AI assistant that never forgets! 🧠*
+_Enjoy having an AI assistant that never forgets! 🧠_

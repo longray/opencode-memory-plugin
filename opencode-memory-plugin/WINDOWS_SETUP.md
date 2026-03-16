@@ -11,12 +11,15 @@ This document provides instructions for setting up the OpenCode Memory Plugin on
 ## Installation Steps
 
 ### 1. Install the Plugin
+
 ```cmd
 npm install -g @csuwl/opencode-memory-plugin
 ```
 
 ### 2. Verify Configuration
+
 The installation will create a default configuration at `%USERPROFILE%/.opencode/memory/memory-config.json` with these settings:
+
 ```json
 {
   "version": "2.0",
@@ -34,37 +37,47 @@ The installation will create a default configuration at `%USERPROFILE%/.opencode
 ```
 
 ### 3. Ensure Your Embedding Service is Running
+
 Before using the plugin, start your embedding service on port 18000.
 
 ## Windows-Specific Considerations
 
 ### Path Handling
+
 - The plugin correctly handles Windows-style paths (using `path.join()`)
 - Memory files are stored in `%USERPROFILE%/.opencode/memory/` (equivalent to `C:\Users\<username>\.opencode\memory\`)
 
 ### Firewall/Network Access
+
 Make sure Windows Defender Firewall or other security software allows Node.js to make outbound connections to localhost:18000 if your embedding service is running locally.
 
 ### Permission Issues
+
 - If you encounter permission errors during installation, try running the command prompt as administrator
 - Alternatively, install locally to your project without `-g` flag
 
 ## Testing the Integration
 
 ### 1. Test the Vector Search Functionality
+
 Once your embedding service is running, open OpenCode and run:
+
 ```
-vector_memory_search query="test search functionality"
+memory_search query="test search functionality"
 ```
 
 ### 2. Check the Index Status
+
 Verify everything is working properly:
+
 ```
 index_status
 ```
 
 ### 3. Rebuild Index if Needed
+
 After changing configurations or ensuring the service is running:
+
 ```
 rebuild_index force=true
 ```
@@ -74,7 +87,8 @@ rebuild_index force=true
 ### Common Issues on Windows
 
 **Problem**: "External embedding service not accessible" error
-**Solution**: 
+**Solution**:
+
 - Confirm your embedding service is running and accessible at http://localhost:18000/embeddings
 - Verify the service accepts POST requests with JSON payload
 - Check Windows Firewall isn't blocking the connection
@@ -88,6 +102,7 @@ rebuild_index force=true
 ### Service Validation
 
 Your external embedding service should:
+
 1. Accept POST requests at `http://localhost:18000/embeddings`
 2. Accept JSON input like: `{"input": "text to embed", "model": "default"}`
 3. Return embeddings in a recognized format (OpenAI-compatible, direct array, or with embeddings property)
@@ -102,6 +117,7 @@ Your external embedding service should:
 ## Performance Expectations on Windows 11
 
 With the external embedding service running:
+
 - **Initial Connection**: ~50-100ms (establishing connection to your service)
 - **Subsequent Searches**: ~50-100ms per query
 - **Memory Usage**: ~50-100MB RAM (much lower than local model approaches)

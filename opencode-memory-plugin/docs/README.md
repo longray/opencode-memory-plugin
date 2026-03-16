@@ -73,22 +73,22 @@ graph LR
 
 ## 📦 可用工具（更新）
 
-| 工具                   | 功能          | 状态    | 后端依赖            |
-| ---------------------- | ------------- | ------- | ------------------- |
-| `memory_write`         | 写入记忆      | ✅ 正常 | ✅ Wrapper 服务     |
-| `memory_read`          | 读取记忆文件  | ✅ 正常 | - 本地文件          |
-| `memory_search`        | 关键词搜索    | ✅ 正常 | ✅ Wrapper 服务     |
-| `list_daily`           | 列出日志      | ✅ 正常 | - 本地文件          |
-| `init_daily`           | 初始化日志    | ✅ 正常 | - 本地文件          |
-| `rebuild_index`        | 同步到后端    | ✅ 正常 | ✅ Wrapper 服务     |
-| `index_status`         | 状态检查      | ✅ 正常 | ✅ Wrapper 服务     |
-| `memory_relate`        | 创建/查询关系 | ✅ 正常 | ✅ Wrapper 服务     |
-| `memory_graph`         | 图遍历        | ✅ 正常 | ✅ Wrapper 服务     |
-| `vector_memory_search` | ❌ 已移除     | ❌ -    | ️ 改用 memory_search |
+| 工具            | 功能          | 状态    | 后端依赖            |
+| --------------- | ------------- | ------- | ------------------- |
+| `memory_write`  | 写入记忆      | ✅ 正常 | ✅ Wrapper 服务     |
+| `memory_read`   | 读取记忆文件  | ✅ 正常 | - 本地文件          |
+| `memory_search` | 关键词搜索    | ✅ 正常 | ✅ Wrapper 服务     |
+| `list_daily`    | 列出日志      | ✅ 正常 | - 本地文件          |
+| `init_daily`    | 初始化日志    | ✅ 正常 | - 本地文件          |
+| `rebuild_index` | 同步到后端    | ✅ 正常 | ✅ Wrapper 服务     |
+| `index_status`  | 状态检查      | ✅ 正常 | ✅ Wrapper 服务     |
+| `memory_relate` | 创建/查询关系 | ✅ 正常 | ✅ Wrapper 服务     |
+| `memory_graph`  | 图遍历        | ✅ 正常 | ✅ Wrapper 服务     |
+| `memory_search` | ❌ 已移除     | ❌ -    | ️ 改用 memory_search |
 
 **移除的工具**:
 
-- ❌ `vector_memory_search` - 已移除（统一使用 `memory_search`）
+- ❌ `memory_search` - 已移除（统一使用 `memory_search`）
 - ❌ 直接访问 Embedding 服务的代码 - 已移除
 
 ---
@@ -168,7 +168,7 @@ memory_graph memory_id="id1" depth=2
 **重大变更**:
 
 - 🏗️ **架构重构**: 统一 API 入口，仅通过 Wrapper 服务（17999）访问
-- ❌ 移除 `vector_memory_search` 工具
+- ❌ 移除 `memory_search` 工具
 - ❌ 移除直接访问 Embedding 服务的代码
 - ✅ 删除未使用的 `embedding` 配置
 - ✅ 简化配置文件结构

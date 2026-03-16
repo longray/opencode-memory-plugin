@@ -3,6 +3,7 @@
 ## 🎉 状态确认
 
 ### Git状态
+
 ```
 当前分支: main
 最新提交: 1c91667
@@ -11,6 +12,7 @@
 ```
 
 ### 验证结果
+
 - ✅ 本地HEAD: `1c9166726c456fdfedf43b235bdfc6da0256e315`
 - ✅ 远程main: `1c9166726c456fdfedf43b235bdfc6da0256e315`
 - ✅ 无未推送提交
@@ -21,11 +23,13 @@
 ## 📦 已推送的内容
 
 ### 最新提交
+
 ```
 1c91667 - chore: clean up repository - remove test and temporary files
 ```
 
 ### 包含的改动
+
 - ✅ 删除46个测试和临时文件
 - ✅ 删除11,174行代码
 - ✅ 仓库清理完成
@@ -36,11 +40,13 @@
 ## 📊 仓库现状
 
 ### GitHub仓库
+
 - **URL**: https://github.com/csuwl/opencode-memory-plugin
 - **分支**: main
 - **状态**: 最新 (1c91667)
 
 ### NPM包
+
 - **包名**: @csuwl/opencode-memory-plugin
 - **版本**: v1.1.2
 - **状态**: ✅ 已发布
@@ -51,16 +57,19 @@
 ## 🎯 用户可用功能
 
 ### 安装
+
 ```bash
 npm install -g @csuwl/opencode-memory-plugin@1.1.2
 ```
 
 ### 使用
+
 安装后，8个工具立即可用：
+
 1. memory_write
 2. memory_read
 3. memory_search
-4. vector_memory_search
+4. memory_search
 5. list_daily
 6. init_daily
 7. rebuild_index
@@ -87,19 +96,25 @@ npm install -g @csuwl/opencode-memory-plugin@1.1.2
 ## 🌐 生产环境状态
 
 ### GitHub
+
 ✅ **代码已推送**
+
 - 所有改动已同步到origin/main
 - 仓库干净整洁
 - 只保留生产必需文件
 
 ### NPM
+
 ✅ **包已发布**
+
 - 版本1.1.2可用
 - 8个工具可用
 - 零配置安装
 
 ### 用户
+
 ✅ **可以立即使用**
+
 - 安装命令简单
 - 工具开箱即用
 - 文档清晰完整

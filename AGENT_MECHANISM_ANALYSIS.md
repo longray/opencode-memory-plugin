@@ -1,6 +1,7 @@
 # OpenCode 子代理识别机制深度分析
 
 ## 📋 目录
+
 1. [代理定义结构](#代理定义结构)
 2. [安装时注册](#安装时注册)
 3. [OpenCode 识别流程](#opencode-识别流程)
@@ -36,7 +37,6 @@ tools:
   memory_write: true
   memory_read: true
   memory_search: true
-  vector_memory_search: true
   bash: false
   write: false
   edit: false
@@ -45,7 +45,6 @@ permission:
   memory_write: allow
   memory_read: allow
   memory_search: allow
-  vector_memory_search: allow
 ---
 ```
 
@@ -60,14 +59,12 @@ tools:
   memory_write: true
   memory_read: true
   memory_search: true
-  vector_memory_search: true
   list_daily: true
   bash: true
 permission:
   memory_write: allow
   memory_read: allow
   memory_search: allow
-  vector_memory_search: allow
   list_daily: allow
   bash:
     "git *": deny
@@ -78,13 +75,13 @@ permission:
 
 ### 配置字段说明
 
-| 字段 | 类型 | 必需 | 说明 |
-|------|------|--------|------|
-| `description` | string | ✅ | 代理功能描述 |
-| `mode` | string | ✅ | 运行模式：`subagent`（子代理）|
-| `model` | string | ✅ | 使用的 LLM 模型 |
-| `tools` | object | ✅ | 可访问的工具及其权限 |
-| `permission` | object | ✅ | 工具权限设置 |
+| 字段          | 类型   | 必需 | 说明                           |
+| ------------- | ------ | ---- | ------------------------------ |
+| `description` | string | ✅   | 代理功能描述                   |
+| `mode`        | string | ✅   | 运行模式：`subagent`（子代理） |
+| `model`       | string | ✅   | 使用的 LLM 模型                |
+| `tools`       | object | ✅   | 可访问的工具及其权限           |
+| `permission`  | object | ✅   | 工具权限设置                   |
 
 ---
 
@@ -102,14 +99,14 @@ function updateOpenCodeConfig() {
   if (fs.existsSync(OPENCORE_CONFIG)) {
     const backup = `${OPENCORE_CONFIG}.backup.${timestamp}`;
     fs.copyFileSync(OPENCORE_CONFIG, backup);
-    log('  ⊙ Backed up existing config', 'blue');
+    log("  ⊙ Backed up existing config", "blue");
   }
 
   // 2. 读取现有配置
   let config = {};
   try {
     if (fs.existsSync(OPENCORE_CONFIG)) {
-      config = JSON.parse(fs.readFileSync(OPENCORE_CONFIG, 'utf8'));
+      config = JSON.parse(fs.readFileSync(OPENCORE_CONFIG, "utf8"));
     }
   } catch (e) {
     // 配置无效，重新开始
@@ -121,54 +118,50 @@ function updateOpenCodeConfig() {
   }
 
   // 4. 注册 @memory-automation 代理
-  if (!config.agent['memory-automation']) {
-    config.agent['memory-automation'] = {
-      description: 'Automatically saves important information to memory',
-      mode: 'subagent',
+  if (!config.agent["memory-automation"]) {
+    config.agent["memory-automation"] = {
+      description: "Automatically saves important information to memory",
+      mode: "subagent",
       tools: {
         memory_write: true,
         memory_read: true,
         memory_search: true,
-        vector_memory_search: true
       },
       permission: {
-        memory_write: 'allow',
-        memory_read: 'allow',
-        memory_search: 'allow',
-        vector_memory_search: 'allow'
-      }
+        memory_write: "allow",
+        memory_read: "allow",
+        memory_search: "allow",
+      },
     };
-    log('  ✓ Added memory-automation agent', 'green');
+    log("  ✓ Added memory-automation agent", "green");
   }
 
   // 5. 注册 @memory-consolidate 代理
-  if (!config.agent['memory-consolidate']) {
-    config.agent['memory-consolidate'] = {
-      description: 'Consolidates daily logs into long-term memory',
-      mode: 'subagent',
+  if (!config.agent["memory-consolidate"]) {
+    config.agent["memory-consolidate"] = {
+      description: "Consolidates daily logs into long-term memory",
+      mode: "subagent",
       tools: {
         memory_write: true,
         memory_read: true,
         memory_search: true,
-        vector_memory_search: true,
         list_daily: true,
-        rebuild_index: true
+        rebuild_index: true,
       },
       permission: {
-        memory_write: 'allow',
-        memory_read: 'allow',
-        memory_search: 'allow',
-        vector_memory_search: 'allow',
-        list_daily: 'allow',
-        rebuild_index: 'allow'
-      }
+        memory_write: "allow",
+        memory_read: "allow",
+        memory_search: "allow",
+        list_daily: "allow",
+        rebuild_index: "allow",
+      },
     };
-    log('  ✓ Added memory-consolidate agent', 'green');
+    log("  ✓ Added memory-consolidate agent", "green");
   }
 
   // 6. 写入配置文件
   fs.writeFileSync(OPENCORE_CONFIG, JSON.stringify(config, null, 2));
-  log('  ✓ OpenCode configuration updated', 'green');
+  log("  ✓ OpenCode configuration updated", "green");
 }
 ```
 
@@ -184,13 +177,12 @@ function updateOpenCodeConfig() {
         "memory_write": true,
         "memory_read": true,
         "memory_search": true,
-        "vector_memory_search": true
+        "memory_search": true
       },
       "permission": {
         "memory_write": "allow",
         "memory_read": "allow",
-        "memory_search": "allow",
-        "vector_memory_search": "allow"
+        "memory_search": "allow"
       }
     },
     "memory-consolidate": {
@@ -200,7 +192,6 @@ function updateOpenCodeConfig() {
         "memory_write": true,
         "memory_read": true,
         "memory_search": true,
-        "vector_memory_search": true,
         "list_daily": true,
         "rebuild_index": true
       },
@@ -208,7 +199,6 @@ function updateOpenCodeConfig() {
         "memory_write": "allow",
         "memory_read": "allow",
         "memory_search": "allow",
-        "vector_memory_search": "allow",
         "list_daily": "allow",
         "rebuild_index": "allow"
       }
@@ -218,7 +208,6 @@ function updateOpenCodeConfig() {
     "memory_write": true,
     "memory_read": true,
     "memory_search": true,
-    "vector_memory_search": true,
     "list_daily": true,
     "init_daily": true,
     "rebuild_index": true,
@@ -292,12 +281,14 @@ config.agent['memory-consolidate'] →  @memory-consolidate
 **memory-automation**（自动保存代理）
 
 **触发时机**：
+
 - 对话中有重要信息时
 - 用户表达偏好时
 - 发现成功模式时
 - 收到用户反馈时
 
 **运行方式**：
+
 ```
 用户对话
     ↓
@@ -313,6 +304,7 @@ OpenCode 监听对话内容
 ```
 
 **示例**：
+
 ```markdown
 User: I prefer TypeScript for all new projects.
 
@@ -327,12 +319,14 @@ User: I prefer TypeScript for all new projects.
 **memory-consolidate**（自动合并代理）
 
 **触发时机**：
+
 - 每日结束时（如 23:00）
 - 向量索引过时
 - 用户手动调用：`@memory-consolidate`
 - 归档前
 
 **运行方式**：
+
 ```
 触发条件满足
     ↓
@@ -345,7 +339,7 @@ User: I prefer TypeScript for all new projects.
    识别需要合并的内容
     ↓
 3. 检查重复
-   memory_search/vector_memory_search
+   memory_search
     ↓
 4. 合并到长期记忆
    memory_write type="long-term"
@@ -369,16 +363,14 @@ User: I prefer TypeScript for all new projects.
 
 ```yaml
 tools:
-  memory_write: true       # ✅ 可以写入记忆
-  memory_read: true        # ✅ 可以读取记忆
-  memory_search: true       # ✅ 可以搜索记忆
-  vector_memory_search: true # ✅ 可以向量搜索
+  memory_write: true # ✅ 可以写入记忆
+  memory_read: true # ✅ 可以读取记忆
+  memory_search: true # ✅ 可以搜索记忆（支持所有模式）
 
 permission:
-  memory_write: allow       # ✅ 允许写入
-  memory_read: allow        # ✅ 允许读取
-  memory_search: allow       # ✅ 允许搜索
-  vector_memory_search: allow # ✅ 允许向量搜索
+  memory_write: allow # ✅ 允许写入
+  memory_read: allow # ✅ 允许读取
+  memory_search: allow # ✅ 允许搜索
 ```
 
 #### memory-consolidate 工具权限
@@ -388,32 +380,30 @@ tools:
   memory_write: true
   memory_read: true
   memory_search: true
-  vector_memory_search: true
-  list_daily: true          # ✅ 可以列出日志
-  rebuild_index: true       # ✅ 可以重建索引
+  list_daily: true # ✅ 可以列出日志
+  rebuild_index: true # ✅ 可以重建索引
 
 permission:
   memory_write: allow
   memory_read: allow
   memory_search: allow
-  vector_memory_search: allow
   list_daily: allow
   rebuild_index: allow
 
-bash:                      # 特殊权限：bash 命令控制
-  "git *": deny            # ❌ 禁止执行 git 命令
-  "rm -rf ~/.opencode/memory/daily/*": deny  # ❌ 禁止删除所有日志
-  "ls -la ~/.opencode/memory/daily": allow  # ✅ 允许列出日志
+bash: # 特殊权限：bash 命令控制
+  "git *": deny # ❌ 禁止执行 git 命令
+  "rm -rf ~/.opencode/memory/daily/*": deny # ❌ 禁止删除所有日志
+  "ls -la ~/.opencode/memory/daily": allow # ✅ 允许列出日志
 ```
 
 ### 权限级别
 
-| 权限值 | 行为 |
-|---------|------|
-| `true` | 工具对代理可用 |
+| 权限值  | 行为             |
+| ------- | ---------------- |
+| `true`  | 工具对代理可用   |
 | `false` | 工具对代理不可用 |
-| `allow` | 允许操作 |
-| `deny` | 拒绝操作 |
+| `allow` | 允许操作         |
+| `deny`  | 拒绝操作         |
 
 ---
 
@@ -422,11 +412,13 @@ bash:                      # 特殊权限：bash 命令控制
 ### 示例 1：自动保存用户偏好
 
 **用户输入**：
+
 ```
 I always use TypeScript for type safety and explicit type annotations.
 ```
 
 **后台处理**：
+
 ```
 1. OpenCode 监听到对话
 2. @memory-automation 自动触发
@@ -440,11 +432,13 @@ I always use TypeScript for type safety and explicit type annotations.
 ### 示例 2：自动保存成功模式
 
 **用户输入**：
+
 ```
 Great! That async/await pattern fixed the race condition issue.
 ```
 
 **后台处理**：
+
 ```
 1. @memory-automation 触发
 2. 分析到这是成功模式
@@ -470,7 +464,7 @@ Great! That async/await pattern fixed the race condition issue.
    - ...
 
 4. 检查重复:
-   vector_memory_search query="type safety preferences"
+   memory_search query="type safety preferences"
    → 已存在类似条目，跳过
 
 5. 合并到长期记忆:
@@ -495,11 +489,13 @@ Great! That async/await pattern fixed the race condition issue.
 ### 示例 4：手动调用代理
 
 **用户输入**：
+
 ```
 @memory-consolidate review and organize my recent memories
 ```
 
 **执行流程**：
+
 ```
 1. OpenCode 识别到 @memory-consolidate 调用
 2. 加载代理配置从 opencode.json
@@ -515,23 +511,23 @@ Great! That async/await pattern fixed the race condition issue.
 
 ### 识别机制
 
-| 步骤 | 描述 | 位置 |
-|------|------|------|
-| 1. 扫描配置 | OpenCode 读取 `opencode.json` | `~/.config/opencode/` |
-| 2. 解析代理 | 读取 `config.agent` 对象 | JSON 解析 |
-| 3. 映射名称 | 键名 + `@` → 代理名 | `memory-automation` → `@memory-automation` |
-| 4. 加载定义 | 读取对应的 `.md` 文件 | `agents/[name].md` |
-| 5. 注册工具 | 根据 `tools` 配置 | 工具权限系统 |
+| 步骤        | 描述                          | 位置                                       |
+| ----------- | ----------------------------- | ------------------------------------------ |
+| 1. 扫描配置 | OpenCode 读取 `opencode.json` | `~/.config/opencode/`                      |
+| 2. 解析代理 | 读取 `config.agent` 对象      | JSON 解析                                  |
+| 3. 映射名称 | 键名 + `@` → 代理名           | `memory-automation` → `@memory-automation` |
+| 4. 加载定义 | 读取对应的 `.md` 文件         | `agents/[name].md`                         |
+| 5. 注册工具 | 根据 `tools` 配置             | 工具权限系统                               |
 
 ### 运行机制
 
-| 特性 | memory-automation | memory-consolidate |
-|------|------------------|-------------------|
-| **触发方式** | 自动（后台） | 定期 + 手动 |
-| **主要功能** | 自动保存重要信息 | 整理和归档 |
-| **运行频率** | 实时（对话中） | 每日 / 按需 |
-| **工具数量** | 4 个 | 5 个 |
-| **bash 权限** | ❌ 无 | ✅ 受限 |
+| 特性          | memory-automation | memory-consolidate |
+| ------------- | ----------------- | ------------------ |
+| **触发方式**  | 自动（后台）      | 定期 + 手动        |
+| **主要功能**  | 自动保存重要信息  | 整理和归档         |
+| **运行频率**  | 实时（对话中）    | 每日 / 按需        |
+| **工具数量**  | 4 个              | 5 个               |
+| **bash 权限** | ❌ 无             | ✅ 受限            |
 
 ### 配置流程图
 
@@ -627,16 +623,16 @@ opencode-memory-plugin/agents/
 
 ### 两个代理的对比
 
-| 特性 | @memory-automation | @memory-consolidate |
-|------|------------------|-------------------|
-| **主要目的** | 自动保存 | 自动整理 |
-| **触发方式** | 实时（对话中） | 定期 + 手动 |
-| **运行频率** | 按需 | 每日 |
-| **工具数** | 4 | 5 |
-| **bash 权限** | 无 | 受限 |
-| **文件操作** | 写入 | 读取 + 写入 + 归档 |
+| 特性          | @memory-automation | @memory-consolidate |
+| ------------- | ------------------ | ------------------- |
+| **主要目的**  | 自动保存           | 自动整理            |
+| **触发方式**  | 实时（对话中）     | 定期 + 手动         |
+| **运行频率**  | 按需               | 每日                |
+| **工具数**    | 4                  | 5                   |
+| **bash 权限** | 无                 | 受限                |
+| **文件操作**  | 写入               | 读取 + 写入 + 归档  |
 
 ---
 
-*生成时间: 2026-02-28*
-*版本: v1.2.0*
+_生成时间: 2026-02-28_
+_版本: v1.2.0_

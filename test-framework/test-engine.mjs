@@ -3,12 +3,16 @@
  * 整合所有组件，执行测试用例
  */
 
-import TestLogger from './test-logger.mjs';
-import PerformanceMonitor from './test-monitor.mjs';
-import { generate60DayData, generateTestQueries, getDataStatistics } from './test-data-generator.mjs';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import TestLogger from "./test-logger.mjs";
+import PerformanceMonitor from "./test-monitor.mjs";
+import {
+  generate60DayData,
+  generateTestQueries,
+  getDataStatistics,
+} from "./test-data-generator.mjs";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,22 +30,24 @@ class TestEngine {
    * 初始化测试引擎
    */
   async initialize() {
-    await this.logger.info('🚀 初始化测试引擎');
+    await this.logger.info("🚀 初始化测试引擎");
 
     // 生成测试数据
     this.testData = generate60DayData();
     const statistics = getDataStatistics(this.testData);
-    await this.logger.info('📊 测试数据已生成', statistics);
+    await this.logger.info("📊 测试数据已生成", statistics);
 
     // 生成测试查询
     this.testQueries = generateTestQueries(100);
-    await this.logger.info('📊 测试查询已生成', { count: this.testQueries.length });
+    await this.logger.info("📊 测试查询已生成", {
+      count: this.testQueries.length,
+    });
 
     // 创建测试结果目录
-    const outputDir = path.join(__dirname, '..', 'test-results');
+    const outputDir = path.join(__dirname, "..", "test-results");
     await fs.mkdir(outputDir, { recursive: true });
 
-    await this.logger.info('✅ 测试引擎初始化完成');
+    await this.logger.info("✅ 测试引擎初始化完成");
   }
 
   /**
@@ -63,10 +69,15 @@ class TestEngine {
         ...result,
       });
 
-      await this.logger.testEnd(testCase.name, startTime, {
-        success: true,
-        ...result,
-      }, duration);
+      await this.logger.testEnd(
+        testCase.name,
+        startTime,
+        {
+          success: true,
+          ...result,
+        },
+        duration,
+      );
 
       this.results.push({
         testCase,
@@ -86,10 +97,15 @@ class TestEngine {
         category: testCase.category,
       });
 
-      await this.logger.testEnd(testCase.name, startTime, {
-        success: false,
-        error: error.message,
-      }, duration);
+      await this.logger.testEnd(
+        testCase.name,
+        startTime,
+        {
+          success: false,
+          error: error.message,
+        },
+        duration,
+      );
 
       this.results.push({
         testCase,
@@ -120,7 +136,11 @@ class TestEngine {
 
     for (let i = 0; i < testSuite.testCases.length; i++) {
       const testCase = testSuite.testCases[i];
-      await this.logger.logProgress(i + 1, testSuite.testCases.length, testCase.name);
+      await this.logger.logProgress(
+        i + 1,
+        testSuite.testCases.length,
+        testCase.name,
+      );
 
       const result = await this.runTestCase(testCase);
 
@@ -136,13 +156,16 @@ class TestEngine {
     }
 
     suiteResults.duration = Date.now() - suiteStartTime;
-    suiteResults.successRate = (suiteResults.passed / suiteResults.total * 100).toFixed(2);
+    suiteResults.successRate = (
+      (suiteResults.passed / suiteResults.total) *
+      100
+    ).toFixed(2);
 
     await this.logger.info(`📦 测试套件完成: ${testSuite.name}`, {
       passed: suiteResults.passed,
       failed: suiteResults.failed,
       duration: suiteResults.duration,
-      successRate: suiteResults.successRate + '%',
+      successRate: suiteResults.successRate + "%",
     });
 
     return suiteResults;
@@ -152,20 +175,21 @@ class TestEngine {
    * 生成测试报告
    */
   async generateReport() {
-    await this.logger.info('📝 生成测试报告');
+    await this.logger.info("📝 生成测试报告");
 
     const totalTests = this.results.length;
-    const passedTests = this.results.filter(r => r.result.success).length;
+    const passedTests = this.results.filter((r) => r.result.success).length;
     const failedTests = totalTests - passedTests;
-    const successRate = (passedTests / totalTests * 100).toFixed(2);
+    const successRate = ((passedTests / totalTests) * 100).toFixed(2);
 
     const totalDuration = this.results.reduce((sum, r) => {
-      const duration = typeof r.duration === 'number' ? r.duration : r.duration?.duration || 0;
+      const duration =
+        typeof r.duration === "number" ? r.duration : r.duration?.duration || 0;
       return sum + duration;
     }, 0);
     const avgDuration = totalTests > 0 ? totalDuration / totalTests : 0;
 
-    const failedResults = this.results.filter(r => !r.result.success);
+    const failedResults = this.results.filter((r) => !r.result.success);
 
     const report = `# OpenCode Memory Plugin 60天生产级测试报告
 
@@ -186,18 +210,22 @@ class TestEngine {
 ## ✅ 测试结果
 
 ### 成功率
-${successRate >= 99.9 ? '🎉 **优秀** - 达到生产级标准' : successRate >= 99 ? '✅ **良好** - 接近生产级标准' : '⚠️ **需改进** - 未达到生产级标准'}
+${successRate >= 99.9 ? "🎉 **优秀** - 达到生产级标准" : successRate >= 99 ? "✅ **良好** - 接近生产级标准" : "⚠️ **需改进** - 未达到生产级标准"}
 
 ### 通过测试: ${passedTests}/${totalTests}
 
 ### 失败测试详情
-${failedResults.length > 0 ? `
+${
+  failedResults.length > 0
+    ? `
 | 测试用例 | 错误信息 |
 |---------|---------|
-${failedResults.map(r => `| ${r.testCase.name} | ${r.result.error} |`).join('\n')}
-` : `
+${failedResults.map((r) => `| ${r.testCase.name} | ${r.result.error} |`).join("\n")}
+`
+    : `
 🎉 **无失败测试**
-`}
+`
+}
 
 ## 🎯 生产级验收标准
 
@@ -213,7 +241,7 @@ ${this.generatePerformanceTable()}
 ### 稳定性验收
 | 标准 | 目标 | 实际 | 状态 |
 |------|------|------|------|
-| 操作成功率 | > 99.9% | ${successRate}% | ${successRate >= 99.9 ? '✅ 通过' : '❌ 失败'} |
+| 操作成功率 | > 99.9% | ${successRate}% | ${successRate >= 99.9 ? "✅ 通过" : "❌ 失败"} |
 
 ### 可观测性验收
 | 标准 | 目标 | 实际 | 状态 |
@@ -233,20 +261,28 @@ ${this.generatePerformanceTable()}
 
 ## 🔍 问题分析
 
-${failedResults.length > 0 ? `
+${
+  failedResults.length > 0
+    ? `
 ### 发现的问题 (${failedResults.length})
 
-${failedResults.map((r, index) => `
+${failedResults
+  .map(
+    (r, index) => `
 #### ${index + 1}. ${r.testCase.name}
 - **错误**: ${r.result.error}
 - **类别**: ${r.testCase.category}
 - **建议**: 检查相关代码和配置
-`).join('\n')}
-` : `
+`,
+  )
+  .join("\n")}
+`
+    : `
 ### ✅ 未发现问题
 
 所有测试用例均通过，系统运行稳定。
-`}
+`
+}
 
 ## 📋 测试覆盖率
 
@@ -256,7 +292,7 @@ ${failedResults.map((r, index) => `
 | memory_write | 已测试 | ✅ |
 | memory_read | 已测试 | ✅ |
 | memory_search | 已测试 | ✅ |
-| vector_memory_search | 已测试 | ✅ |
+| memory_search | 已测试 | ✅ |
 | list_daily | 已测试 | ✅ |
 | init_daily | 已测试 | ✅ |
 | rebuild_index | 已测试 | ✅ |
@@ -279,7 +315,9 @@ ${failedResults.map((r, index) => `
 
 ## 🎉 结论
 
-${successRate >= 99.9 ? `
+${
+  successRate >= 99.9
+    ? `
 ### ✅ 生产就绪
 
 系统已达到生产级标准，可以部署到生产环境。
@@ -293,7 +331,9 @@ ${successRate >= 99.9 ? `
 - 可以安全部署到生产环境
 - 持续监控生产环境指标
 - 定期执行回归测试
-` : successRate >= 99 ? `
+`
+    : successRate >= 99
+      ? `
 ### ⚠️ 接近生产就绪
 
 系统基本达到生产级标准，但仍有少量问题需要修复。
@@ -307,7 +347,8 @@ ${successRate >= 99.9 ? `
 - 修复发现的${failedResults.length}个问题
 - 重新运行测试验证
 - 修复后可部署到生产环境
-` : `
+`
+      : `
 ### ❌ 未达到生产级标准
 
 系统存在较多问题，不建议部署到生产环境。
@@ -322,7 +363,8 @@ ${successRate >= 99.9 ? `
 - 优化性能指标
 - 重新运行完整测试
 - 达标后再部署
-`}
+`
+}
 
 ## 📊 附录
 
@@ -336,19 +378,23 @@ ${JSON.stringify(getDataStatistics(this.testData), null, 2)}
 `;
 
     // 导出报告
-    const outputDir = path.join(__dirname, '..', 'test-results');
-    const reportFile = path.join(outputDir, 'test-report.md');
-    await fs.writeFile(reportFile, report, 'utf-8');
+    const outputDir = path.join(__dirname, "..", "test-results");
+    const reportFile = path.join(outputDir, "test-report.md");
+    await fs.writeFile(reportFile, report, "utf-8");
     await this.logger.info(`✅ 测试报告已生成: ${reportFile}`);
 
     // 导出详细结果
-    const resultsFile = path.join(outputDir, 'test-results.json');
-    await fs.writeFile(resultsFile, JSON.stringify(this.results, null, 2), 'utf-8');
+    const resultsFile = path.join(outputDir, "test-results.json");
+    await fs.writeFile(
+      resultsFile,
+      JSON.stringify(this.results, null, 2),
+      "utf-8",
+    );
     await this.logger.info(`✅ 测试结果已导出: ${resultsFile}`);
 
     // 导出性能数据
-    await this.monitor.exportMetrics('performance-metrics.json');
-    await this.monitor.exportReport('performance-report.md');
+    await this.monitor.exportMetrics("performance-metrics.json");
+    await this.monitor.exportReport("performance-report.md");
 
     return reportFile;
   }
@@ -362,10 +408,10 @@ ${JSON.stringify(getDataStatistics(this.testData), null, 2)}
 
     return `| 标准 | 目标 | 实际 | 状态 |
 |------|------|------|------|
-| 平均响应时间 | < 200ms | ${stats.avg.toFixed(2)}ms | ${stats.avg < 200 ? '✅ 通过' : '❌ 失败'} |
-| P95响应时间 | < 500ms | ${stats.p95.toFixed(2)}ms | ${stats.p95 < 500 ? '✅ 通过' : '❌ 失败'} |
-| P99响应时间 | < 1000ms | ${stats.p99.toFixed(2)}ms | ${stats.p99 < 1000 ? '✅ 通过' : '❌ 失败'} |
-| 最大 RSS | < 150MB | ${(memoryStats.maxRss / 1024 / 1024).toFixed(2)}MB | ${memoryStats.maxRss < 150 * 1024 * 1024 ? '✅ 通过' : '❌ 失败'} |`;
+| 平均响应时间 | < 200ms | ${stats.avg.toFixed(2)}ms | ${stats.avg < 200 ? "✅ 通过" : "❌ 失败"} |
+| P95响应时间 | < 500ms | ${stats.p95.toFixed(2)}ms | ${stats.p95 < 500 ? "✅ 通过" : "❌ 失败"} |
+| P99响应时间 | < 1000ms | ${stats.p99.toFixed(2)}ms | ${stats.p99 < 1000 ? "✅ 通过" : "❌ 失败"} |
+| 最大 RSS | < 150MB | ${(memoryStats.maxRss / 1024 / 1024).toFixed(2)}MB | ${memoryStats.maxRss < 150 * 1024 * 1024 ? "✅ 通过" : "❌ 失败"} |`;
   }
 
   /**
@@ -380,16 +426,17 @@ ${JSON.stringify(getDataStatistics(this.testData), null, 2)}
    */
   getStatistics() {
     const totalTests = this.results.length;
-    const passedTests = this.results.filter(r => r.result.success).length;
+    const passedTests = this.results.filter((r) => r.result.success).length;
     const failedTests = totalTests - passedTests;
 
     return {
       total: totalTests,
       passed: passedTests,
       failed: failedTests,
-      successRate: (passedTests / totalTests * 100).toFixed(2),
+      successRate: ((passedTests / totalTests) * 100).toFixed(2),
       totalDuration: this.results.reduce((sum, r) => sum + r.duration, 0),
-      avgDuration: this.results.reduce((sum, r) => sum + r.duration, 0) / totalTests,
+      avgDuration:
+        this.results.reduce((sum, r) => sum + r.duration, 0) / totalTests,
     };
   }
 

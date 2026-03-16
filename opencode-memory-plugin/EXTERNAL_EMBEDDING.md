@@ -5,6 +5,7 @@ This guide explains how to configure the OpenCode Memory Plugin to use external 
 ## Recommended: ModelScope Inference API (Primary)
 
 The plugin now supports **ModelScope Inference API** as the primary external embedding service. This provides:
+
 - ✅ High-quality embeddings with `Qwen/Qwen3-Embedding-0.6B` model
 - ✅ 1024-dimensional vectors for better semantic understanding
 - ✅ Cloud-based, no local resource requirements
@@ -44,7 +45,7 @@ The plugin is pre-configured to use ModelScope API. Verify your configuration at
 **Step 3: Test**
 
 ```bash
-vector_memory_search query="test semantic search"
+memory_search query="test semantic search"
 ```
 
 If successful, you'll see vector search results powered by ModelScope API.
@@ -67,7 +68,7 @@ The plugin can be configured to connect to a local embedding service at `http://
   "embedding": {
     "enabled": true,
     "provider": "external",
-    "endpoint": "http://localhost:18000/embeddings",  // Default local service port
+    "endpoint": "http://localhost:18000/embeddings", // Default local service port
     "model": "Qwen/Qwen3-Embedding-0.6B",
     "fallbackMode": "bm25"
   }
@@ -81,6 +82,7 @@ Your local service should return embeddings in one of these formats:
 ### ModelScope Inference API (Recommended)
 
 **Request:**
+
 ```
 POST https://api-inference.modelscope.cn/v1/embeddings
 Content-Type: application/json
@@ -94,6 +96,7 @@ Authorization: Bearer YOUR_API_KEY
 ```
 
 **Response:**
+
 ```json
 {
   "data": [
@@ -121,6 +124,7 @@ Content-Type: application/json
 And respond with embeddings in one of these formats:
 
 Format 1 (OpenAI-compatible):
+
 ```json
 {
   "data": [
@@ -132,11 +136,13 @@ Format 1 (OpenAI-compatible):
 ```
 
 Format 2 (Direct array):
+
 ```json
 [0.1, 0.2, 0.3, ...]
 ```
 
 Format 3 (Wrapped in embeddings):
+
 ```json
 {
   "embeddings": [0.1, 0.2, 0.3, ...]
@@ -150,7 +156,7 @@ Format 3 (Wrapped in embeddings):
 After setting up your API key:
 
 1. Set environment variable: `export MODELSCOPE_API_KEY='your-key'`
-2. Run: `vector_memory_search query="test"`
+2. Run: `memory_search query="test"`
 3. If successful, you'll see vector search results from ModelScope
 4. If API fails, it will fall back to BM25 keyword search
 
@@ -158,7 +164,7 @@ After setting up your API key:
 
 After starting your embedding service on localhost:18000:
 
-1. Run: `vector_memory_search query="test"`
+1. Run: `memory_search query="test"`
 2. If the service is accessible, you should see vector search results
 3. If there are connection issues, it will fall back to BM25 keyword search
 
@@ -174,11 +180,11 @@ If both external services are unreachable, the plugin will automatically fall ba
 
 ## Performance Comparison
 
-| Service | Dimension | Latency | Resource | Quality |
-|---------|-----------|---------|----------|---------|
-| **ModelScope API** | 1024 | ~50-100ms | Cloud (0MB) | ⭐⭐⭐⭐⭐ |
-| Local Service | Variable | ~50-100ms | Local RAM | ⭐⭐⭐⭐ |
-| BM25 Keywords | N/A | <1ms | ~50MB | ⭐⭐ |
+| Service            | Dimension | Latency   | Resource    | Quality    |
+| ------------------ | --------- | --------- | ----------- | ---------- |
+| **ModelScope API** | 1024      | ~50-100ms | Cloud (0MB) | ⭐⭐⭐⭐⭐ |
+| Local Service      | Variable  | ~50-100ms | Local RAM   | ⭐⭐⭐⭐   |
+| BM25 Keywords      | N/A       | <1ms      | ~50MB       | ⭐⭐       |
 
 **Recommendation**: Use ModelScope API for best quality and minimal resource usage.
 
@@ -187,12 +193,14 @@ If both external services are unreachable, the plugin will automatically fall ba
 ### ModelScope API Issues
 
 **API Key Not Found:**
+
 ```bash
 echo $MODELSCOPE_API_KEY  # Check if set
 export MODELSCOPE_API_KEY='your-key'  # Set it
 ```
 
 **Connection Errors:**
+
 - Check your internet connection
 - Verify API key is valid
 - Check ModelScope service status
@@ -200,6 +208,7 @@ export MODELSCOPE_API_KEY='your-key'  # Set it
 ### Local Service Issues
 
 **Service Not Reachable:**
+
 ```bash
 curl -X POST http://localhost:18000/embeddings \
   -H "Content-Type: application/json" \
@@ -207,6 +216,7 @@ curl -X POST http://localhost:18000/embeddings \
 ```
 
 **Port Already in Use:**
+
 ```bash
 # Linux/Mac
 lsof -i :18000

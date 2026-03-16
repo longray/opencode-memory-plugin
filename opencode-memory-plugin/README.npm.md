@@ -35,6 +35,7 @@ The plugin supports flexible configuration via `~/.opencode/memory/memory-config
 ### Quick Configuration Examples
 
 **Default (Recommended)** - ModelScope API:
+
 ```json
 {
   "search": { "mode": "hybrid" },
@@ -48,6 +49,7 @@ The plugin supports flexible configuration via `~/.opencode/memory/memory-config
 ```
 
 **Local Service** - Custom endpoint:
+
 ```json
 {
   "search": { "mode": "vector" },
@@ -60,6 +62,7 @@ The plugin supports flexible configuration via `~/.opencode/memory/memory-config
 ```
 
 **Fast Search** - Keywords only (no embedding):
+
 ```json
 {
   "search": { "mode": "bm25" },
@@ -69,24 +72,25 @@ The plugin supports flexible configuration via `~/.opencode/memory/memory-config
 
 ### External Embedding Services
 
-| Service | Model | Dimensions | Quality | Resource | Speed |
-|---------|-------|------------|---------|----------|-------|
-| **ModelScope API** ⭐ | Qwen3-Embedding-0.6B | 1024 | ⭐⭐⭐⭐⭐ | Cloud (0MB) | ⚡⚡ |
-| Local Service | Custom | Dynamic | ⭐⭐⭐⭐ | Local RAM | ⚡⚡ |
+| Service               | Model                | Dimensions | Quality    | Resource    | Speed |
+| --------------------- | -------------------- | ---------- | ---------- | ----------- | ----- |
+| **ModelScope API** ⭐ | Qwen3-Embedding-0.6B | 1024       | ⭐⭐⭐⭐⭐ | Cloud (0MB) | ⚡⚡  |
+| Local Service         | Custom               | Dynamic    | ⭐⭐⭐⭐   | Local RAM   | ⚡⚡  |
 
 **ModelScope API Setup**:
+
 1. Get API key from [ModelScope](https://modelscope.cn/)
 2. Set environment variable: `export MODELSCOPE_API_KEY='your-api-key'`
 3. Plugin will automatically use ModelScope API when available
 
 ### Search Modes
 
-| Mode | Description | Speed | Quality | Model Required |
-|------|-------------|-------|---------|----------------|
-| `hybrid` | Vector + BM25 (70% + 30%) | Medium | ⭐⭐⭐⭐ | Yes |
-| `vector` | Vector-only | Medium | ⭐⭐⭐ | Yes |
-| `bm25` | Keywords only | Fast | ⭐⭐ | No |
-| `hash` | Hash fallback | Fast | ⭐ | No |
+| Mode     | Description               | Speed  | Quality  | Model Required |
+| -------- | ------------------------- | ------ | -------- | -------------- |
+| `hybrid` | Vector + BM25 (70% + 30%) | Medium | ⭐⭐⭐⭐ | Yes            |
+| `vector` | Vector-only               | Medium | ⭐⭐⭐   | Yes            |
+| `bm25`   | Keywords only             | Fast   | ⭐⭐     | No             |
+| `hash`   | Hash fallback             | Fast   | ⭐       | No             |
 
 **Default**: `hybrid` mode (combines semantic understanding with keyword matching)
 
@@ -104,7 +108,7 @@ memory_write content="User prefers TypeScript" type="long-term"
 memory_search query="typescript"
 
 # Semantic search (uses ModelScope API or local service)
-vector_memory_search query="how to handle errors"
+memory_search query="how to handle errors"
 
 # List daily logs
 list_daily days=7
@@ -113,17 +117,20 @@ list_daily days=7
 ## What's New in v1.2.0
 
 ✨ **External Embedding Services**
+
 - Primary: ModelScope Inference API (Qwen3-Embedding-0.6B)
 - Fallback: Local embedding service at localhost:18000
 - Automatic fallback to BM25 when services unavailable
 - 1024-dimensional vectors for better semantic understanding
 
 ✨ **Improved Search Quality**
+
 - BM25 Chinese tokenization optimization (Recall: 0-14% → 82.5%)
 - Dynamic result limits and BM25 thresholds
 - MRR improved by 12.9%
 
 ✨ **Enhanced Performance**
+
 - Reduced resource usage (cloud-based embedding)
 - Faster indexing and search response times
 - Better error handling and user feedback

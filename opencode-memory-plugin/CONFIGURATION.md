@@ -37,14 +37,15 @@ Controls how search results are ranked and combined.
 
 **Available Modes:**
 
-| Mode | Description | Best For | Requires Model |
-|------|-------------|----------|----------------|
-| `hybrid` | Vector + BM25 (default) | Best quality | ✅ Yes |
-| `vector` | Vector-only | Pure semantic search | ✅ Yes |
-| `bm25` | BM25-only | Fast keyword search | ❌ No |
-| `hash` | Hash-based | Emergency fallback | ❌ No |
+| Mode     | Description             | Best For             | Requires Model |
+| -------- | ----------------------- | -------------------- | -------------- |
+| `hybrid` | Vector + BM25 (default) | Best quality         | ✅ Yes         |
+| `vector` | Vector-only             | Pure semantic search | ✅ Yes         |
+| `bm25`   | BM25-only               | Fast keyword search  | ❌ No          |
+| `hash`   | Hash-based              | Emergency fallback   | ❌ No          |
 
 **Hybrid Weights:**
+
 - `vectorWeight`: How much to weight semantic similarity (0.0-1.0, default 0.7)
 - `bm25Weight`: How much to weight keyword matching (0.0-1.0, default 0.3)
 - Must sum to 1.0 (will be normalized if not)
@@ -57,12 +58,12 @@ Controls which model to use for generating embeddings.
 {
   "embedding": {
     "enabled": true,
-    "provider": "external",  // external API service (ModelScope or custom)
-    "endpoint": "https://api-inference.modelscope.cn/v1/embeddings",  // Default: ModelScope API
-    "model": "Qwen/Qwen3-Embedding-0.6B",  // Default model for ModelScope
-    "fallbackMode": "bm25",  // Use BM25 as fallback
+    "provider": "external", // external API service (ModelScope or custom)
+    "endpoint": "https://api-inference.modelscope.cn/v1/embeddings", // Default: ModelScope API
+    "model": "Qwen/Qwen3-Embedding-0.6B", // Default model for ModelScope
+    "fallbackMode": "bm25", // Use BM25 as fallback
     "cache": {
-      "enabled": false  // No caching for external service
+      "enabled": false // No caching for external service
     }
   }
 }
@@ -97,10 +98,10 @@ set MODELSCOPE_API_KEY=your-modelscope-api-key
 
 #### External API Services (Recommended)
 
-| Provider | Endpoint | Model | Dimensions | Quality | Speed |
-|----------|----------|-------|------------|---------|-------|
-| **ModelScope** | api-inference.modelscope.cn | Qwen3-Embedding-0.6B | 1024 | ⭐⭐⭐⭐⭐ | ⚡⚡ |
-| Custom | Your endpoint | Custom | Variable | ⭐⭐⭐⭐ | ⚡⚡ |
+| Provider       | Endpoint                    | Model                | Dimensions | Quality    | Speed |
+| -------------- | --------------------------- | -------------------- | ---------- | ---------- | ----- |
+| **ModelScope** | api-inference.modelscope.cn | Qwen3-Embedding-0.6B | 1024       | ⭐⭐⭐⭐⭐ | ⚡⚡  |
+| Custom         | Your endpoint               | Custom               | Variable   | ⭐⭐⭐⭐   | ⚡⚡  |
 
 **Recommendation**: Use ModelScope API for best quality with minimal resource usage.
 
@@ -203,21 +204,21 @@ nano ~/.opencode/memory/memory-config.json
 rebuild_index force=true
 
 # 3. Test
-vector_memory_search query="test search"
+memory_search query="test search"
 ```
 
 **Note:** Different models have different dimensions. You must rebuild the index when switching models.
 
 ## Performance Comparison
 
-| Configuration | First Search | Subsequent | RAM | Quality |
-|---------------|--------------|------------|-----|---------|
-| BM25-only | <1ms | <1ms | ~50MB | ⭐⭐ Keywords |
-| Hash-only | ~5ms | ~5ms | ~50MB | ⭐ Poor |
-| **ModelScope API** | ~50-100ms | ~50-100ms | ~50MB | ⭐⭐⭐⭐⭐ |
-| Vector (small) | 2-3s | ~50ms | ~200MB | ⭐⭐⭐ Good |
-| Vector (large) | 3-5s | ~100ms | ~500MB | ⭐⭐⭐⭐⭐ Excellent |
-| Hybrid (small) | 2-3s | ~60ms | ~200MB | ⭐⭐⭐⭐ Best |
+| Configuration      | First Search | Subsequent | RAM    | Quality              |
+| ------------------ | ------------ | ---------- | ------ | -------------------- |
+| BM25-only          | <1ms         | <1ms       | ~50MB  | ⭐⭐ Keywords        |
+| Hash-only          | ~5ms         | ~5ms       | ~50MB  | ⭐ Poor              |
+| **ModelScope API** | ~50-100ms    | ~50-100ms  | ~50MB  | ⭐⭐⭐⭐⭐           |
+| Vector (small)     | 2-3s         | ~50ms      | ~200MB | ⭐⭐⭐ Good          |
+| Vector (large)     | 3-5s         | ~100ms     | ~500MB | ⭐⭐⭐⭐⭐ Excellent |
+| Hybrid (small)     | 2-3s         | ~60ms      | ~200MB | ⭐⭐⭐⭐ Best        |
 
 **Recommendation**: Use ModelScope API for best quality-performance ratio.
 
@@ -226,6 +227,7 @@ vector_memory_search query="test search"
 ### ModelScope API Issues
 
 **API Key Not Set:**
+
 ```bash
 # Check if set
 echo $MODELSCOPE_API_KEY
@@ -241,6 +243,7 @@ set MODELSCOPE_API_KEY=your-key
 ```
 
 **Connection Errors:**
+
 - Check your internet connection
 - Verify API key is valid
 - Check ModelScope service status
@@ -249,6 +252,7 @@ set MODELSCOPE_API_KEY=your-key
 ### Local Model Issues
 
 **Model Download Fails:**
+
 ```json
 {
   "embedding": {
@@ -256,9 +260,11 @@ set MODELSCOPE_API_KEY=your-key
   }
 }
 ```
+
 This will use keyword-only search instead of failing.
 
 **Out of Memory Errors:**
+
 1. Switch to ModelScope API (recommended)
 2. Or switch to a smaller model (`all-MiniLM-L6-v2`)
 3. Or disable embeddings entirely (`enabled: false`)
@@ -266,10 +272,12 @@ This will use keyword-only search instead of failing.
 
 **Slow Search:**
 For faster searches:
+
 1. Use BM25-only mode (`mode: "bm25"`)
 2. Use ModelScope API instead of local models
 3. Use a smaller model
 4. Reduce chunk size (faster indexing)
+
 ## Bun Runtime Configuration
 
 If you're running OpenCode in Bun, there are some special considerations:
@@ -282,11 +290,11 @@ The plugin will automatically detect Bun and configure itself accordingly:
 {
   "version": "2.0",
   "search": {
-    "mode": "bm25"  // Automatically set in Bun
+    "mode": "bm25" // Automatically set in Bun
   },
   "embedding": {
     "enabled": true,
-    "fallbackMode": "bm25"  // Automatic fallback to BM25
+    "fallbackMode": "bm25" // Automatic fallback to BM25
   }
 }
 ```
@@ -294,33 +302,34 @@ The plugin will automatically detect Bun and configure itself accordingly:
 ### Limitations in Bun
 
 **What Works:**
+
 - ✅ All 8 memory tools
 - ✅ BM25 keyword search (fast and effective)
 - ✅ Full memory persistence
 - ✅ All automation agents
 
 **What Doesn't Work:**
-- ⚠️ Vector search (`vector_memory_search` falls back to BM25)
-- ⚠️ Index rebuilding with embeddings (`rebuild_index` uses BM25)
-- ⚠️ Full semantic search with embeddings
 
-**Reason:** Bun does not yet support `better-sqlite3`, which is required for vector storage operations.
+- ⚠️ Local vector storage (plugin now uses backend service instead)
+
+**Note:** The plugin v2.1.0+ uses backend-first architecture. All vector operations are handled by the backend service at localhost:17999, eliminating Bun compatibility issues.
 
 **Status:** See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for implementation progress.
 
 **Recommendation:**
+
 - Continue using the plugin - all basic functionality works
 - Keyword search is fast and effective for most use cases
 - Vector search will be automatically restored when Bun adds V8 C++ API support
 
 ### Performance in Bun
 
-| Operation | Time | Notes |
-|-----------|-------|-------|
-| BM25 search | <1ms | Very fast keyword matching |
-| memory_write | <10ms | File append operation |
-| memory_read | <5ms | File read operation |
-| Index rebuild | <5s | BM25-only indexing |
+| Operation     | Time  | Notes                      |
+| ------------- | ----- | -------------------------- |
+| BM25 search   | <1ms  | Very fast keyword matching |
+| memory_write  | <10ms | File append operation      |
+| memory_read   | <5ms  | File read operation        |
+| Index rebuild | <5s   | BM25-only indexing         |
 
 ## Migration from v1.0
 

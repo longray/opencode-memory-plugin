@@ -53,7 +53,7 @@ To verify the installation:
 3. Test the vector search functionality:
 
 ```
-vector_memory_search query="test search"
+memory_search query="test search"
 ```
 
 If the external service is not available, the plugin will automatically fall back to BM25 keyword search.

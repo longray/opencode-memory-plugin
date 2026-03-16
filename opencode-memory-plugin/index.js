@@ -9,7 +9,6 @@ export const pluginInfo = {
     'memory_write',
     'memory_read',
     'memory_search',
-    'vector_memory_search',
     'list_daily',
     'init_daily',
     'rebuild_index',

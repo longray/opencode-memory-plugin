@@ -14,7 +14,7 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   red: '\x1b[31m',
-  reset: '\x1b[0m'
+  reset: '\x1b[0m',
 };
 
 function log(message, color = 'reset') {
@@ -47,7 +47,7 @@ const MEMORY_FILES = [
   'MEMORY.md',
   'HEARTBEAT.md',
   'BOOT.md',
-  'BOOTSTRAP.md'
+  'BOOTSTRAP.md',
 ];
 
 /**
@@ -83,7 +83,7 @@ function copyFileIfNotExists(source, dest) {
  */
 function createMemoryConfig() {
   const configPath = path.join(MEMORY_DIR, 'memory-config.json');
-  
+
   if (fs.existsSync(configPath)) {
     log('  ⊙ Configuration already exists', 'blue');
     return;
@@ -96,25 +96,25 @@ function createMemoryConfig() {
       options: {
         hybrid: {
           vectorWeight: 0.7,
-          bm25Weight: 0.3
-        }
-      }
+          bm25Weight: 0.3,
+        },
+      },
     },
     embedding: {
       enabled: true,
       provider: 'external',
-      endpoint: 'https://api-inference.modelscope.cn/v1/embeddings',  // ModelScope Inference API
-      model: 'Qwen/Qwen3-Embedding-0.6B',  // Model used by ModelScope API
-      fallbackMode: 'bm25',  // Use BM25 as fallback
+      endpoint: 'https://api-inference.modelscope.cn/v1/embeddings', // ModelScope Inference API
+      model: 'Qwen/Qwen3-Embedding-0.6B', // Model used by ModelScope API
+      fallbackMode: 'bm25', // Use BM25 as fallback
       cache: {
-        enabled: false  // No caching for external service
-      }
+        enabled: false, // No caching for external service
+      },
     },
 
     indexing: {
       chunkSize: 400,
       chunkOverlap: 80,
-      autoRebuild: true
+      autoRebuild: true,
     },
     // Legacy v1.0 fields (for backward compatibility)
     auto_save: true,
@@ -123,14 +123,14 @@ function createMemoryConfig() {
       run_daily: true,
       run_hour: 23,
       archive_days: 30,
-      delete_days: 90
+      delete_days: 90,
     },
     retention: {
       max_daily_files: 30,
       max_entries_per_file: 100,
       chunk_size: 400,
-      chunk_overlap: 80
-    }
+      chunk_overlap: 80,
+    },
   };
 
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
@@ -157,7 +157,7 @@ function updateOpenCodeConfig() {
     if (fs.existsSync(OPENCORE_CONFIG)) {
       config = JSON.parse(fs.readFileSync(OPENCORE_CONFIG, 'utf8'));
     }
-  } catch (e) {
+  } catch {
     // Config is invalid, start fresh
     log('  ⚠ Existing config is invalid, creating new one', 'yellow');
   }
@@ -170,7 +170,7 @@ function updateOpenCodeConfig() {
       '~/.opencode/memory/USER.md',
       '~/.opencode/memory/IDENTITY.md',
       '~/.opencode/memory/TOOLS.md',
-      '~/.opencode/memory/MEMORY.md'
+      '~/.opencode/memory/MEMORY.md',
     ];
     log('  ✓ Added memory instructions', 'green');
   }
@@ -188,14 +188,12 @@ function updateOpenCodeConfig() {
         memory_write: true,
         memory_read: true,
         memory_search: true,
-        vector_memory_search: true
       },
       permission: {
         memory_write: 'allow',
         memory_read: 'allow',
         memory_search: 'allow',
-        vector_memory_search: 'allow'
-      }
+      },
     };
     log('  ✓ Added memory-automation agent', 'green');
   }
@@ -208,18 +206,16 @@ function updateOpenCodeConfig() {
         memory_write: true,
         memory_read: true,
         memory_search: true,
-        vector_memory_search: true,
         list_daily: true,
-        rebuild_index: true
+        rebuild_index: true,
       },
       permission: {
         memory_write: 'allow',
         memory_read: 'allow',
         memory_search: 'allow',
-        vector_memory_search: 'allow',
         list_daily: 'allow',
-        rebuild_index: 'allow'
-      }
+        rebuild_index: 'allow',
+      },
     };
     log('  ✓ Added memory-consolidate agent', 'green');
   }
@@ -229,10 +225,17 @@ function updateOpenCodeConfig() {
     config.tools = {};
   }
 
-  const tools = ['memory_write', 'memory_read', 'memory_search', 'vector_memory_search', 
-                'list_daily', 'init_daily', 'rebuild_index', 'index_status'];
+  const tools = [
+    'memory_write',
+    'memory_read',
+    'memory_search',
+    'list_daily',
+    'init_daily',
+    'rebuild_index',
+    'index_status',
+  ];
   let toolsAdded = false;
-  
+
   tools.forEach(tool => {
     if (config.tools[tool] === undefined) {
       config.tools[tool] = true;
@@ -318,7 +321,7 @@ function install() {
   log('', 'reset');
 
   // Step 5: Initialize daily log
-  log('Step 5/5: Initializing today\'s daily log...', 'yellow');
+  log("Step 5/5: Initializing today's daily log...", 'yellow');
   initDailyLog();
   log('', 'reset');
 
@@ -346,7 +349,6 @@ function install() {
   log('  3. Test memory tools:', 'blue');
   log('     memory_write content="Test memory" type="daily"', 'blue');
   log('     memory_search query="test"', 'blue');
-  log('     vector_memory_search query="test"', 'blue');
   log('', 'reset');
 
   log('Available Agents:', 'yellow');

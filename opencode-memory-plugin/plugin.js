@@ -200,9 +200,16 @@ ${content}
                 memoryId = result.id;
                 backendStatus = `✅ Synced (${result.id})`;
               } catch (e) {
-                // Add to queue for retry
-                uploadQueue.addToQueue(memory);
-                backendStatus = `⏳ Queued (${e.message})`;
+                if (e.name === 'DuplicateError') {
+                  const dupType = e.duplicateType === 'hash' ? '完全重复' : '语义相似';
+                  const simInfo = e.similarity
+                    ? ` (相似度: ${(e.similarity * 100).toFixed(1)}%)`
+                    : '';
+                  backendStatus = `⚠️ ${dupType}${simInfo}\n- 已存在: ${e.existingId}`;
+                } else {
+                  uploadQueue.addToQueue(memory);
+                  backendStatus = `⏳ Queued (${e.message})`;
+                }
               }
             }
 
@@ -255,14 +262,22 @@ ${content}`;
 
       memory_search: tool({
         description:
-          'Search memory using keyword matching. Uses backend service if available, falls back to local BM25.',
+          'Search memory with configurable search mode. Uses backend service if available, falls back to local BM25.',
         args: {
           query: tool.schema.string().describe('The search query to look for in memory'),
           limit: tool.schema.number().optional().default(10).describe('Maximum number of results'),
+          mode: tool.schema
+            .string()
+            .optional()
+            .default('keyword')
+            .describe(
+              "Search mode: 'vector' (semantic), 'keyword' (BM25), 'hybrid' (both, recommended)"
+            ),
         },
         async execute(args) {
           try {
-            const { query, limit } = args;
+            const { query, limit, mode } = args;
+            const searchMode = mode || 'keyword';
             const backendEnabled = config?.backend?.enabled !== false;
 
             if (backendEnabled) {
@@ -274,14 +289,14 @@ ${content}`;
 
                   const results = await client.search({
                     query,
-                    mode: 'keyword',
+                    mode: searchMode,
                     limit: limit || 10,
                     threshold: 0.0,
                     tenant_id: tenantId,
                     project_id: projectId,
                   });
 
-                  return formatBackendResults(results.results, query, 'keyword');
+                  return formatBackendResults(results.results, query, searchMode);
                 }
               } catch {
                 // Fall back to local
@@ -505,16 +520,30 @@ ${entries
             const batchSize = config?.backend?.sync?.batch_size || 10;
             let totalSuccess = 0;
             let totalFailed = 0;
+            let totalDuplicate = 0;
 
             for (let i = 0; i < entries.length; i += batchSize) {
               const batch = entries.slice(i, i + batchSize);
               try {
                 const result = await client.uploadMemories(batch);
                 totalSuccess += result.success;
-                totalFailed += result.failed;
+
+                if (result.errors && result.errors.length > 0) {
+                  for (let j = 0; j < result.errors.length; j++) {
+                    const error = result.errors[j];
+
+                    if (typeof error === 'object' && error.type === 'duplicate') {
+                      totalDuplicate++;
+                    } else {
+                      totalFailed++;
+                      if (batch[j]) {
+                        uploadQueue.addToQueue(batch[j]);
+                      }
+                    }
+                  }
+                }
               } catch {
                 totalFailed += batch.length;
-                // Add failed entries to queue for retry
                 batch.forEach(entry => uploadQueue.addToQueue(entry));
               }
             }
@@ -522,11 +551,12 @@ ${entries
             return `🔄 Backend sync completed:
 - Total entries: ${entries.length}
 - Successful: ${totalSuccess}
+- Duplicates: ${totalDuplicate}
 - Failed: ${totalFailed}
 - Tenant: ${tenantId}
 - Project: ${projectId}
 
-${totalFailed > 0 ? '⚠️ Failed uploads queued for retry.' : ''}`;
+${totalDuplicate > 0 ? `ℹ️ ${totalDuplicate} duplicate(s) skipped (already exists in backend).\n` : ''}${totalFailed > 0 ? '⚠️ Failed uploads queued for retry.' : ''}`;
           } catch (e) {
             return `❌ Error syncing to backend: ${e.message}`;
           }

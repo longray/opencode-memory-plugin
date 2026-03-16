@@ -19,7 +19,7 @@
 - **Hybrid Sync Mode** - Local files + Backend service
   - `memory_write`: Local append + async backend upload
   - `memory_search`: Backend keyword search with local BM25 fallback
-  - `vector_memory_search`: Backend hybrid/vector search with fallback
+  - `memory_search`: Backend hybrid/vector search with fallback
   - `rebuild_index`: Batch sync local files to backend
 
 ### Added
@@ -52,7 +52,7 @@
 
 - `memory_write` - Now syncs to backend asynchronously
 - `memory_search` - Uses backend BM25 with local fallback
-- `vector_memory_search` - Uses backend hybrid search with fallback
+- `memory_search` - Uses backend hybrid search with fallback
 - `rebuild_index` - Changed to batch sync to backend
 - `index_status` - Shows backend health and queue status
 - Configuration version updated to 3.0
@@ -92,7 +92,7 @@ New `backend` section in `memory-config.json`:
 ### Bug Fixes
 
 - **Fixed Tool Return Value Format** - All tools now return strings instead of objects for OpenCode API compatibility
-  - Fixed `memory_write`, `memory_read`, `memory_search`, `vector_memory_search`
+  - Fixed `memory_write`, `memory_read`, `memory_search`, `memory_search`
   - Fixed `list_daily`, `init_daily`, `rebuild_index`, `index_status`
   - Resolves `text9.split is not a function` error in OpenCode
 
@@ -108,7 +108,7 @@ New `backend` section in `memory-config.json`:
 - **Complete Tool Validation** - All 8 tools tested and verified working:
   - ✅ memory_write, memory_read, memory_search
   - ✅ list_daily, init_daily, index_status
-  - ⚠️ vector_memory_search, rebuild_index (fallback to BM25 in Bun)
+  - ⚠️ memory_search, rebuild_index (fallback to BM25 in Bun)
 
 ### Documentation
 
@@ -141,7 +141,7 @@ New `backend` section in `memory-config.json`:
 
 ### Changed
 
-- `vector_memory_search` - Now performs real semantic search with fallback to keyword
+- `memory_search` - Now performs real semantic search with fallback to keyword
 - `rebuild_index` - Fully implemented to index all memory files
 - `index_status` - Returns vector index information
 - `plugin.js` - Updated to use VectorStore module
@@ -168,7 +168,7 @@ New `backend` section in `memory-config.json`:
   - memory_write - Write entries to long-term memory
   - memory_read - Read from memory files
   - memory_search - Keyword search across memory
-  - vector_memory_search - Semantic search with embeddings
+  - memory_search - Semantic search with embeddings
   - list_daily - List available daily logs
   - init_daily - Initialize today's daily log
   - rebuild_index - Rebuild vector index

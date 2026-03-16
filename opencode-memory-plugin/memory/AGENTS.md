@@ -10,11 +10,13 @@
 ## How to Use Memory
 
 ### When to Read Memory
+
 - At the start of every conversation (already injected)
 - When answering questions about preferences, conventions, or past decisions
 - Before suggesting solutions to check if similar problems were solved before
 
 ### When to Write Memory
+
 - User states a preference or rule
 - A successful pattern or approach is discovered
 - An important decision is made with rationale
@@ -22,7 +24,9 @@
 - Project-specific conventions are established
 
 ### Memory Priority
+
 **Long-term (MEMORY.md)**:
+
 - User preferences and coding style
 - Project-specific conventions and rules
 - Successful patterns and solutions
@@ -30,12 +34,14 @@
 - Lessons learned from mistakes
 
 **Daily (memory/YYYY-MM-DD.md)**:
+
 - Running context for current work
 - Temporary notes that might become long-term
 - Questions asked and answered
 - Tasks completed and pending
 
 **Bootstrap Files**:
+
 - SOUL.md: Personality and boundaries (always loaded)
 - TOOLS.md: Tool usage conventions
 - IDENTITY.md: Your name and vibe

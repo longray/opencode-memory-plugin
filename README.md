@@ -181,11 +181,9 @@ After installation, all memory tools are available in OpenCode:
 # Write to memory
 memory_write content="User prefers TypeScript for all new features" type="long-term" tags=["typescript","code-style"]
 
-# Search memory
+# Search memory (supports semantic and keyword search)
 memory_search query="async patterns"
-
-# Semantic search (NEW: uses real embeddings!)
-vector_memory_search query="how do I handle async errors"
+memory_search query="how do I handle async errors"
 
 # The model understands meaning, not just keywords!
 
@@ -205,8 +203,7 @@ rebuild_index force=true
 
 - `memory_write` - Save memories to long-term storage
 - `memory_read` - Read memory files
-- `memory_search` - Keyword-based text search
-- `vector_memory_search` - Semantic search with embeddings (vector, keyword, hybrid modes)
+- `memory_search` - All search modes (vector/keyword/hybrid) with backend service
 - `list_daily` - List daily log files
 - `init_daily` - Create today's daily log
 - `rebuild_index` - Rebuild vector index with embeddings
@@ -214,8 +211,8 @@ rebuild_index force=true
 
 **Fallback Behavior:**
 
-- When external embedding service is unavailable, `vector_memory_search` falls back to keyword search
-- Network access required to connect to external service endpoint
+- When backend service is unavailable, `memory_search` falls back to local keyword search
+- Network access required to connect to backend service endpoint
 
 ```bash
 # Auto-save important information

@@ -1,6 +1,6 @@
 /**
  * Phase 2 实施总结
- * 
+ *
  * 已完成的实验：
  * 1. 实验A: 温和版乘法融合 ✓
  * 2. 实验B: RRF融合 ✓
@@ -35,7 +35,7 @@ console.log(`
    └── 对比三种策略在不同查询类型下的表现
 
 4️⃣  Plugin集成 (plugin.js)
-   └── vector_memory_search 工具支持真正的hybrid模式
+   └── memory_search 工具支持真正的hybrid模式
        └── 使用RRF作为默认融合策略
 
 📈 测试结果
@@ -94,18 +94,22 @@ console.log(`
 ✨ Phase 2 完成！
 `);
 
-console.log('\n📝 使用示例:');
-console.log('─'.repeat(70));
-console.log('// 使用RRF融合 (推荐)');
-console.log('const results = await vectorStore.hybridSearch(query, documents, {');
-console.log('  limit: 10,');
+console.log("\n📝 使用示例:");
+console.log("─".repeat(70));
+console.log("// 使用RRF融合 (推荐)");
+console.log(
+  "const results = await vectorStore.hybridSearch(query, documents, {",
+);
+console.log("  limit: 10,");
 console.log('  fusionStrategy: "rrf",');
-console.log('  fusionOptions: { k: 60 }');
-console.log('});');
-console.log('');
-console.log('// 使用动态权重融合');
-console.log('const results = await vectorStore.hybridSearch(query, documents, {');
-console.log('  limit: 10,');
+console.log("  fusionOptions: { k: 60 }");
+console.log("});");
+console.log("");
+console.log("// 使用动态权重融合");
+console.log(
+  "const results = await vectorStore.hybridSearch(query, documents, {",
+);
+console.log("  limit: 10,");
 console.log('  fusionStrategy: "dynamic"');
-console.log('});');
-console.log('─'.repeat(70));
+console.log("});");
+console.log("─".repeat(70));

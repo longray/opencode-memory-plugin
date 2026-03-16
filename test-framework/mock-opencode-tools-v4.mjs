@@ -12,16 +12,17 @@ class MockOpenCodeTools {
     this.embeddingCache = new Map();
 
     // 配置项
-    this.embeddingMode = options.embeddingMode || 'local';  // 默认使用本地服务
-    this.apiEndpoint = options.apiEndpoint || 'http://localhost:18000/v1/embeddings';
-    this.model = options.model || 'Qwen3-Embedding-0.6B';
+    this.embeddingMode = options.embeddingMode || "local"; // 默认使用本地服务
+    this.apiEndpoint =
+      options.apiEndpoint || "http://localhost:18000/v1/embeddings";
+    this.model = options.model || "Qwen3-Embedding-0.6B";
     this.vectorDimensions = 1024;
     this.mockDimensions = 100;
-    this.maxBatchSize = options.maxBatchSize || 256;  // 本地服务最大批量
+    this.maxBatchSize = options.maxBatchSize || 256; // 本地服务最大批量
 
     // 批量处理队列
     this.embeddingQueue = [];
-    this.batchTimeout = 10;  // 10ms后批量提交
+    this.batchTimeout = 10; // 10ms后批量提交
     this.batchTimer = null;
     this.batchPromises = new Map();
   }
@@ -44,7 +45,10 @@ class MockOpenCodeTools {
       const embedding = await this.generateEmbedding(content);
       this.vectorIndex.set(record.id, embedding);
     } catch (error) {
-      console.error(`Failed to generate embedding for record ${record.id}:`, error);
+      console.error(
+        `Failed to generate embedding for record ${record.id}:`,
+        error,
+      );
     }
 
     this.buildBM25Index();
@@ -55,9 +59,9 @@ class MockOpenCodeTools {
    * 生成embedding（根据模式选择）
    */
   async generateEmbedding(text) {
-    if (this.embeddingMode === 'local') {
+    if (this.embeddingMode === "local") {
       return await this.generateLocalEmbedding(text);
-    } else if (this.embeddingMode === 'real') {
+    } else if (this.embeddingMode === "real") {
       return await this.generateRealEmbedding(text);
     } else {
       return this.generateMockEmbedding(text);
@@ -70,8 +74,8 @@ class MockOpenCodeTools {
   async generateBatchEmbeddings(texts) {
     if (texts.length === 0) return [];
 
-    if (this.embeddingMode === 'mock') {
-      return texts.map(text => this.generateMockEmbedding(text));
+    if (this.embeddingMode === "mock") {
+      return texts.map((text) => this.generateMockEmbedding(text));
     }
 
     const startTime = Date.now();
@@ -79,21 +83,23 @@ class MockOpenCodeTools {
     try {
       // 构建批量请求
       const response = await fetch(this.apiEndpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           model: this.model,
-          input: texts,  // 批量输入
-          encoding_format: 'float',
+          input: texts, // 批量输入
+          encoding_format: "float",
           dimensions: this.vectorDimensions,
           normalize: true,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Local API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Local API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
@@ -102,16 +108,20 @@ class MockOpenCodeTools {
       // 提取embeddings（OpenAI兼容格式）
       let embeddings;
       if (data.data && Array.isArray(data.data)) {
-        embeddings = data.data.map(item => item.embedding);
+        embeddings = data.data.map((item) => item.embedding);
       } else {
-        throw new Error('Unknown API response format');
+        throw new Error("Unknown API response format");
       }
 
       if (embeddings.length !== texts.length) {
-        throw new Error(`Embedding count mismatch: expected ${texts.length}, got ${embeddings.length}`);
+        throw new Error(
+          `Embedding count mismatch: expected ${texts.length}, got ${embeddings.length}`,
+        );
       }
 
-      console.log(`✅ Batch embeddings generated: ${texts.length} texts in ${duration}ms (${(duration/texts.length).toFixed(2)}ms/text)`);
+      console.log(
+        `✅ Batch embeddings generated: ${texts.length} texts in ${duration}ms (${(duration / texts.length).toFixed(2)}ms/text)`,
+      );
 
       // 缓存结果
       texts.forEach((text, index) => {
@@ -121,14 +131,16 @@ class MockOpenCodeTools {
 
       return embeddings;
     } catch (error) {
-      console.error('Batch embedding API error:', error);
-      console.warn('Falling back to individual requests or mock embeddings');
+      console.error("Batch embedding API error:", error);
+      console.warn("Falling back to individual requests or mock embeddings");
 
       // 降级：逐个请求
-      if (this.embeddingMode === 'local') {
-        return await Promise.all(texts.map(text => this.generateRealEmbedding(text)));
+      if (this.embeddingMode === "local") {
+        return await Promise.all(
+          texts.map((text) => this.generateRealEmbedding(text)),
+        );
       } else {
-        return texts.map(text => this.generateMockEmbedding(text));
+        return texts.map((text) => this.generateMockEmbedding(text));
       }
     }
   }
@@ -147,21 +159,23 @@ class MockOpenCodeTools {
     try {
       const startTime = Date.now();
       const response = await fetch(this.apiEndpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           model: this.model,
           input: text,
-          encoding_format: 'float',
+          encoding_format: "float",
           dimensions: this.vectorDimensions,
           normalize: true,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Local API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Local API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
@@ -175,11 +189,13 @@ class MockOpenCodeTools {
       } else if (data.embeddings) {
         embedding = data.embeddings[0];
       } else {
-        throw new Error('Unknown API response format');
+        throw new Error("Unknown API response format");
       }
 
       if (embedding.length !== this.vectorDimensions) {
-        console.warn(`Embedding dimension mismatch: expected ${this.vectorDimensions}, got ${embedding.length}`);
+        console.warn(
+          `Embedding dimension mismatch: expected ${this.vectorDimensions}, got ${embedding.length}`,
+        );
       }
 
       this.embeddingCache.set(cacheKey, embedding);
@@ -187,8 +203,8 @@ class MockOpenCodeTools {
 
       return embedding;
     } catch (error) {
-      console.error('Local embedding API error:', error);
-      console.warn('Falling back to mock embedding');
+      console.error("Local embedding API error:", error);
+      console.warn("Falling back to mock embedding");
 
       const mockEmbedding = this.generateMockEmbedding(text);
       this.embeddingCache.set(cacheKey, mockEmbedding);
@@ -208,15 +224,15 @@ class MockOpenCodeTools {
     try {
       const startTime = Date.now();
       const response = await fetch(this.apiEndpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           model: this.model,
           input: text,
-          encoding_format: 'float',
+          encoding_format: "float",
         }),
       });
 
@@ -235,11 +251,13 @@ class MockOpenCodeTools {
       } else if (data.embeddings) {
         embedding = data.embeddings[0];
       } else {
-        throw new Error('Unknown API response format');
+        throw new Error("Unknown API response format");
       }
 
       if (embedding.length !== this.vectorDimensions) {
-        console.warn(`Embedding dimension mismatch: expected ${this.vectorDimensions}, got ${embedding.length}`);
+        console.warn(
+          `Embedding dimension mismatch: expected ${this.vectorDimensions}, got ${embedding.length}`,
+        );
       }
 
       this.embeddingCache.set(cacheKey, embedding);
@@ -247,8 +265,8 @@ class MockOpenCodeTools {
 
       return embedding;
     } catch (error) {
-      console.error('Real embedding API error:', error);
-      console.warn('Falling back to mock embedding');
+      console.error("Real embedding API error:", error);
+      console.warn("Falling back to mock embedding");
 
       const mockEmbedding = this.generateMockEmbedding(text);
       this.embeddingCache.set(cacheKey, mockEmbedding);
@@ -263,13 +281,13 @@ class MockOpenCodeTools {
     const terms = this.tokenize(text);
     const embedding = new Array(this.mockDimensions).fill(0);
 
-    terms.forEach(term => {
+    terms.forEach((term) => {
       const hash = this.hashCode(term) % this.mockDimensions;
       embedding[Math.abs(hash)] += 1;
     });
 
     const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
-    return norm > 0 ? embedding.map(val => val / norm) : embedding;
+    return norm > 0 ? embedding.map((val) => val / norm) : embedding;
   }
 
   /**
@@ -277,15 +295,15 @@ class MockOpenCodeTools {
    */
   buildBM25Index() {
     this.bm25Index.clear();
-    const documents = this.memoryData.map(record => ({
+    const documents = this.memoryData.map((record) => ({
       id: record.id,
       content: record.content,
       tags: record.tags,
     }));
 
-    documents.forEach(doc => {
-      const terms = this.tokenize(doc.content + ' ' + doc.tags);
-      terms.forEach(term => {
+    documents.forEach((doc) => {
+      const terms = this.tokenize(doc.content + " " + doc.tags);
+      terms.forEach((term) => {
         if (!this.bm25Index.has(term)) {
           this.bm25Index.set(term, new Map());
         }
@@ -300,10 +318,11 @@ class MockOpenCodeTools {
    * 分词
    */
   tokenize(text) {
-    return String(text).toLowerCase()
-      .replace(/[^\w\s\u4e00-\u9fa5]/g, '')
+    return String(text)
+      .toLowerCase()
+      .replace(/[^\w\s\u4e00-\u9fa5]/g, "")
       .split(/\s+/)
-      .filter(term => term.length > 0);
+      .filter((term) => term.length > 0);
   }
 
   /**
@@ -312,7 +331,7 @@ class MockOpenCodeTools {
   hashCode(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash = (hash << 5) - hash + str.charCodeAt(i);
       hash = hash & hash;
     }
     return hash;
@@ -343,22 +362,28 @@ class MockOpenCodeTools {
     const queryTerms = this.tokenize(query);
     if (queryTerms.length === 0) return [];
 
-    const avgDocLength = this.memoryData.reduce((sum, doc) => sum + doc.content.length, 0) / this.memoryData.length || 1;
+    const avgDocLength =
+      this.memoryData.reduce((sum, doc) => sum + doc.content.length, 0) /
+        this.memoryData.length || 1;
     const scores = new Map();
 
-    queryTerms.forEach(term => {
+    queryTerms.forEach((term) => {
       const postings = this.bm25Index.get(term);
       if (!postings) return;
 
       const df = postings.size;
-      const idf = Math.log((this.memoryData.length - df + 0.5) / (df + 0.5) + 1);
+      const idf = Math.log(
+        (this.memoryData.length - df + 0.5) / (df + 0.5) + 1,
+      );
 
       postings.forEach((tf, docId) => {
-        const doc = this.memoryData.find(d => d.id === docId);
+        const doc = this.memoryData.find((d) => d.id === docId);
         if (!doc) return;
 
         const docLength = doc.content.length;
-        const normalizedTF = (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (docLength / avgDocLength)));
+        const normalizedTF =
+          (tf * (k1 + 1)) /
+          (tf + k1 * (1 - b + b * (docLength / avgDocLength)));
         const score = idf * normalizedTF;
 
         scores.set(docId, (scores.get(docId) || 0) + score);
@@ -367,9 +392,13 @@ class MockOpenCodeTools {
 
     return Array.from(scores.entries())
       .sort((a, b) => b[1] - a[1])
-      .map(([id, score]) => ({ id, score, record: this.memoryData.find(d => d.id === id) }))
-      .filter(item => item.record)
-      .map(item => ({
+      .map(([id, score]) => ({
+        id,
+        score,
+        record: this.memoryData.find((d) => d.id === id),
+      }))
+      .filter((item) => item.record)
+      .map((item) => ({
         id: item.id,
         content: item.record.content,
         type: item.record.type,
@@ -386,12 +415,13 @@ class MockOpenCodeTools {
     const results = [];
     const queryVec = queryVector || this.generateMockEmbedding(query);
 
-    this.memoryData.forEach(record => {
+    this.memoryData.forEach((record) => {
       const embedding = this.vectorIndex.get(record.id);
       if (!embedding) return;
 
       const similarity = this.cosineSimilarity(queryVec, embedding);
-      if (similarity > 0.1) {  // 阈值
+      if (similarity > 0.1) {
+        // 阈值
         results.push({
           id: record.id,
           content: record.content,
@@ -415,25 +445,31 @@ class MockOpenCodeTools {
 
     // 合并结果
     const combinedScores = new Map();
-    const vectorMax = Math.max(...vectorResults.map(r => r.score), 1);
-    const bm25Max = Math.max(...bm25Results.map(r => r.score), 1);
+    const vectorMax = Math.max(...vectorResults.map((r) => r.score), 1);
+    const bm25Max = Math.max(...bm25Results.map((r) => r.score), 1);
 
     // 向量得分（归一化后70%权重）
-    vectorResults.forEach(item => {
+    vectorResults.forEach((item) => {
       const normalizedScore = item.score / vectorMax;
-      combinedScores.set(item.id, (combinedScores.get(item.id) || 0) + 0.7 * normalizedScore);
+      combinedScores.set(
+        item.id,
+        (combinedScores.get(item.id) || 0) + 0.7 * normalizedScore,
+      );
     });
 
     // BM25得分（归一化后30%权重）
-    bm25Results.forEach(item => {
+    bm25Results.forEach((item) => {
       const normalizedScore = item.score / bm25Max;
-      combinedScores.set(item.id, (combinedScores.get(item.id) || 0) + 0.3 * normalizedScore);
+      combinedScores.set(
+        item.id,
+        (combinedScores.get(item.id) || 0) + 0.3 * normalizedScore,
+      );
     });
 
     return Array.from(combinedScores.entries())
       .sort((a, b) => b[1] - a[1])
       .map(([id, score]) => {
-        const record = this.memoryData.find(d => d.id === id);
+        const record = this.memoryData.find((d) => d.id === id);
         return {
           id,
           content: record.content,
@@ -448,7 +484,7 @@ class MockOpenCodeTools {
   /**
    * 关键词搜索
    */
-  async memory_search({ query, scope = 'all', limit = 10 }) {
+  async memory_search({ query, scope = "all", limit = 10 }) {
     const results = this.bm25Search(query);
     return results.slice(0, limit);
   }
@@ -456,22 +492,22 @@ class MockOpenCodeTools {
   /**
    * 语义搜索
    */
-  async vector_memory_search({ query, mode = 'hybrid', limit = 10 }) {
+  async memory_search({ query, mode = "hybrid", limit = 10 }) {
     let results = [];
     const queryVector = await this.generateEmbedding(query);
 
-    if (mode === 'hybrid') {
+    if (mode === "hybrid") {
       results = this.hybridSearch(query, queryVector);
-    } else if (mode === 'vector') {
+    } else if (mode === "vector") {
       results = this.vectorSearch(query, queryVector);
-    } else if (mode === 'keyword' || mode === 'bm25') {
+    } else if (mode === "keyword" || mode === "bm25") {
       results = this.bm25Search(query);
-    } else if (mode === 'hash') {
+    } else if (mode === "hash") {
       // 哈希搜索：快速字符串匹配
       const queryLower = query.toLowerCase();
       results = this.memoryData
-        .filter(record => record.content.toLowerCase().includes(queryLower))
-        .map(record => ({
+        .filter((record) => record.content.toLowerCase().includes(queryLower))
+        .map((record) => ({
           id: record.id,
           content: record.content,
           type: record.type,
@@ -489,8 +525,8 @@ class MockOpenCodeTools {
    */
   async memory_read({ type, limit = 10 }) {
     let records = this.memoryData;
-    if (type && type !== 'all') {
-      records = records.filter(r => r.type === type);
+    if (type && type !== "all") {
+      records = records.filter((r) => r.type === type);
     }
     return records.slice(-limit).reverse();
   }
@@ -499,8 +535,8 @@ class MockOpenCodeTools {
    * 列出每日日志
    */
   async list_daily({ days = 7 }) {
-    const dailyRecords = this.memoryData.filter(r => r.type === 'daily');
-    const daysSet = new Set(dailyRecords.map(r => r.timestamp.split('T')[0]));
+    const dailyRecords = this.memoryData.filter((r) => r.type === "daily");
+    const daysSet = new Set(dailyRecords.map((r) => r.timestamp.split("T")[0]));
     return Array.from(daysSet).sort().reverse().slice(0, days);
   }
 
@@ -508,19 +544,19 @@ class MockOpenCodeTools {
    * 初始化今日日志
    */
   async init_daily({ date }) {
-    const today = date || new Date().toISOString().split('T')[0];
-    const existing = this.memoryData.find(r =>
-      r.type === 'daily' && r.timestamp.startsWith(today)
+    const today = date || new Date().toISOString().split("T")[0];
+    const existing = this.memoryData.find(
+      (r) => r.type === "daily" && r.timestamp.startsWith(today),
     );
     if (existing) {
-      return { success: true, message: 'Daily log already exists' };
+      return { success: true, message: "Daily log already exists" };
     }
     await this.memory_write({
       content: `Daily log for ${today}`,
-      type: 'daily',
-      tags: ['daily'],
+      type: "daily",
+      tags: ["daily"],
     });
-    return { success: true, message: 'Daily log initialized' };
+    return { success: true, message: "Daily log initialized" };
   }
 
   /**
@@ -531,7 +567,7 @@ class MockOpenCodeTools {
     this.buildBM25Index();
 
     // 批量重建向量索引（使用批量API）
-    const texts = this.memoryData.map(r => r.content);
+    const texts = this.memoryData.map((r) => r.content);
     if (texts.length > 0) {
       const batchSize = Math.min(this.maxBatchSize, texts.length);
       const batches = [];
@@ -539,7 +575,9 @@ class MockOpenCodeTools {
         batches.push(texts.slice(i, i + batchSize));
       }
 
-      console.log(`Rebuilding vector index in ${batches.length} batches of ${batchSize}...`);
+      console.log(
+        `Rebuilding vector index in ${batches.length} batches of ${batchSize}...`,
+      );
       for (let i = 0; i < batches.length; i++) {
         const batch = batches[i];
         const embeddings = await this.generateBatchEmbeddings(batch);
@@ -553,7 +591,11 @@ class MockOpenCodeTools {
       }
     }
 
-    return { success: true, message: 'Index rebuilt', totalRecords: this.memoryData.length };
+    return {
+      success: true,
+      message: "Index rebuilt",
+      totalRecords: this.memoryData.length,
+    };
   }
 
   /**
@@ -580,7 +622,10 @@ class MockOpenCodeTools {
     return {
       totalHits,
       cacheSize: this.embeddingCache.size,
-      hitRate: this.memoryData.length > 0 ? (totalHits / this.memoryData.length * 100).toFixed(2) : '0.00',
+      hitRate:
+        this.memoryData.length > 0
+          ? ((totalHits / this.memoryData.length) * 100).toFixed(2)
+          : "0.00",
     };
   }
 }

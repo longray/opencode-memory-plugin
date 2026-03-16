@@ -3,6 +3,7 @@
 Execute when gateway/agent starts:
 
 ## Memory Initialization
+
 - [ ] Verify memory directory structure exists
 - [ ] Check all core memory files are present
 - [ ] Initialize vector index if needed
@@ -10,6 +11,7 @@ Execute when gateway/agent starts:
 - [ ] Sync with Git remote if configured
 
 ## Context Loading
+
 - [ ] Load SOUL.md for personality
 - [ ] Load AGENTS.md for operating instructions
 - [ ] Load USER.md for user preferences
@@ -19,6 +21,7 @@ Execute when gateway/agent starts:
 - [ ] Load today's daily log
 
 ## System Check
+
 - [ ] Verify OpenCode is accessible
 - [ ] Check all tools are loaded
 - [ ] Verify vector search is functional
@@ -26,10 +29,12 @@ Execute when gateway/agent starts:
 - [ ] Check Git connection if configured
 
 ## Readiness
+
 - [ ] All memory files injected into context
 - [ ] Vector search operational
 - [ ] Memory tools available
 - [ ] Ready to assist!
 
 ---
-*Complete this checklist on every startup to ensure memory system is ready.*
+
+_Complete this checklist on every startup to ensure memory system is ready._

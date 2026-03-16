@@ -46,7 +46,7 @@ After installation, you can verify that everything is working correctly:
 3. Test the vector search functionality:
 
 ```
-vector_memory_search query="hello world"
+memory_search query="hello world"
 ```
 
 If successful, you should see search results returned by the semantic search engine.
@@ -56,11 +56,14 @@ If successful, you should see search results returned by the semantic search eng
 ### Issue: "External embedding service not accessible"
 
 **Symptoms:**
+
 - Vector search is slow or not returning results
 - Error messages indicating service unavailability
 
 **Causes and Solutions:**
+
 1. **Service Not Running**: Verify your embedding service is running and accessible at the configured endpoint.
+
    ```bash
    curl -X POST http://localhost:18000/embeddings \
      -H "Content-Type: application/json" \
@@ -74,29 +77,35 @@ If successful, you should see search results returned by the semantic search eng
 ### Issue: Dimension Mismatch Error
 
 **Symptoms:**
+
 - Errors mentioning dimension mismatch
 - Vector indexing failing
 
 **Solution:**
+
 - Ensure your embedding service consistently returns embeddings with the same number of dimensions
 - Verify that your embedding service returns vectors in one of the supported formats
 
 ### Issue: Authentication Failure
 
 **Symptoms:**
+
 - HTTP 401 or 403 errors
 - Service appears accessible but rejects requests
 
 **Solution:**
+
 - If your embedding service requires authentication, update the vector-store.js file to include the appropriate headers
 
 ### Issue: Timeout Errors
 
 **Symptoms:**
+
 - Requests timing out
 - Slow response times
 
 **Solutions:**
+
 1. Check the performance of your embedding service
 2. Verify the network connection between the plugin and service
 3. Increase timeout values in the vector store configuration if needed
@@ -108,6 +117,7 @@ If successful, you should see search results returned by the semantic search eng
 Location: `~/.opencode/memory/memory-config.json`
 
 Key settings:
+
 - `embedding.provider`: Must be set to `"external"`
 - `embedding.endpoint`: The URL of your embedding service
 - `embedding.fallbackMode`: What to do if external service fails (`"bm25"`, `"hash"`, or `"error"`)
@@ -115,6 +125,7 @@ Key settings:
 ### Service Configuration
 
 Your external embedding service should:
+
 1. Accept POST requests at the configured endpoint
 2. Accept JSON payload with at least an `input` field
 3. Return embeddings in one of the supported formats
@@ -124,6 +135,7 @@ Your external embedding service should:
 ### Network Latency
 
 Since all embedding requests go over the network, consider:
+
 - Running the embedding service on localhost or a low-latency network
 - Using connection pooling if supported by your embedding service
 - Ensuring adequate bandwidth between the plugin and service
@@ -131,12 +143,14 @@ Since all embedding requests go over the network, consider:
 ### Memory Usage
 
 The external service configuration significantly reduces memory usage compared to local models:
+
 - Local models typically require 150-200MB+ of RAM
 - External service configuration uses only ~50-100MB RAM
 
 ### Caching Strategies
 
 While the basic configuration doesn't include caching, you can:
+
 - Implement caching at the external service level
 - Cache frequently accessed embeddings in your embedding service
 
@@ -159,6 +173,7 @@ While the basic configuration doesn't include caching, you can:
 ### Service Availability
 
 Monitor the availability of your embedding service:
+
 - Use health check endpoints if available
 - Monitor response times and error rates
 - Set up alerts for service unavailability
@@ -166,6 +181,7 @@ Monitor the availability of your embedding service:
 ### Plugin Logs
 
 Check the OpenCode logs for any issues with the memory plugin:
+
 - Look for external service connection errors
 - Monitor fallback behavior (when BM25 keyword search is used)
 - Track performance metrics such as response times
@@ -173,6 +189,7 @@ Check the OpenCode logs for any issues with the memory plugin:
 ## Updating the Plugin
 
 When updating the plugin to a new version:
+
 1. The new version will respect your existing configuration
 2. Verify that the embedding service API remains compatible after updates
 3. Test functionality after updates to ensure continued integration
@@ -186,6 +203,7 @@ For debugging purposes, you can enable detailed logging in your external service
 ### API Compatibility
 
 Verify that your embedding service adheres to the expected API contract:
+
 - Accepts POST requests with JSON content type
 - Expects `input` field in the request body
 - Returns embeddings in one of the supported formats
@@ -193,6 +211,7 @@ Verify that your embedding service adheres to the expected API contract:
 ### Community Support
 
 For additional help:
+
 - Refer to the project documentation
 - Check the GitHub repository for known issues
 - Review the external embedding service documentation for specific configuration options

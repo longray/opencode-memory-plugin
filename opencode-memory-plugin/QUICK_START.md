@@ -5,6 +5,7 @@ This guide will help you quickly set up and start using the OpenCode Memory Plug
 ## Prerequisites
 
 Before beginning, ensure you have:
+
 1. **Node.js** (v16 or higher) installed
 2. **OpenCode** installed and running
 3. **Bun Runtime** (optional) - Supported with automatic fallbacks
@@ -16,6 +17,7 @@ If you're running OpenCode in Bun, the plugin will work automatically with some 
 ### Automatic Configuration
 
 The plugin detects Bun and configures itself:
+
 - Search mode: Automatically set to BM25 (fastest)
 - Embedding: Disabled (falls back to BM25)
 - All tools: Work normally
@@ -43,6 +45,7 @@ npm install -g @csuwl/opencode-memory-plugin
 ```
 
 This will automatically:
+
 - Create memory directory (`~/.opencode/memory/`)
 - Copy all core memory files (SOUL, AGENTS, USER, etc.)
 - Generate configuration (v2.0)
@@ -58,16 +61,19 @@ This will automatically:
 2. Set the environment variable:
 
    **Linux/Mac:**
+
    ```bash
    export MODELSCOPE_API_KEY='your-api-key-here'
    ```
 
    **Windows PowerShell:**
+
    ```powershell
    $env:MODELSCOPE_API_KEY='your-api-key-here'
    ```
 
    **Windows CMD:**
+
    ```cmd
    set MODELSCOPE_API_KEY=your-api-key-here
    ```
@@ -87,6 +93,7 @@ If you prefer to run your own service:
 Check your configuration at `~/.opencode/memory/memory-config.json`:
 
 **Default (ModelScope API):**
+
 ```json
 {
   "version": "2.0",
@@ -101,6 +108,7 @@ Check your configuration at `~/.opencode/memory/memory-config.json`:
 ```
 
 **Local Service:**
+
 ```json
 {
   "version": "2.0",
@@ -122,8 +130,8 @@ Start OpenCode and test the memory tools:
 # Write a test entry
 memory_write content="This is a test for memory integration" type="test" tags=["quickstart","test"]
 
-# Perform a semantic search (uses your embedding service)
-vector_memory_search query="memory integration functionality"
+# Perform a search (supports semantic and keyword search via backend)
+memory_search query="memory integration functionality"
 
 # List daily logs
 list_daily days=7
@@ -148,9 +156,9 @@ This will process all memory files through your embedding service and create vec
 
 ```bash
 # Find relevant memories by meaning, not just keywords
-vector_memory_search query="how do I handle async errors"
-vector_memory_search query="best practices for testing"
-vector_memory_search query="user preferences for code style"
+memory_search query="how do I handle async errors"
+memory_search query="best practices for testing"
+memory_search query="user preferences for code style"
 ```
 
 ### Keyword Search Only
@@ -182,6 +190,7 @@ init_daily
 ### ModelScope API Issues
 
 **API Key Not Found:**
+
 ```bash
 # Check if set
 echo $MODELSCOPE_API_KEY
@@ -191,6 +200,7 @@ export MODELSCOPE_API_KEY='your-key'
 ```
 
 **Connection Errors:**
+
 - Check your internet connection
 - Verify API key is valid
 - System will fall back to BM25 keyword search
@@ -198,6 +208,7 @@ export MODELSCOPE_API_KEY='your-key'
 ### Local Service Issues
 
 **Service Not Reachable:**
+
 ```bash
 curl -X POST http://localhost:18000/embeddings \
   -H "Content-Type: application/json" \
@@ -205,23 +216,27 @@ curl -X POST http://localhost:18000/embeddings \
 ```
 
 **Slow Performance:**
+
 - Check network latency between plugin and embedding service
 - Consider switching to ModelScope API for better performance
 
 ## Performance Expectations
 
 ### With ModelScope API (Node.js/OpenCode):
+
 - Initial search: ~50-100ms (network call)
 - Subsequent searches: ~50-100ms per query
 - Memory usage: ~50MB RAM (minimal local resources)
 
 ### With Bun Runtime:
+
 - Initial search: <1ms (BM25 keyword search)
 - Subsequent searches: <1ms per query
 - Memory usage: ~50MB RAM (no external dependencies)
 - Quality: Good keyword matching (no semantic search)
 
 ### Without Embedding Service (BM25-only):
+
 - Search time: <1ms
 - Memory usage: ~50MB RAM
 - Quality: Keyword matching only (fast but less accurate)
@@ -272,6 +287,7 @@ memory_write content="Decided to use PostgreSQL instead of MongoDB for better re
 ## Support
 
 For issues or questions:
+
 - Check the [Troubleshooting Guide](./TROUBLESHOOTING.md)
 - Review [Configuration Guide](./CONFIGURATION.md)
 - Open an issue on GitHub

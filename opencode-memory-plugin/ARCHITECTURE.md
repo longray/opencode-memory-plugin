@@ -1,6 +1,7 @@
 # OpenCode Memory Plugin - Architecture
 
 ## Overview
+
 The OpenCode Memory Plugin is a sophisticated memory management system for OpenCode that leverages an external embedding service to provide semantic search capabilities. This architecture decouples the embedding computation from the core memory system, allowing for greater scalability and customization.
 
 ## System Architecture
@@ -31,41 +32,46 @@ The OpenCode Memory Plugin is a sophisticated memory management system for OpenC
 ## Components
 
 ### 1. Plugin Core (`plugin.js`)
+
 - Entry point for all OpenCode memory tools
 - Orchestrates communication between OpenCode and internal systems
 - Handles tool registration and execution
 
 ### 2. Vector Store (`lib/vector-store.js`)
+
 - Central component that manages embedding operations
 - Communicates with external embedding service via HTTP API
 - Handles vector storage and retrieval using SQLite with sqlite-vec
 - Implements fallback mechanisms when external service is unavailable
 
 ### 3. External Embedding Service (localhost:18000)
+
 - Standalone service that generates embedding vectors
 - Receives text inputs via HTTP POST requests
 - Returns embedding vectors in standardized format
 - Can be implemented using various models (OpenAI-compatible, custom models, etc.)
 
 ### 4. Vector Storage (SQLite + sqlite-vec)
+
 - Stores embedding vectors with associated metadata
 - Enables efficient similarity search
 - Persists indexed content from memory files
 
 ### 5. Memory Files (Markdown)
+
 - User-provided memory content in Markdown format
 - Includes SOUL, AGENTS, USER, IDENTITY, TOOLS, MEMORY files
 - Daily logs stored separately
 
 ## Data Flow
 
-### For Semantic Search (`vector_memory_search`)
+### For Search (`memory_search`)
 
-1. OpenCode calls `vector_memory_search` with a query
-2. Vector Store sends query text to external embedding service
-3. External service generates embedding vector
-4. Vector Store performs similarity search against local SQLite DB
-5. Vector Store returns ranked results to OpenCode
+1. OpenCode calls `memory_search` with a query and mode (vector/keyword/hybrid)
+2. Plugin forwards request to backend service (localhost:17999)
+3. Backend service performs search using SurrealDB (vector) and/or Meilisearch (keyword)
+4. Backend returns ranked results to plugin
+5. Plugin returns results to OpenCode
 
 ### For Indexing (`rebuild_index`)
 
@@ -80,6 +86,7 @@ The OpenCode Memory Plugin is a sophisticated memory management system for OpenC
 ### External Embedding Service API
 
 **Request:**
+
 ```
 POST /embeddings
 Content-Type: application/json
@@ -93,6 +100,7 @@ Content-Type: application/json
 **Responses (Multiple formats supported):**
 
 Standard format:
+
 ```json
 {
   "embeddings": [0.1, 0.2, 0.3, ...]
@@ -100,6 +108,7 @@ Standard format:
 ```
 
 OpenAI-compatible:
+
 ```json
 {
   "data": [
@@ -111,6 +120,7 @@ OpenAI-compatible:
 ```
 
 Direct array:
+
 ```json
 [0.1, 0.2, 0.3, ...]
 ```
@@ -130,12 +140,14 @@ Direct array:
 ## Performance Characteristics
 
 ### Node.js/OpenCode Environment
+
 - **Latency**: ~50-100ms per embedding request
 - **Memory Usage**: ~50-100MB RAM (much less than local model)
 - **Scalability**: Can handle multiple concurrent requests via external service
 - **Network Dependency**: Requires connectivity to embedding service
 
 ### Bun Runtime Environment
+
 - **Latency**: <1ms per search (BM25 keyword matching)
 - **Memory Usage**: ~50MB RAM (no external dependencies)
 - **Search Quality**: Good keyword matching with BM25 scoring
@@ -144,10 +156,10 @@ Direct array:
 
 ### Performance Comparison
 
-| Environment | Search | Memory | Quality | Embedding Support |
-|-------------|--------|--------|---------|------------------|
-| Node.js (with ModelScope API) | 50-100ms | ~50MB | ⭐⭐⭐⭐ | ✅ Yes |
-| Bun Runtime | <1ms | ~50MB | ⭐⭐ | ⚠️ Fallback to BM25 |
+| Environment                   | Search   | Memory | Quality  | Embedding Support   |
+| ----------------------------- | -------- | ------ | -------- | ------------------- |
+| Node.js (with ModelScope API) | 50-100ms | ~50MB  | ⭐⭐⭐⭐ | ✅ Yes              |
+| Bun Runtime                   | <1ms     | ~50MB  | ⭐⭐     | ⚠️ Fallback to BM25 |
 
 ## Error Handling
 
@@ -166,10 +178,11 @@ In Bun runtime, the plugin has additional error handling:
    - Falls back to BM25-based search automatically
    - Logs warning message with GitHub issue reference
 
-2. **Graceful Degradation**
-   - `vector_memory_search`: Uses BM25 instead of embeddings
-   - `rebuild_index`: Builds BM25 index instead of vector index
-   - All other tools: Work normally (no degradation)
+2. **Backend-First Architecture (v2.1.0+)**
+   - All vector operations handled by backend service
+   - No local vector storage in plugin
+   - Eliminates Bun compatibility issues
+   - All tools work normally across all runtimes
 
 3. **User Experience**
    - All tools remain functional

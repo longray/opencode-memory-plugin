@@ -221,7 +221,7 @@ const searchCache = new LRU({
   ttl: 1000 * 60 * 10, // 10 分钟
 });
 
-async function vector_memory_search(...) {
+async function memory_search(...) {
   const cacheKey = `${query}_${mode}_${limit}_${threshold}`;
   const cached = searchCache.get(cacheKey);
   if (cached) return cached;

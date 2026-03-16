@@ -243,11 +243,11 @@ async execute(args) {
 }
 ```
 
-### 4.3 vector_memory_search (改造)
+### 4.3 memory_search (统一搜索工具)
 
-**原逻辑**: 本地 sqlite-vec / BM25 (Bun下不可用)
+**原逻辑**: 分离的 memory_search 和 memory_search 工具
 
-**新逻辑**:
+**新逻辑**: 统一的 memory_search 工具支持所有搜索模式
 
 1. 优先后端 hybrid/vector 搜索
 2. 后端不可用时回退到本地 BM25
@@ -559,13 +559,12 @@ memory_graph: tool({
 
 ### 阶段2: 工具改造 (4h)
 
-| 任务 | 文件                               | 说明                   |
-| ---- | ---------------------------------- | ---------------------- |
-| 2.1  | `plugin.js` - memory_write         | 本地写 + 异步上传      |
-| 2.2  | `plugin.js` - memory_search        | 优先后端 keyword       |
-| 2.3  | `plugin.js` - vector_memory_search | 优先后端 hybrid/vector |
-| 2.4  | `plugin.js` - rebuild_index        | 批量同步本地→后端      |
-| 2.5  | `plugin.js` - index_status         | 合并后端状态           |
+| 任务 | 文件                        | 说明                                               |
+| ---- | --------------------------- | -------------------------------------------------- |
+| 2.1  | `plugin.js` - memory_write  | 本地写 + 异步上传                                  |
+| 2.2  | `plugin.js` - memory_search | 统一搜索工具，支持所有模式 (keyword/vector/hybrid) |
+| 2.3  | `plugin.js` - rebuild_index | 批量同步本地→后端                                  |
+| 2.4  | `plugin.js` - index_status  | 合并后端状态                                       |
 
 ### 阶段3: 新增工具 (2h)
 
@@ -591,8 +590,7 @@ memory_graph: tool({
 
 | 插件工具               | 后端 API                                 | 参数映射                                    |
 | ---------------------- | ---------------------------------------- | ------------------------------------------- |
-| memory_search          | `POST /api/v1/memories/search`           | query→query, mode='keyword'                 |
-| vector_memory_search   | `POST /api/v1/memories/search`           | query→query, mode=mode                      |
+| memory_search          | `POST /api/v1/memories/search`           | query→query, mode (keyword/vector/hybrid)   |
 | memory_write (异步)    | `POST /api/v1/memories`                  | content,tags,project_id,source_id,tenant_id |
 | rebuild_index          | `POST /api/v1/memories`                  | 批量上传                                    |
 | memory_relate (create) | `POST /api/v1/memories/relations`        | from_id,to_id,relationship_type,weight      |

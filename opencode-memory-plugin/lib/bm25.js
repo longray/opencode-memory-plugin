@@ -1,8 +1,8 @@
 /**
  * BM25 Search Algorithm Implementation
- * 
- * BM25 (Best Matching 25) is a probabilistic ranking function 
- * used for information retrieval. It improves upon simple term 
+ *
+ * BM25 (Best Matching 25) is a probabilistic ranking function
+ * used for information retrieval. It improves upon simple term
  * frequency by considering:
  * - Term Frequency (TF): How often a term appears in a document
  * - Inverse Document Frequency (IDF): How rare/important a term is
@@ -12,18 +12,18 @@
 /**
  * BM25 parameters
  */
-const BM25_K1 = 1.2;  // Term frequency saturation parameter
-const BM25_B = 0.75;  // Document length normalization parameter
+const BM25_K1 = 1.2; // Term frequency saturation parameter
+const BM25_B = 0.75; // Document length normalization parameter
 
 /**
  * BM25 Index for a collection of documents
  */
 export class BM25Index {
   constructor() {
-    this.documents = new Map();  // docId -> { content, tokens, length }
+    this.documents = new Map(); // docId -> { content, tokens, length }
     this.docCount = 0;
     this.avgDocLength = 0;
-    this.termDocFreq = new Map();  // term -> number of docs containing term
+    this.termDocFreq = new Map(); // term -> number of docs containing term
     this.totalDocLengths = 0;
   }
 
@@ -34,28 +34,28 @@ export class BM25Index {
    */
   tokenize(text) {
     const lowerText = text.toLowerCase();
-    
+
     // 第一步：按空格分割（处理英文）
     const spaceSplit = lowerText.replace(/[^\w\u4e00-\u9fa5\s]/g, ' ').split(/\s+/);
-    
+
     const tokens = [];
-    
+
     for (const part of spaceSplit) {
       if (!part || part.trim() === '') continue;
-      
+
       // 检查是否包含中文
       const hasChinese = /[\u4e00-\u9fa5]/.test(part);
-      
+
       if (hasChinese) {
         // 中文部分：按字符切分，保留2字以上词组和单个字符
         // 先提取2字以上连续词组
         const chineseWords = part.match(/[\u4e00-\u9fa5]{2,}/g) || [];
         // 提取单个中文字符
         const singleChars = part.match(/[\u4e00-\u9fa5]/g) || [];
-        
+
         tokens.push(...chineseWords);
         tokens.push(...singleChars);
-        
+
         // 同时也保留混合的英文部分
         const englishParts = part.match(/[a-z0-9]+/g) || [];
         tokens.push(...englishParts.filter(w => w.length > 1));
@@ -66,7 +66,7 @@ export class BM25Index {
         }
       }
     }
-    
+
     return tokens;
   }
 
@@ -79,7 +79,7 @@ export class BM25Index {
   addDocument(id, content, metadata = {}) {
     const tokens = this.tokenize(content);
     const termFreq = new Map();
-    
+
     // Calculate term frequencies for this document
     for (const term of tokens) {
       termFreq.set(term, (termFreq.get(term) || 0) + 1);
@@ -97,7 +97,7 @@ export class BM25Index {
       tokens,
       length: tokens.length,
       termFreq,
-      metadata
+      metadata,
     };
 
     this.documents.set(id, doc);
@@ -128,7 +128,7 @@ export class BM25Index {
     this.totalDocLengths -= doc.length;
     this.docCount--;
     this.documents.delete(id);
-    
+
     if (this.docCount > 0) {
       this.avgDocLength = this.totalDocLengths / this.docCount;
     } else {
@@ -155,7 +155,7 @@ export class BM25Index {
   calculateIDF(term) {
     const n = this.termDocFreq.get(term) || 0;
     const N = this.docCount;
-    
+
     // BM25 IDF formula
     return Math.log((N - n + 0.5) / (n + 0.5) + 1);
   }
@@ -178,11 +178,11 @@ export class BM25Index {
       if (tf === 0) continue;
 
       const idf = this.calculateIDF(term);
-      
+
       // BM25 formula
       const numerator = tf * (k1 + 1);
       const denominator = tf + k1 * (1 - b + b * (docLength / avgdl));
-      
+
       score += idf * (numerator / denominator);
     }
 
@@ -205,15 +205,15 @@ export class BM25Index {
 
     const results = [];
 
-    for (const [id, doc] of this.documents) {
+    for (const [_id, doc] of this.documents) {
       const score = this.calculateBM25Score(doc, queryTerms);
-      
+
       if (score >= minScore) {
         results.push({
           id: doc.id,
           score,
           content: doc.content,
-          metadata: doc.metadata
+          metadata: doc.metadata,
         });
       }
     }
@@ -233,7 +233,7 @@ export class BM25Index {
       documentCount: this.docCount,
       averageDocumentLength: Math.round(this.avgDocLength * 100) / 100,
       uniqueTerms: this.termDocFreq.size,
-      totalTokens: this.totalDocLengths
+      totalTokens: this.totalDocLengths,
     };
   }
 }
@@ -245,11 +245,11 @@ export class BM25Index {
  */
 export function createBM25Index(documents) {
   const index = new BM25Index();
-  
+
   for (const doc of documents) {
     index.addDocument(doc.id, doc.content, doc.metadata || {});
   }
-  
+
   return index;
 }
 

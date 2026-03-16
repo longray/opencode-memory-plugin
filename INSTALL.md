@@ -37,6 +37,7 @@ If you're running OpenCode in Bun, you may need to configure the plugin path man
 
 1. Edit `~/.config/opencode/opencode.json`
 2. Add the plugin path:
+
 ```json
 {
   "plugin": [
@@ -92,6 +93,7 @@ opencode
 ## What Gets Installed?
 
 ### Memory Files (9 core files)
+
 - `~/.opencode/memory/SOUL.md` - AI personality and boundaries
 - `~/.opencode/memory/AGENTS.md` - Operating instructions
 - `~/.opencode/memory/USER.md` - User profile and preferences
@@ -103,14 +105,16 @@ opencode
 - `~/.opencode/memory/BOOTSTRAP.md` - First-run ritual
 
 ### Automation Agents (2 agents)
+
 - `@memory-automation` - Automatically saves important information
 - `@memory-consolidate` - Organizes and archives daily logs
 
 ### Memory Tools (8 tools)
+
 - `memory_write` - Write entries to memory
 - `memory_read` - Read from memory files
 - `memory_search` - Keyword search across memory
-- `vector_memory_search` - Semantic search with embeddings
+- `memory_search` - Semantic search with embeddings
 - `list_daily` - List available daily logs
 - `init_daily` - Initialize today's daily log
 - `rebuild_index` - Rebuild vector index
