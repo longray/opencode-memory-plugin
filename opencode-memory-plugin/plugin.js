@@ -169,11 +169,23 @@ ${content}
 ---
 `;
 
+            const today = new Date().toISOString().split('T')[0];
+            const isDailyType = type === 'daily';
+            const targetFile = isDailyType ? path.join(DAILY_DIR, `${today}.md`) : MEMORY_FILE;
+
             if (!fs.existsSync(MEMORY_DIR)) {
               fs.mkdirSync(MEMORY_DIR, { recursive: true });
             }
 
-            fs.appendFileSync(MEMORY_FILE, entry, 'utf-8');
+            if (isDailyType && !fs.existsSync(targetFile)) {
+              if (!fs.existsSync(DAILY_DIR)) {
+                fs.mkdirSync(DAILY_DIR, { recursive: true });
+              }
+              const dailyTemplate = `# Daily Memory Log - ${today}\n\n*Session starts: ${new Date().toISOString()}*\n\n## Notes\n\n## Tasks\n\n## Learnings\n\n---\n`;
+              fs.writeFileSync(targetFile, dailyTemplate, 'utf-8');
+            }
+
+            fs.appendFileSync(targetFile, entry, 'utf-8');
             // Async upload to backend (non-blocking)
             let backendStatus = '❌ Disabled';
             let memoryId = null;
@@ -216,7 +228,7 @@ ${content}
             return `✅ Entry written to memory
 - Type: ${type}
 - Tags: ${tags.join(', ') || 'none'}
-- File: ${MEMORY_FILE}
+- File: ${targetFile}
 - Length: ${content.length} characters
 - Backend: ${backendStatus}${memoryId ? `\n- Memory ID: ${memoryId}` : ''}`;
           } catch (e) {
