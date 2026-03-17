@@ -2,17 +2,20 @@
  * Project Resolver - 解析当前项目的 project_id
  *
  * 策略优先级：
- * 1. 环境变量 MEMORY_PROJECT_ID
- * 2. Git remote URL
- * 3. package.json name
- * 4. 当前目录名
- * 5. 配置中的 mappings
+ * 1. 配置文件显式指定 (backend.project_id)
+ * 2. 项目映射文件 (project-mappings.json)
+ * 3. Git remote URL (格式: @owner/repo)
+ * 4. package.json name
+ * 5. 绝对路径哈希 (格式: dirname-hash8)
+ * 6. 当前目录名
+ * 7. 兜底值 'global'
  *
  * 同时支持 project-mappings.json 解决同一项目多目录问题
  */
 
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { execSync } from 'child_process';
 
 const HOME = process.env.HOME || process.env.USERPROFILE;
@@ -27,22 +30,46 @@ function normalizePath(p) {
 }
 
 /**
- * 从 Git remote URL 提取项目名
- * 例如: https://github.com/user/my-project.git -> my-project
+ * 从 Git remote URL 提取项目ID
+ * 格式: @owner/repo 或 @org/subgroup/project
+ *
+ * 支持格式:
+ * - HTTPS: https://github.com/user/repo.git -> @user/repo
+ * - SSH: git@github.com:user/repo.git -> @user/repo
+ * - 多级: https://gitlab.com/org/sub/proj.git -> @org/sub/proj
  */
-function extractProjectNameFromGitUrl(url) {
+function extractProjectIdFromGitUrl(url) {
   if (!url) return null;
 
-  // 移除 .git 后缀
   url = url.replace(/\.git$/, '');
 
-  // 从 URL 提取最后一部分
-  const match = url.match(/[:/]([^/]+)$/);
-  if (match) {
-    return match[1];
+  // 处理 SSH 格式: git@github.com:user/repo
+  if (url.includes('@') && url.includes(':')) {
+    const match = url.match(/@[^:]+:(.+)$/);
+    if (match) {
+      return '@' + match[1];
+    }
+  }
+
+  // 处理 HTTPS 格式: https://github.com/user/repo
+  url = url.replace(/^https?:\/\//, '');
+  const pathMatch = url.match(/^[^/]+\/(.+)$/);
+  if (pathMatch) {
+    return '@' + pathMatch[1];
   }
 
   return null;
+}
+
+function getConfigProjectId(config) {
+  return config?.backend?.project_id || null;
+}
+
+function generateProjectIdFromAbsPath(cwd) {
+  const normalized = path.resolve(cwd).toLowerCase().replace(/\\/g, '/');
+  const hash = crypto.createHash('md5').update(normalized).digest('hex').substring(0, 8);
+  const dirName = path.basename(cwd);
+  return `${dirName}-${hash}`;
 }
 
 /**
@@ -55,7 +82,7 @@ function readPackageJson(cwd) {
       const content = fs.readFileSync(pkgPath, 'utf-8');
       return JSON.parse(content);
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   return null;
@@ -72,7 +99,7 @@ function getGitRemote(cwd) {
       timeout: 5000,
     });
     return result.trim();
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -86,7 +113,7 @@ function readProjectMappings() {
       const content = fs.readFileSync(MAPPINGS_FILE, 'utf-8');
       return JSON.parse(content);
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   return { mappings: {} };
@@ -120,9 +147,11 @@ export class ProjectResolver {
     this.cache = null;
     this.strategy = config.backend?.project_resolution?.strategy || 'auto';
     this.priority = config.backend?.project_resolution?.priority || [
-      'env',
+      'config',
+      'mapping',
       'git',
       'package',
+      'abspath',
       'dirname',
     ];
   }
@@ -159,12 +188,12 @@ export class ProjectResolver {
    */
   async tryStrategy(strategy) {
     switch (strategy) {
-      case 'env':
-        return process.env.MEMORY_PROJECT_ID;
+      case 'config':
+        return getConfigProjectId(this.config);
 
       case 'git': {
         const remote = getGitRemote(this.cwd);
-        return extractProjectNameFromGitUrl(remote);
+        return extractProjectIdFromGitUrl(remote);
       }
 
       case 'package': {
@@ -172,9 +201,11 @@ export class ProjectResolver {
         return pkg?.name || null;
       }
 
+      case 'abspath':
+        return generateProjectIdFromAbsPath(this.cwd);
+
       case 'dirname': {
         const dirName = path.basename(this.cwd);
-        // 如果目录名太通用，返回 null
         if (['src', 'dist', 'build', 'test', 'docs'].includes(dirName)) {
           return null;
         }
