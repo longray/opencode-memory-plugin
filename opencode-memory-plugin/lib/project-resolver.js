@@ -290,7 +290,6 @@ export class ProjectResolver {
  */
 export async function resolveProjectId(config) {
   const resolver = new ProjectResolver(config);
-  const result = await resolver.resolve();
 
   // Debug logging to file (temporary)
   try {
@@ -301,7 +300,8 @@ export async function resolveProjectId(config) {
     // eslint-disable-next-line no-empty
   } catch {}
 
-  return result;
+  resolver.clearCache();
+  return await resolver.resolve();
 }
 
 export async function resolveProjectIdWithDetails(config) {
