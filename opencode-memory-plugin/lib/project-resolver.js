@@ -292,10 +292,14 @@ export async function resolveProjectId(config) {
   const resolver = new ProjectResolver(config);
   const result = await resolver.resolve();
 
-  if (process.env.DEBUG_PROJECT_RESOLVER) {
+  // Debug logging to file (temporary)
+  try {
     const details = await resolver.resolveWithDetails();
-    console.log('[resolveProjectId] Details:', JSON.stringify(details, null, 2));
-  }
+    const logPath = path.join(HOME, '.opencode', 'memory', 'project-resolver-debug.log');
+    const logEntry = `\n[${new Date().toISOString()}]\n${JSON.stringify(details, null, 2)}\n`;
+    fs.appendFileSync(logPath, logEntry);
+    // eslint-disable-next-line no-empty
+  } catch {}
 
   return result;
 }
