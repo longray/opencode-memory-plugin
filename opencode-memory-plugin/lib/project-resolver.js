@@ -290,7 +290,14 @@ export class ProjectResolver {
  */
 export async function resolveProjectId(config) {
   const resolver = new ProjectResolver(config);
-  return await resolver.resolve();
+  const result = await resolver.resolve();
+
+  if (process.env.DEBUG_PROJECT_RESOLVER) {
+    const details = await resolver.resolveWithDetails();
+    console.log('[resolveProjectId] Details:', JSON.stringify(details, null, 2));
+  }
+
+  return result;
 }
 
 export async function resolveProjectIdWithDetails(config) {
