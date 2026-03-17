@@ -193,7 +193,11 @@ export class ProjectResolver {
 
       case 'git': {
         const remote = getGitRemote(this.cwd);
-        return extractProjectIdFromGitUrl(remote);
+        const projectId = extractProjectIdFromGitUrl(remote);
+        if (process.env.DEBUG_PROJECT_RESOLVER) {
+          console.log('[ProjectResolver] git strategy:', { cwd: this.cwd, remote, projectId });
+        }
+        return projectId;
       }
 
       case 'package': {
