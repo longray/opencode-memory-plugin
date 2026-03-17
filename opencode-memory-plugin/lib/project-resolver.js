@@ -21,6 +21,15 @@ import { execSync } from 'child_process';
 const HOME = process.env.HOME || process.env.USERPROFILE;
 const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
 const MAPPINGS_FILE = path.join(MEMORY_DIR, 'project-mappings.json');
+const DEBUG_LOG_FILE = path.join(MEMORY_DIR, 'project-resolver-debug.log');
+
+function debugLog(context, data) {
+  try {
+    const entry = `[${new Date().toISOString()}] ${context}: ${JSON.stringify(data)}\n`;
+    fs.appendFileSync(DEBUG_LOG_FILE, entry);
+    // eslint-disable-next-line no-empty
+  } catch {}
+}
 
 /**
  * 规范化路径 (统一分隔符，转为小写)
@@ -39,15 +48,23 @@ function normalizePath(p) {
  * - 多级: https://gitlab.com/org/sub/proj.git -> @org/sub/proj
  */
 function extractProjectIdFromGitUrl(url) {
-  if (!url) return null;
+  debugLog('extractProjectIdFromGitUrl:input', { url });
 
+  if (!url) {
+    debugLog('extractProjectIdFromGitUrl:result', { result: null, reason: 'url is null' });
+    return null;
+  }
+
+  const originalUrl = url;
   url = url.replace(/\.git$/, '');
 
   // 处理 SSH 格式: git@github.com:user/repo
   if (url.includes('@') && url.includes(':')) {
     const match = url.match(/@[^:]+:(.+)$/);
     if (match) {
-      return '@' + match[1];
+      const result = '@' + match[1];
+      debugLog('extractProjectIdFromGitUrl:result', { originalUrl, result, format: 'SSH' });
+      return result;
     }
   }
 
@@ -55,9 +72,12 @@ function extractProjectIdFromGitUrl(url) {
   url = url.replace(/^https?:\/\//, '');
   const pathMatch = url.match(/^[^/]+\/(.+)$/);
   if (pathMatch) {
-    return '@' + pathMatch[1];
+    const result = '@' + pathMatch[1];
+    debugLog('extractProjectIdFromGitUrl:result', { originalUrl, result, format: 'HTTPS' });
+    return result;
   }
 
+  debugLog('extractProjectIdFromGitUrl:result', { originalUrl, result: null, reason: 'no match' });
   return null;
 }
 
@@ -98,8 +118,11 @@ function getGitRemote(cwd) {
       encoding: 'utf-8',
       timeout: 5000,
     });
-    return result.trim();
-  } catch {
+    const trimmed = result.trim();
+    debugLog('getGitRemote', { cwd, success: true, remote: trimmed });
+    return trimmed;
+  } catch (error) {
+    debugLog('getGitRemote', { cwd, success: false, error: error.message });
     return null;
   }
 }
@@ -192,11 +215,10 @@ export class ProjectResolver {
         return getConfigProjectId(this.config);
 
       case 'git': {
+        debugLog('tryStrategy:git:start', { cwd: this.cwd });
         const remote = getGitRemote(this.cwd);
         const projectId = extractProjectIdFromGitUrl(remote);
-        if (process.env.DEBUG_PROJECT_RESOLVER) {
-          console.log('[ProjectResolver] git strategy:', { cwd: this.cwd, remote, projectId });
-        }
+        debugLog('tryStrategy:git:end', { cwd: this.cwd, remote, projectId });
         return projectId;
       }
 
