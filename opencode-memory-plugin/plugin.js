@@ -168,12 +168,15 @@ export const MemoryPlugin = async _ctx => {
             const tags = normalizeTags(args.tags);
             const timestamp = new Date().toISOString();
 
+            const projectId = await resolveProjectId(config);
+
             const entry = `
 ## ${type.charAt(0).toUpperCase() + type.slice(1)} Entry
 
 **Date**: ${timestamp}
 **Type**: ${type}
 **Tags**: ${tags.join(', ') || 'none'}
+**Project**: ${projectId}
 
 ${content}
 
@@ -197,13 +200,11 @@ ${content}
             }
 
             fs.appendFileSync(targetFile, entry, 'utf-8');
-            // Async upload to backend (non-blocking)
             let backendStatus = '❌ Disabled';
             let memoryId = null;
             const backendEnabled = config?.backend?.enabled !== false;
 
             if (backendEnabled) {
-              const projectId = await resolveProjectId(config);
               const tenantId = config?.backend?.tenant_id || process.env.USERNAME || 'default';
               const sourceId = generateSourceId(content, type, tags, tenantId, projectId);
 
