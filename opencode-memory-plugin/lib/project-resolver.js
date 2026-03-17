@@ -21,12 +21,12 @@ import { execSync } from 'child_process';
 const HOME = process.env.HOME || process.env.USERPROFILE;
 const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
 const MAPPINGS_FILE = path.join(MEMORY_DIR, 'project-mappings.json');
-const DEBUG_LOG_FILE = path.join(MEMORY_DIR, 'project-resolver-debug.log');
+const DETAILED_DEBUG_LOG = path.join(MEMORY_DIR, 'project-resolver-detailed.log');
 
 function debugLog(context, data) {
   try {
     const entry = `[${new Date().toISOString()}] ${context}: ${JSON.stringify(data)}\n`;
-    fs.appendFileSync(DEBUG_LOG_FILE, entry);
+    fs.appendFileSync(DETAILED_DEBUG_LOG, entry);
     // eslint-disable-next-line no-empty
   } catch {}
 }
