@@ -23,6 +23,8 @@ const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
 const MAPPINGS_FILE = path.join(MEMORY_DIR, 'project-mappings.json');
 const DETAILED_DEBUG_LOG = path.join(MEMORY_DIR, 'project-resolver-detailed.log');
 
+const gitRemoteCache = new Map();
+
 function debugLog(context, data) {
   try {
     const entry = `[${new Date().toISOString()}] ${context}: ${JSON.stringify(data)}\n`;
@@ -108,23 +110,40 @@ function readPackageJson(cwd) {
   return null;
 }
 
-/**
- * 尝试获取 Git remote URL
- */
-function getGitRemote(cwd) {
-  try {
-    const result = execSync('git remote get-url origin', {
-      cwd,
-      encoding: 'utf-8',
-      timeout: 5000,
-    });
-    const trimmed = result.trim();
-    debugLog('getGitRemote', { cwd, success: true, remote: trimmed });
-    return trimmed;
-  } catch (error) {
-    debugLog('getGitRemote', { cwd, success: false, error: error.message });
-    return null;
+function getGitRemote(cwd, retries = 2) {
+  const normalizedCwd = path.resolve(cwd).toLowerCase();
+
+  if (gitRemoteCache.has(normalizedCwd)) {
+    const cached = gitRemoteCache.get(normalizedCwd);
+    debugLog('getGitRemote:cache', { cwd, remote: cached });
+    return cached;
   }
+
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const result = execSync('git remote get-url origin', {
+        cwd,
+        encoding: 'utf-8',
+        timeout: 5000,
+      });
+      const trimmed = result.trim();
+      gitRemoteCache.set(normalizedCwd, trimmed);
+      debugLog('getGitRemote', { cwd, success: true, remote: trimmed, attempt: i + 1 });
+      return trimmed;
+    } catch (error) {
+      if (i === retries) {
+        debugLog('getGitRemote', {
+          cwd,
+          success: false,
+          error: error.message,
+          attempts: retries + 1,
+        });
+        return null;
+      }
+      debugLog('getGitRemote:retry', { cwd, attempt: i + 1, error: error.message });
+    }
+  }
+  return null;
 }
 
 /**
