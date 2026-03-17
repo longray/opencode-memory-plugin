@@ -548,6 +548,36 @@ async def update_memory(entry: MemoryEntry, expected_version: int):
 - 后到的请求会收到冲突错误
 - 客户端可以重试或手动解决
 
+**悲观锁方案（可选）**：
+
+适用于写多读少场景，使用SurrealDB的LOCK语法：
+
+```python
+async def update_memory_pessimistic(entry: MemoryEntry):
+    async with db.transaction() as tx:
+        # 1. 锁定记录
+        locked = await tx.query("""
+            SELECT * FROM memories
+            WHERE source_fingerprint = $fp
+            LOCK record
+        """, {"fp": entry.source_fingerprint})
+
+        # 2. 更新记录
+        await tx.query("""
+            UPDATE memories
+            SET content = $content, version = version + 1
+            WHERE source_fingerprint = $fp
+        """, {"fp": entry.source_fingerprint, "content": entry.content})
+
+        # 3. 提交事务（自动释放锁）
+        await tx.commit()
+```
+
+**对比**：
+
+- 乐观锁：适合读多写少，冲突时需要重试
+- 悲观锁：适合写多读少，避免冲突但性能略低
+
 ### Outbox模式
 
 **实现方式**：事务 + 异步发布
@@ -694,46 +724,46 @@ async def start_cleanup_task(db):
 
 ### 方案A：完整实施（推荐）
 
-**总工时**: 22.5小时  
+**总工时**: 28小时（含25%缓冲）  
 **范围**: P0（16个）+ P1（9个）全部修复  
 **收益**: 生产就绪，性能提升20倍，完整监控，零Redis依赖
 
-#### 阶段1：后端基础（6小时）
+#### 阶段1：后端基础（7.5小时）
 
 | 任务             | 工时 | 产出                                                                           |
 | ---------------- | ---- | ------------------------------------------------------------------------------ |
-| 数据模型准备     | 1h   | SurrealDB schema更新（version, last_op_id, source_fingerprint, idempotency表） |
-| 批量同步API      | 3h   | POST /api/v1/memories/batch-sync（CREATE/UPDATE/DELETE）                       |
-| 幂等性和并发控制 | 2.5h | SurrealDB幂等性检查 + 清理任务 + version乐观锁                                 |
+| 数据模型准备     | 1.5h | SurrealDB schema更新（version, last_op_id, source_fingerprint, idempotency表） |
+| 批量同步API      | 4h   | POST /api/v1/memories/batch-sync（CREATE/UPDATE/DELETE）                       |
+| 幂等性和并发控制 | 3h   | SurrealDB幂等性检查 + 清理任务 + version乐观锁                                 |
 
-#### 阶段2：插件端核心（5小时）
+#### 阶段2：插件端核心（6.5小时）
 
 | 任务              | 工时 | 产出                          |
 | ----------------- | ---- | ----------------------------- |
-| SyncManager实现   | 3h   | 变更检测算法 + 同步逻辑       |
-| CheckpointManager | 1.5h | 原子写入 + 损坏恢复 + 压缩    |
+| SyncManager实现   | 4h   | 变更检测算法 + 同步逻辑       |
+| CheckpointManager | 2h   | 原子写入 + 损坏恢复 + 压缩    |
 | rebuild_index集成 | 0.5h | 调用SyncManager + dry-run参数 |
 
-#### 阶段3：一致性保障（4小时）
+#### 阶段3：一致性保障（5小时）
 
 | 任务               | 工时 | 产出                             |
 | ------------------ | ---- | -------------------------------- |
-| Outbox模式         | 2h   | 异步同步到Meilisearch + 重试机制 |
-| Source Fingerprint | 1h   | 稳定内容指纹生成（去除时间戳）   |
+| Outbox模式         | 2.5h | 异步同步到Meilisearch + 重试机制 |
+| Source Fingerprint | 1.5h | 稳定内容指纹生成（去除时间戳）   |
 | 部分成功处理       | 1h   | 响应模型完善 + 错误详情          |
 
-#### 阶段4：测试和优化（7小时）
+#### 阶段4：测试和优化（9小时）
 
 | 任务       | 工时 | 产出                               |
 | ---------- | ---- | ---------------------------------- |
-| 单元测试   | 2h   | 后端 + 插件端核心逻辑测试          |
-| 集成测试   | 2h   | 端到端测试 + 跨存储一致性验证      |
-| 性能优化   | 2h   | 批量大小调优 + 查询优化 + 压力测试 |
+| 单元测试   | 2.5h | 后端 + 插件端核心逻辑测试          |
+| 集成测试   | 2.5h | 端到端测试 + 跨存储一致性验证      |
+| 性能优化   | 3h   | 批量大小调优 + 查询优化 + 压力测试 |
 | 监控和文档 | 1h   | 监控指标 + README更新              |
 
 ### 方案B：MVP最小版本
 
-**总工时**: 11.5小时  
+**总工时**: 14.5小时（含25%缓冲）  
 **范围**: 仅P0核心功能（11个）  
 **收益**: 快速验证，核心功能可用，零Redis依赖
 
@@ -758,40 +788,40 @@ async def start_cleanup_task(db):
 
 | 阶段       | 工时 | 任务                                     |
 | ---------- | ---- | ---------------------------------------- |
-| 后端核心   | 4.5h | 批量同步API + SurrealDB幂等性 + 并发控制 |
-| 插件端核心 | 4h   | SyncManager + CheckpointManager          |
-| 基础测试   | 2h   | 核心功能单元测试                         |
-| 手动验证   | 1h   | 新增/更新/删除场景测试                   |
+| 后端核心   | 5.5h | 批量同步API + SurrealDB幂等性 + 并发控制 |
+| 插件端核心 | 5h   | SyncManager + CheckpointManager          |
+| 基础测试   | 2.5h | 核心功能单元测试                         |
+| 手动验证   | 1.5h | 新增/更新/删除场景测试                   |
 
 ### 方案C：分阶段实施
 
-**Phase 1**（8小时）- 数据模型 + 批量同步API  
-**Phase 2**（7小时）- 插件端增量同步  
-**Phase 3**（7小时）- 监控、优化、完整测试
+**Phase 1**（10小时，含25%缓冲）- 数据模型 + 批量同步API  
+**Phase 2**（9小时，含25%缓冲）- 插件端增量同步  
+**Phase 3**（9小时，含25%缓冲）- 监控、优化、完整测试
 
-#### Phase 1：后端就绪（8小时）
+#### Phase 1：后端就绪（10小时）
 
-- 数据模型修正（2h）
-- 批量同步API实现（4h）
-- 幂等性和并发控制（2h）
+- 数据模型修正（2.5h）
+- 批量同步API实现（5h）
+- 幂等性和并发控制（2.5h）
 
 **里程碑**: 后端API可用，支持批量操作
 
-#### Phase 2：插件端集成（7小时）
+#### Phase 2：插件端集成（9小时）
 
-- SyncManager实现（3h）
-- CheckpointManager实现（2h）
-- rebuild_index集成（1h）
+- SyncManager实现（4h）
+- CheckpointManager实现（2.5h）
+- rebuild_index集成（1.5h）
 - 基础测试（1h）
 
 **里程碑**: 增量同步功能完整可用
 
-#### Phase 3：生产就绪（7小时）
+#### Phase 3：生产就绪（9小时）
 
-- Outbox模式（2h）
-- Source Fingerprint（1h）
-- 集成测试（2h）
-- 性能优化（1h）
+- Outbox模式（2.5h）
+- Source Fingerprint（1.5h）
+- 集成测试（2.5h）
+- 性能优化（1.5h）
 - 监控和文档（1h）
 
 **里程碑**: 生产环境部署就绪
@@ -1119,6 +1149,13 @@ if (deleteRatio > 0.2 || deleteCount > 50) {
 | 错误率   | 未知    | <1%       | 失败请求比例 |
 | 可用性   | 未知    | >99.9%    | 服务健康检查 |
 
+**数据来源说明**：
+
+- **当前值**：基于v1.2.0版本的实际测量（rebuild_index工具，单条上传模式）
+- **目标值**：参考行业标准和用户体验要求
+- **同步延迟目标**：<100ms确保用户无感知延迟
+- **吞吐量目标**：>200条/秒支持大规模记忆同步（1000条<5秒）
+
 ### 质量指标
 
 | 指标       | 目标 | 测量方法          |
@@ -1132,4 +1169,4 @@ if (deleteRatio > 0.2 || deleteCount > 50) {
 **文档状态**: ✅ 已完成（已移除Redis依赖）  
 **最后更新**: 2026-03-17  
 **版本**: v2.0 (修正版 - 零Redis依赖)  
-**总工时**: 22.5小时（完整版）/ 11.5小时（MVP）
+**总工时**: 28小时（完整版，含25%缓冲）/ 14.5小时（MVP，含25%缓冲）
