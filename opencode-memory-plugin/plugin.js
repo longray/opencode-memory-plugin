@@ -195,7 +195,9 @@ ${content}
               if (!fs.existsSync(DAILY_DIR)) {
                 fs.mkdirSync(DAILY_DIR, { recursive: true });
               }
-              const dailyTemplate = `# Daily Memory Log - ${today}\n\n*Session starts: ${new Date().toISOString()}*\n\n## Notes\n\n## Tasks\n\n## Learnings\n\n---\n`;
+              const projectMeta =
+                projectId && projectId !== 'unknown' ? `**Project**: ${projectId}\n\n` : '';
+              const dailyTemplate = `# Daily Memory Log - ${today}\n\n${projectMeta}*Session starts: ${new Date().toISOString()}*\n\n## Notes\n\n## Tasks\n\n## Learnings\n\n---\n`;
               fs.writeFileSync(targetFile, dailyTemplate, 'utf-8');
             }
 

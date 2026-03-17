@@ -42,6 +42,36 @@ You should be triggered:
 3. **Before archiving old daily logs**
 4. **When requested** via `@memory-consolidate`
 
+## Dry-Run Mode
+
+When invoked with "dry-run" or "preview":
+
+1. **Analyze** all daily files as normal
+2. **Classify** content (static vs. memory entry)
+3. **Show preview** of planned actions:
+
+   ```
+   📋 Consolidation Preview (Dry-Run)
+
+   Static Content → Specialized Files:
+   ✓ AGENTS.md: [brief description]
+   ✓ USER.md: [brief description]
+
+   Memory Entries → MEMORY.md:
+   ✓ [Type] Entry: [brief description] (Project: @owner/repo)
+   ✓ [Type] Entry: [brief description] (No project - general)
+
+   Enhancements:
+   ✓ AGENTS.md: Enhance existing entry "[title]"
+
+   Total: [count] actions planned
+   ```
+
+4. **Ask for confirmation** before proceeding
+5. **Execute** only after user confirms
+
+**Usage**: `@memory-consolidate dry-run` or `@memory-consolidate preview`
+
 ## Consolidation Process
 
 ### Step 1: List Recent Daily Files
@@ -79,6 +109,79 @@ For each daily file, analyze and identify:
 - Duplicate information already in long-term memory
 - One-off commands without lasting value
 
+### Step 2.5: Classify Content Type
+
+Before consolidating, determine if content is:
+
+**A. Static Content** (goes to specialized files):
+
+**SOUL.md** - Personality & Boundaries:
+
+- AI personality traits, behavioral boundaries
+- Memory awareness principles, working principles
+
+**AGENTS.md** - Operating Instructions:
+
+- Best practices applicable to all projects
+- Common patterns, tool conventions
+- Error handling strategies, general lessons
+
+**USER.md** - User Profile:
+
+- User preferences, communication style
+- Working habits, code preferences
+
+**IDENTITY.md** - AI Identity:
+
+- Name, vibe, special powers, promises
+
+**TOOLS.md** - Tool Conventions:
+
+- Tool usage patterns, workflows
+- Safe vs. ask-before commands
+
+**B. Memory Entry** (goes to MEMORY.md):
+
+- Project-specific knowledge
+- Dated events and decisions
+- Context-dependent information
+
+**Decision Logic**:
+
+1. Is it about AI personality/boundaries? → SOUL.md
+2. Is it a general best practice/pattern? → AGENTS.md
+3. Is it about user preference/habit? → USER.md
+4. Is it about AI identity/capability? → IDENTITY.md
+5. Is it about tool usage convention? → TOOLS.md
+6. Otherwise → MEMORY.md (standard entry format)
+
+### Step 2.6: Determine Project Field
+
+For content going to MEMORY.md, use this priority to determine project_id:
+
+**Priority 1: Daily Log Metadata**
+
+- Check if daily entry has `**Project**: @owner/repo`
+- If found, inherit this project_id
+
+**Priority 2: Content Analysis**
+
+- Scan for file paths (e.g., `D:\github\project-name\...`)
+- Scan for package names (e.g., `@owner/package`)
+- Match against known project keywords
+
+**Priority 3: Current Workspace**
+
+- Use current workspace's project_id
+- Only if content seems project-specific
+
+**Priority 4: Omit Project Field**
+
+- If content is universal/general, don't add Project field
+- Examples: Python best practices, universal patterns
+
+**When in doubt**: Omit Project field (better general than wrong)
+
 ### Step 3: Check for Duplicates
 
 Before consolidating, always check if similar information already exists:
@@ -89,32 +192,42 @@ memory_search query="[topic or keyword]" scope="long-term"
 
 Only consolidate if information is new or provides additional context.
 
-### Step 4: Consolidate to Long-Term Memory
+### Step 4: Smart Consolidation
 
-When consolidating, write to `MEMORY.md` with proper formatting:
+**For Static Content** (SOUL.md, AGENTS.md, USER.md, IDENTITY.md, TOOLS.md):
+
+1. **Read target file**: Use `memory_read file="[target].md"` or `read` tool
+2. **Check duplicates**: Search for similar content in target file
+3. **Merge strategy**:
+   - If duplicate: **Enhance existing entry** (add details, update context)
+   - If new: Append to appropriate section
+   - If related: Merge with existing content
+4. **Maintain structure**: Respect existing headings and format
+5. **Use appropriate tool**: Use `write` or `edit` tool (not memory_write)
+
+**For Memory Entries** (MEMORY.md):
+
+Use standard format with memory_write:
 
 ```
-memory_write content="[Comprehensive summary with context]" type="long-term" tags=["daily-consolidation","[relevant-tags]"]
+memory_write content="
+## [Type] Entry
+
+**Date**: [ISO timestamp]
+**Type**: long-term | preference | general
+**Tags**: daily-consolidation, [topic-tags]
+**Project**: @owner/repo (if applicable, based on Step 2.6)
+
+[Comprehensive content with context]
+" type="long-term" tags=["daily-consolidation","[topic]"]
 ```
 
-Example entry format:
+**Enhancement Strategy** (when duplicate found in MEMORY.md):
 
-```markdown
-## [YYYY-MM-DD] Consolidated: [Topic]
-
-**Source**: Daily log from [date]
-
-**Key Points**:
-
-- [Point 1]
-- [Point 2]
-- [Point 3]
-
-**Context**:
-[Brief explanation of why this matters and how it was learned]
-
-**Tags**: #daily-consolidation #[topic]
-```
+- Search existing entries: `memory_search query="[topic]" scope="long-term"`
+- If similar entry exists: Add new insights, update date, merge tags
+- Preserve original context, append new context
+- Use memory_write to create enhanced version
 
 ### Step 5: Archive Old Daily Files
 
