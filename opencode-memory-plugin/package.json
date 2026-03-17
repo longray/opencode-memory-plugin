@@ -1,4 +1,5 @@
 {
+  "name": "@csuwl/opencode-memory-plugin",
   "version": "2.1.0",
   "description": "OpenClaw-style memory system with backend SurrealDB integration",
   "license": "MIT",
