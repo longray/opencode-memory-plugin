@@ -130,6 +130,16 @@ async function fallbackBM25Search(query, limit = 10) {
   }));
 }
 
+function normalizeTags(tags) {
+  if (Array.isArray(tags)) return tags;
+  if (typeof tags === 'string')
+    return tags
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean);
+  return [];
+}
+
 export const MemoryPlugin = async _ctx => {
   const config = getConfig();
   const client = getWrapperClient(config);
@@ -154,7 +164,8 @@ export const MemoryPlugin = async _ctx => {
         },
         async execute(args) {
           try {
-            const { content, type, tags } = args;
+            const { content, type } = args;
+            const tags = normalizeTags(args.tags);
             const timestamp = new Date().toISOString();
 
             const entry = `
