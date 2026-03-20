@@ -14,6 +14,8 @@
 
 #### 后端测试（pytest）
 
+**修正后测试代码**（修复P0-2数据模型不一致）：
+
 ```python
 # tests/test_batch_sync.py
 import pytest
@@ -24,26 +26,30 @@ async def test_batch_sync_add():
     """测试批量新增"""
     manager = MemoryManager(config)
 
+    # ✅ 修正：使用operations数组而非to_add/to_update/to_delete
     result = await manager.batch_sync_memories(
         batch_id="test_batch_1",
-        to_add=[{
-            "content": "Test memory",
-            "type": "long-term",
-            "tags": ["test"],
-            "source_fingerprint": "fp123",
-            "hash": "hash123",
-            "metadata": {"source_file": "test.md"}
-        }],
-        to_update=[],
-        to_delete=[],
         tenant_id="test_tenant",
-        project_id="test_project"
+        project_id="test_project",
+        operations=[
+            {
+                "action": "CREATE",
+                "entry": {
+                    "content": "Test memory",
+                    "type": "long-term",
+                    "tags": ["test"],
+                    "source_fingerprint": "fp123",
+                    "hash": "hash123",
+                    "metadata": {"source_file": "test.md"}
+                }
+            }
+        ]
     )
 
     assert result["status"] == "success"
-    assert len(result["results"]["added"]) == 1
-    assert result["results"]["added"][0]["status"] == "success"
-    assert "record_id" in result["results"]["added"][0]
+    assert len(result["results"]) == 1
+    assert result["results"][0]["status"] == "success"
+    assert "record_id" in result["results"][0]
 
 @pytest.mark.asyncio
 async def test_idempotency():
@@ -54,23 +60,41 @@ async def test_idempotency():
     # 第一次执行
     result1 = await manager.batch_sync_memories(
         batch_id=batch_id,
-        to_add=[{"content": "Test", ...}],
-        to_update=[],
-        to_delete=[],
         tenant_id="test",
-        project_id="test"
+        project_id="test",
+        operations=[
+            {
+                "action": "CREATE",
+                "entry": {
+                    "content": "Test",
+                    "type": "long-term",
+                    "tags": ["test"],
+                    "source_fingerprint": "fp_test",
+                    "hash": "hash_test"
+                }
+            }
+        ]
     )
+    assert result1["status"] == "success"
 
-    # 第二次执行（相同batch_id）
+    # 第二次执行（相同batch_id）- 应该返回重复
     result2 = await manager.batch_sync_memories(
         batch_id=batch_id,
-        to_add=[{"content": "Test", ...}],
-        to_update=[],
-        to_delete=[],
         tenant_id="test",
-        project_id="test"
+        project_id="test",
+        operations=[
+            {
+                "action": "CREATE",
+                "entry": {
+                    "content": "Test",
+                    "type": "long-term",
+                    "tags": ["test"],
+                    "source_fingerprint": "fp_test",
+                    "hash": "hash_test"
+                }
+            }
+        ]
     )
-
     assert result2["status"] == "duplicate"
 
 @pytest.mark.asyncio
@@ -79,25 +103,48 @@ async def test_version_conflict():
     manager = MemoryManager(config)
 
     # 先创建一条记录
-    add_result = await manager.batch_sync_memories(...)
-    record_id = add_result["results"]["added"][0]["record_id"]
+    add_result = await manager.batch_sync_memories(
+        batch_id="test_add",
+        tenant_id="test",
+        project_id="test",
+        operations=[
+            {
+                "action": "CREATE",
+                "entry": {
+                    "content": "Original",
+                    "type": "long-term",
+                    "tags": ["test"],
+                    "source_fingerprint": "fp_orig",
+                    "hash": "hash_orig"
+                }
+            }
+        ]
+    )
+    record_id = add_result["results"][0]["record_id"]
+    current_version = add_result["results"][0]["version"]
 
     # 尝试用错误的版本更新
     update_result = await manager.batch_sync_memories(
         batch_id="test_update",
-        to_add=[],
-        to_update=[{
-            "record_id": record_id,
-            "expected_version": 999,  # 错误的版本
-            "content": "Updated",
-            ...
-        }],
-        to_delete=[],
         tenant_id="test",
-        project_id="test"
+        project_id="test",
+        operations=[
+            {
+                "action": "UPDATE",
+                "record_id": record_id,
+                "expected_version": 999,  # 错误的版本
+                "entry": {
+                    "content": "Updated",
+                    "type": "long-term",
+                    "tags": ["test", "updated"],
+                    "source_fingerprint": "fp_updated",
+                    "hash": "hash_updated"
+                }
+            }
+        ]
     )
 
-    assert update_result["results"]["updated"][0]["status"] == "conflict"
+    assert update_result["results"][0]["status"] == "conflict"
 ```
 
 #### 插件端测试（Jest）
@@ -263,15 +310,15 @@ async def test_sync_performance():
 
 **P0 - 核心功能（必须实现）**：
 
-| 功能           | 说明                             | 工时 | 负责人 |
-| -------------- | -------------------------------- | ---- | ------ |
-| 批量同步API    | POST /api/v1/memories/batch-sync | 3h   | 后端   |
-| 幂等性检查     | Redis存储batch_id状态            | 1h   | 后端   |
-| 并发控制       | version字段乐观锁                | 1h   | 后端   |
-| SyncManager    | 变更检测和同步逻辑               | 2h   | 插件   |
-| Checkpoint管理 | 原子落盘和加载                   | 1.5h | 插件   |
-| 删除保护       | 阈值检查和确认机制               | 0.5h | 插件   |
-| 单元测试       | 核心功能测试覆盖                 | 2h   | 全栈   |
+| 功能           | 说明                               | 工时 | 负责人 |
+| -------------- | ---------------------------------- | ---- | ------ |
+| 批量同步API    | POST /api/v1/memories/batch-sync   | 3h   | 后端   |
+| 幂等性检查     | SurrealDB idempotency表            | 1h   | 后端   |
+| 并发控制       | version字段乐观锁                  | 1h   | 后端   |
+| SyncManager    | 变更检测和同步逻辑                 | 2h   | 插件   |
+| Checkpoint管理 | 原子落盘和加载                     | 1.5h | 插件   |
+| 删除保护       | 阈值检查和确认机制                 | 0.5h | 插件   |
+| 单元测试       | 核心功能测试覆盖                   | 2h   | 全栈   |
 
 **P0小计：11小时**
 
@@ -315,7 +362,7 @@ async def test_sync_performance():
    - 事务处理
 
 3. **幂等性和并发控制**（2h）
-   - Redis幂等性检查
+   - SurrealDB幂等性检查（UNIQUE索引）
    - 乐观锁实现
    - 错误处理
 

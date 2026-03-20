@@ -1,7 +1,5 @@
-/**
- * ESLint 配置 - OpenCode Memory Plugin
- * ESLint v10 新格式
- */
+// ESLint 配置 - OpenCode Memory Plugin
+// ESLint v10 新格式
 
 import js from '@eslint/js';
 import globals from 'globals';

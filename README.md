@@ -29,27 +29,56 @@
 ## 🎯 Features
 
 - ✅ **Native OpenCode Plugin** - Using @opencode-ai/plugin API for seamless integration
-- ✅ **9 Memory Tools** - All tools available immediately after installation
+- ✅ **19 Memory Tools** - All tools available immediately after installation
+- ✅ **v2.3: Dual-Mode Sync** - Incremental (fingerprint-based) + Full sync (with resume)
+- ✅ **v2.3: Conflict Resolution** - Detection, auto-resolve, merge, manual resolve
+- ✅ **v2.3: Memory Browsing** - Timeline browser and topic explorer
 - ✅ **SurrealDB Backend** - External memory service with HNSW vector search
 - ✅ **Graph Relations** - Connect memories with semantic relationships
 - ✅ **Project Isolation** - Multi-tenant support with tenant_id and project_id
 - ✅ **Hybrid Mode** - Local files + Backend service with automatic fallback
 - ✅ **Zero Configuration** - Just install and use, no setup required
+- ✅ **Auto-Trigger** - Automatically saves important information from conversations
 - ✅ **OpenClaw-Style Memory** - Complete 9 core memory files (SOUL, AGENTS, USER, IDENTITY, TOOLS, MEMORY, HEARTBEAT, BOOT, BOOTSTRAP)
+- ✅ **Phase C: Trie Index** - 10x faster local search with prefix tree indexing
+- ✅ **Phase C: Autocomplete** - Smart search suggestions (<50ms)
+- ✅ **Phase C: Real-time Sync** - WebSocket live synchronization
 
-### Available Tools (9)
+### Available Tools (19)
 
-| Tool            | Description                              | Backend Required   |
-| --------------- | ---------------------------------------- | ------------------ |
-| `memory_write`  | Write entries to long-term memory        | Syncs to backend   |
-| `memory_read`   | Read from memory files                   | Local only         |
-| `memory_search` | All search modes (vector/keyword/hybrid) | Backend + fallback |
-| `memory_relate` | Create/query graph relations             | ✅ Yes             |
-| `memory_graph`  | Graph traversal                          | ✅ Yes             |
-| `list_daily`    | List available daily logs                | Local only         |
-| `init_daily`    | Initialize today's daily log             | Local only         |
-| `rebuild_index` | Sync local files to backend              | ✅ Yes             |
-| `index_status`  | Check system status                      | Backend + local    |
+#### Core Tools (11)
+
+| Tool             | Description                              | Backend Required   |
+| ---------------- | ---------------------------------------- | ------------------ |
+| `memory_write`   | Write entries to long-term memory        | Syncs to backend   |
+| `memory_read`    | Read from memory files                   | Local only         |
+| `memory_search`  | All search modes (vector/keyword/hybrid) | Backend + fallback |
+| `memory_relate`  | Create/query graph relations             | ✅ Yes             |
+| `memory_graph`   | Graph traversal                          | ✅ Yes             |
+| `memory_suggest` | Autocomplete suggestions                 | Local only         |
+| `sync_status`    | Real-time sync status                    | WebSocket          |
+| `list_daily`     | List available daily logs                | Local only         |
+| `init_daily`     | Initialize today's daily log             | Local only         |
+| `rebuild_index`  | Sync local files to backend              | ✅ Yes             |
+| `index_status`   | Check system status                      | Backend + local    |
+
+#### Sync Tools (4)
+
+| Tool               | Description                        | Sync Mode        |
+| ------------------ | ---------------------------------- | ---------------- |
+| `incremental_sync` | Fingerprint-based change detection | Smart delta sync |
+| `full_sync`        | Full sync with resume support      | Batch + resume   |
+| `sync_checkpoint`  | Manage sync checkpoints            | History control  |
+| `batch_resolve`    | Batch resolve conflicts            | Bulk operations  |
+
+#### Browser & Conflict Tools (4)
+
+| Tool               | Description                            | Use Case          |
+| ------------------ | -------------------------------------- | ----------------- |
+| `memory_timeline`  | Browse memories by date range          | Historical view   |
+| `memory_topics`    | Browse memories by topic               | Topic exploration |
+| `conflict_list`    | List detected conflicts                | Review pending    |
+| `conflict_resolve` | Resolve conflict (accept/reject/merge) | Manual resolution |
 
 ### One-Command Installation (Recommended)
 
@@ -335,7 +364,7 @@ The plugin supports multiple external embedding services:
 
 ## 📚 Documentation
 
-### Current Version (v1.2.0)
+### Current Version (v2.2.0)
 
 - [Configuration Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
 - [Architecture Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/ARCHITECTURE.md) - System architecture and data flows
@@ -382,9 +411,35 @@ MIT License - see [LICENSE](LICENSE) for details
 - Hugging Face for Transformers.js and the all-MiniLM-L6-v2 model
 - All contributors and users
 
-**Current Version**: v1.2.0
+**Current Version**: v2.3.0
 
-### Latest Release: v1.2.0 (2026-02-26)
+### Latest Release: v2.3.0 (2026-03-20)
+
+**v2.3 Enhanced - Dual-Mode Sync & Conflict Resolution**:
+
+- ✨ **Dual-Mode Sync** - Incremental (fingerprint-based) + Full sync with resume support
+- ✨ **Checkpoint Management** - Track sync progress, history, and enable resume after failure
+- ✨ **Conflict Detection** - Automatic detection of content conflicts between local and backend
+- ✨ **Smart Auto-Resolve** - Automatic resolution for timestamp and simple content conflicts
+- ✨ **Manual Conflict Resolution** - Interactive resolve with accept/reject/merge options
+- ✨ **Batch Operations** - Batch resolve multiple conflicts efficiently
+- ✨ **Memory Browsing** - Timeline browser and topic explorer for historical views
+- ✨ **100% Test Pass Rate** - All 28 tests passing (18 Phase C + 10 v2.3)
+
+### Previous Release: v2.2.0 (2026-03-19)
+
+**Phase C Complete - Performance Optimization**:
+
+- ✨ **Trie Index** - 10x faster local search (<10ms)
+- ✨ **Autocomplete** - Smart suggestions (<50ms)
+- ✨ **Real-time Sync** - WebSocket live synchronization
+- ✨ **HNSW Dynamic Tuning** - Runtime parameter optimization
+- ✨ **Embedding Cache** - Query result caching (80% faster)
+- ✨ **Query Prefetch** - Proactive loading of related memories
+- ✨ **100% Test Pass Rate** - All 18 Phase C tests passing
+- ✨ **Backend Optimizations** - 8 new API endpoints for performance
+
+### Previous Release: v1.2.0 (2026-02-26)
 
 **New Features**:
 

@@ -340,6 +340,92 @@ export class WrapperClient {
       this.maxRetries
     );
   }
+
+  // ===== Phase B: Sync Methods =====
+
+  /**
+   * 增量同步 - 比对本地指纹和服务端指纹，返回需要上传/删除的指令
+   * @param {Array<{path: string, mtime: number, hash: string, source_id: string}>} fingerprints
+   * @param {string} tenant_id
+   * @returns {Promise<{to_upload: Array, to_delete: Array, conflicts: Array, server_fingerprints: Array}>}
+   */
+  async syncIncremental(fingerprints, tenant_id) {
+    const requestBody = {
+      fingerprints: fingerprints.map(fp => ({
+        path: fp.path,
+        mtime: fp.mtime,
+        hash: fp.hash,
+        source_id: fp.source_id
+      })),
+      tenant_id: tenant_id || this.tenantId
+    };
+
+    return await withRetry(
+      () => this.http.post('/api/v1/sync/incremental', requestBody),
+      this.maxRetries
+    );
+  }
+
+  /**
+   * 全量同步 - 上传所有记忆到服务端（用于首次同步或完全重建）
+   * @param {Array} memories
+   * @param {string} tenant_id
+   * @returns {Promise<{uploaded: number, skipped: number, failed: number}>}
+   */
+  async syncFull(memories, tenant_id) {
+    const requestBody = {
+      memories: memories.map(m => ({
+        content: m.content,
+        type: m.type || 'general',
+        tags: m.tags || [],
+        project_id: m.project_id || 'global',
+        source_id: m.source_id,
+        source: m.source || 'plugin',
+        metadata: m.metadata || {},
+        tenant_id: m.tenant_id || this.tenantId
+      })),
+      tenant_id: tenant_id || this.tenantId
+    };
+
+    return await withRetry(
+      () => this.http.post('/api/v1/sync/full', requestBody),
+      this.maxRetries
+    );
+  }
+
+  /**
+   * 获取服务端指纹列表 - 用于增量同步前的对比
+   * @param {string} tenant_id
+   * @returns {Promise<{fingerprints: Array<{path: string, mtime: number, hash: string, source_id: string}>}>}
+   */
+  async getServerFingerprints(tenant_id) {
+    const params = new URLSearchParams();
+    params.append('tenant_id', tenant_id || this.tenantId);
+
+    return await withRetry(
+      () => this.http.get(`/api/v1/sync/fingerprints?${params.toString()}`),
+      this.maxRetries
+    );
+  }
+
+  /**
+   * 解决冲突 - 决定如何处理服务端和本地端的冲突
+   * @param {string} conflict_id
+   * @param {string} resolution - 'keep_local' | 'keep_server' | 'merge'
+   * @param {string} tenant_id
+   * @returns {Promise<{success: boolean, resolution: string}>}
+   */
+  async resolveConflict(conflict_id, resolution, tenant_id) {
+    const requestBody = {
+      resolution,
+      tenant_id: tenant_id || this.tenantId
+    };
+
+    return await withRetry(
+      () => this.http.post(`/api/v1/sync/conflicts/${conflict_id}/resolve`, requestBody),
+      this.maxRetries
+    );
+  }
 }
 
 /**

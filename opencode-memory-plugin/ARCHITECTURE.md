@@ -63,6 +63,14 @@ The OpenCode Memory Plugin is a sophisticated memory management system for OpenC
 - Includes SOUL, AGENTS, USER, IDENTITY, TOOLS, MEMORY files
 - Daily logs stored separately
 
+### 6. Auto-Trigger Mechanism (`plugin.js` event hook)
+
+- Listens to `session.idle` events from OpenCode
+- Automatically analyzes conversation content for important information
+- Invokes memory-automation agent to save relevant memories
+- Implements smart filtering to avoid triggering on trivial conversations
+- Configurable thresholds and cooldown periods
+
 ## Data Flow
 
 ### For Search (`memory_search`)
@@ -80,6 +88,16 @@ The OpenCode Memory Plugin is a sophisticated memory management system for OpenC
 3. Each chunk is sent to external embedding service
 4. Returned vectors are stored in SQLite DB with metadata
 5. Index is ready for search operations
+
+### For Auto-Trigger (session.idle event)
+
+1. OpenCode emits `session.idle` event when conversation pauses
+2. Plugin's event hook receives the event with session ID
+3. Smart filtering checks conversation metrics (message count, length, quality)
+4. If conversation meets thresholds, invokes memory-automation agent
+5. Agent analyzes conversation and identifies important information
+6. Agent calls `memory_write` to save relevant memories
+7. Session marked as processed with cooldown period
 
 ## API Contract
 

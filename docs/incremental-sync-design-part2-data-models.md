@@ -307,13 +307,43 @@ DEFINE INDEX idx_outbox_status ON TABLE outbox COLUMNS status;
 DEFINE INDEX idx_outbox_created ON TABLE outbox COLUMNS created_at;
 ```
 
-### 4.3 Redis幂等性存储
+### 4.3 SurrealDB Idempotency表（修复P1-2）
+
+```sql
+-- 幂等性表
+DEFINE TABLE idempotency SCHEMAFULL;
+DEFINE FIELD batch_id ON TABLE idempotency TYPE string;
+DEFINE FIELD status ON TABLE idempotency TYPE string
+    ASSERT $value IN ['processing', 'completed', 'failed'];
+DEFINE FIELD created_at ON TABLE idempotency TYPE datetime DEFAULT time::now();
+DEFINE FIELD completed_at ON TABLE idempotency TYPE datetime;
+DEFINE FIELD result ON TABLE idempotency TYPE object;
+DEFINE FIELD error ON TABLE idempotency TYPE string;
+
+-- 唯一索引（幂等性保证）
+DEFINE INDEX idx_batch_id ON TABLE idempotency COLUMNS batch_id UNIQUE;
+
+-- 时间索引（用于清理）
+DEFINE INDEX idx_created_at ON TABLE idempotency COLUMNS created_at;
+```
+
+**说明**：使用SurrealDB的UNIQUE索引替代Redis，实现零外部依赖。
+
+### 4.4 已废弃：Redis幂等性存储
+
+**注意**：设计已更新，使用SurrealDB idempotency表替代Redis。保留此章节用于历史参考。
 
 ```
+旧方案（已废弃）：
 Key格式: batch_sync:idempotency:{batch_id}
 Value: "processing" | "completed"
 TTL: 86400秒（24小时）
 ```
+
+**新方案优势**：
+- 零额外依赖（无需Redis）
+- 事务一致性（与Memory表同一数据库）
+- 自动清理（通过SurrealDB查询）
 
 ## 5. 配置扩展
 

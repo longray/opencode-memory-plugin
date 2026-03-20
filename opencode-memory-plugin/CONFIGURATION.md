@@ -371,3 +371,39 @@ You can use any Xenova model from HuggingFace:
 ```
 
 Then rebuild the index with `rebuild_index force=true`.
+
+## Auto-Trigger Configuration
+
+Controls automatic memory saving when conversations reach certain thresholds.
+
+```json
+{
+  "auto_trigger": {
+    "enabled": true,
+    "timeout_ms": 30000,
+    "cooldown_ms": 300000,
+    "max_queue_size": 10,
+    "skip_sensitive": true,
+    "debug_logging": false
+  }
+}
+```
+
+**Options:**
+
+- `enabled`: Enable/disable auto-trigger (default: true)
+- `timeout_ms`: Max time for memory-automation agent (default: 30000ms)
+- `cooldown_ms`: Min time between triggers for same session (default: 300000ms / 5 minutes)
+- `max_queue_size`: Max concurrent auto-trigger operations (default: 10)
+- `skip_sensitive`: Skip sessions with sensitive info (passwords, API keys) (default: true)
+- `debug_logging`: Output debug logs to ~/.opencode/memory/auto-trigger.log (default: false)
+
+**Trigger Conditions:**
+
+Auto-trigger activates when ALL conditions are met:
+- New messages >= 8 (since last trigger)
+- New user messages >= 5 (since last trigger)
+- Total characters >= 400
+- Session duration >= 5 minutes
+- Has tool usage OR code blocks OR long replies
+- No test keywords in short conversations

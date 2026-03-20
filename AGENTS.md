@@ -1,10 +1,19 @@
 # AGENTS.md - OpenCode Memory Plugin 核心指南
 
-**生成时间**: 2026-03-16  
+**生成时间**: 2026-03-17  
 **分支**: main  
 **当前版本**: v1.2.1
 
-## 📝 最近更新 (2026-03-16)
+## 📝 最近更新 (2026-03-17)
+
+- ✅ 优化自动触发逻辑（基于新增消息数而非总消息数）
+- ✅ 实现智能过滤机制（增强版：三层过滤）
+- ✅ 优化提示词避免触发analyze-mode
+- ✅ 添加debug_logging开关和日志输出
+- ✅ 修复API调用问题（session.messages格式）
+- ✅ 更新项目文档（README、ARCHITECTURE、CHANGELOG等）
+
+## 📝 历史更新 (2026-03-16)
 
 - ✅ 实现 daily 日志路由功能（memory_write 支持 type="daily"）
 - ✅ 自动创建 daily/YYYY-MM-DD.md 文件

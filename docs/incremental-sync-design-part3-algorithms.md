@@ -287,30 +287,49 @@ function calculateBatchSize(totalEntries) {
 
 ## 7. 并发控制（乐观锁）
 
-### 7.1 SurrealDB实现
+### 7.1 条件更新（原子操作）
+
+**修正后实现**（修复P0-1竞态条件）：
 
 ```python
-# 更新时检查版本
-result = await db.query("""
-    UPDATE $record_id SET
-        content = $content,
-        version = version + 1,
-        updated_at = time::now()
-    WHERE version = $expected_version
-    RETURN AFTER
-""", {
-    "record_id": entry["record_id"],
-    "content": entry["content"],
-    "expected_version": entry["expected_version"]
-})
+async def update_memory(entry: MemoryEntry, expected_version: int):
+    """使用条件更新保证原子性"""
+    result = await db.query("""
+        UPDATE memories
+        SET content = $content,
+            version = version + 1,
+            updated_at = time::now()
+        WHERE source_fingerprint = $fp
+          AND version = $expected_version
+        RETURN AFTER
+    """, {
+        "fp": entry.source_fingerprint,
+        "content": entry.content,
+        "expected_version": expected_version
+    })
 
-if not result:
-    # 版本冲突
-    raise VersionConflictError(
-        f"Expected version {expected_version}, "
-        f"but record has been modified"
-    )
+    if not result or len(result) == 0:
+        # 版本不匹配或记录不存在
+        raise VersionConflictError(
+            f"Expected version {expected_version}, but record has been modified"
+        )
+
+    return result[0]
 ```
+
+**原问题实现**（存在竞态条件）：
+
+```python
+# ❌ 错误：查询、检查、更新三步不是原子操作
+async def update_memory_old(entry: MemoryEntry, expected_version: int):
+    current = await db.query(...)  # 1. 查询当前版本
+    if current.version != expected_version:  # 2. 版本检查
+        raise ConflictError(...)
+    entry.version = expected_version + 1
+    await db.update("memories", entry)  # 3. 更新（非原子）
+```
+
+**关键改进**：使用`WHERE version = $expected_version`条件，将查询和更新合并为单一原子操作。
 
 ### 7.2 冲突处理流程
 
@@ -326,50 +345,116 @@ if not result:
    c) 强制覆盖（需要特殊权限）
 ```
 
-## 8. 幂等性实现
+## 8. 幂等性实现（SurrealDB版本）
 
-### 8.1 Redis存储
+### 8.1 使用SurrealDB idempotency表
+
+**修正后实现**（修复P1-1 Redis依赖）：
 
 ```python
-async def check_idempotency(batch_id: str, redis_client) -> bool:
-    """检查batch_id是否已处理"""
-    key = f"batch_sync:idempotency:{batch_id}"
+async def check_idempotency(batch_id: str, db) -> tuple[bool, dict]:
+    """
+    检查batch_id是否已处理
+    使用SurrealDB idempotency表 + UNIQUE索引
+    """
+    try:
+        # 尝试插入记录（UNIQUE索引保证幂等性）
+        result = await db.query("""
+            CREATE idempotency CONTENT {
+                batch_id: $batch_id,
+                status: 'processing',
+                created_at: time::now(),
+                result: null
+            }
+        """, {"batch_id": batch_id})
 
-    # 尝试设置，过期时间24小时
-    is_new = await redis_client.set(
-        key,
-        "processing",
-        ex=86400,
-        nx=True  # 仅当key不存在时设置
-    )
+        # 插入成功，是新请求
+        return True, None
 
-    if not is_new:
-        # 已存在，检查状态
-        status = await redis_client.get(key)
-        if status == "completed":
-            return False  # 已完成，跳过
-        elif status == "processing":
-            # 可能是重试，允许继续
-            return True
+    except Exception as e:
+        if "duplicate" in str(e).lower() or "unique" in str(e).lower():
+            # 记录已存在，查询状态
+            existing = await db.query("""
+                SELECT * FROM idempotency WHERE batch_id = $batch_id
+            """, {"batch_id": batch_id})
 
-    return True  # 新请求
+            if existing and len(existing) > 0:
+                status = existing[0]["status"]
+                result = existing[0].get("result")
+
+                if status == "completed":
+                    return False, result  # 已完成，返回缓存结果
+                elif status == "processing":
+                    return True, None     # 正在处理，允许重试
+                elif status == "failed":
+                    return True, None     # 失败，允许重试
+
+        # 其他错误
+        raise
+
+async def complete_idempotency(batch_id: str, result: dict, db):
+    """标记批次为已完成"""
+    await db.query("""
+        UPDATE idempotency
+        SET status = 'completed',
+            result = $result,
+            completed_at = time::now()
+        WHERE batch_id = $batch_id
+    """, {"batch_id": batch_id, "result": result})
+
+async def fail_idempotency(batch_id: str, error: str, db):
+    """标记批次为失败"""
+    await db.query("""
+        UPDATE idempotency
+        SET status = 'failed',
+            error = $error,
+            completed_at = time::now()
+        WHERE batch_id = $batch_id
+    """, {"batch_id": batch_id, "error": error})
 ```
 
 ### 8.2 状态转换
 
 ```
-[不存在] --set--> [processing] --完成--> [completed]
-                       ↓
-                    [失败/超时]
-                       ↓
-                   [重试/清理]
+[不存在] --CREATE--> [processing] --UPDATE--> [completed]
+                            ↓
+                        [failed]
+                            ↓
+                        [重试]
 ```
 
-### 8.3 TTL策略
+### 8.3 定期清理策略
 
-- **processing**: 24小时（防止永久锁定）
-- **completed**: 24小时（防止短时间内重复）
-- **清理**: 自动过期，无需手动清理
+**清理24小时前的已完成/失败记录**（修复P1-3）：
+
+```python
+async def cleanup_expired_idempotency(db):
+    """清理过期的幂等性记录"""
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+
+    result = await db.query("""
+        DELETE FROM idempotency
+        WHERE created_at < $cutoff
+          AND status IN ['completed', 'failed']
+        RETURN BEFORE
+    """, {"cutoff": cutoff.isoformat()})
+
+    deleted_count = len(result[0]["result"]) if result else 0
+    logger.info(f"清理了 {deleted_count} 条幂等性记录")
+    return deleted_count
+
+# APScheduler定时任务
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+scheduler = AsyncIOScheduler()
+scheduler.add_job(
+    cleanup_expired_idempotency,
+    'interval',
+    hours=1,
+    args=[db]
+)
+scheduler.start()
+```
 
 ---
 

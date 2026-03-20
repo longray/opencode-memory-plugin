@@ -7,15 +7,31 @@ tools:
   memory_read: true
   memory_search: true
   list_daily: true
+  memory_timeline: true
+  memory_topics: true
+  incremental_sync: true
+  full_sync: true
+  sync_checkpoint: true
+  conflict_list: true
+  conflict_resolve: true
+  batch_resolve: true
   bash: true
-  write: false
-  edit: false
-  read: false
+  write: true
+  edit: true
+  read: true
 permission:
   memory_write: allow
   memory_read: allow
   memory_search: allow
   list_daily: allow
+  memory_timeline: allow
+  memory_topics: allow
+  incremental_sync: allow
+  full_sync: allow
+  sync_checkpoint: allow
+  conflict_list: allow
+  conflict_resolve: allow
+  batch_resolve: allow
   bash:
     'git *': deny
     'rm -rf ~/.opencode/memory/daily/*': deny
@@ -74,9 +90,19 @@ When invoked with "dry-run" or "preview":
 
 ## Consolidation Process
 
-### Step 1: List Recent Daily Files
+### Step 1: Browse Recent Memories
 
-Use `list_daily` to see recent daily memory files:
+Use browser tools to get overview:
+
+```
+# Get timeline summary
+memory_timeline days=30
+
+# Get topic overview
+memory_topics min_entries=3
+```
+
+Use `list_daily` for detailed daily logs:
 
 ```
 list_daily days=30
@@ -256,12 +282,43 @@ Archive directory structure:
         └── 2026-01/
 ```
 
-### Step 6: Rebuild Vector Index
+### Step 6: Sync Changes
 
-After consolidation, rebuild vector index to include consolidated information:
+After consolidation, sync changes to backend:
 
 ```
-rebuild_index force=true
+# Incremental sync (recommended - only uploads changes)
+incremental_sync dry_run=false
+
+# Or full sync with resume support
+full_sync resume=false auto_resolve=false batch_size=50
+```
+
+Check sync status:
+
+```
+sync_checkpoint limit=5
+sync_status detailed=true
+```
+
+### Step 7: Check and Resolve Conflicts
+
+After sync, check for conflicts:
+
+```
+conflict_list limit=10
+```
+
+Resolve conflicts using:
+
+```
+# For individual conflicts
+conflict_resolve conflict_id="xxx" resolution="USE_LOCAL"
+conflict_resolve conflict_id="xxx" resolution="MERGE"
+
+# For bulk operations
+batch_resolve strategy="ACCEPT_ALL"
+batch_resolve strategy="USE_LOCAL_ALL"
 ```
 
 ## Quality Guidelines
@@ -350,9 +407,13 @@ After consolidation, provide a clear report:
   - [Date 2] → archive/weekly/[week]/
   - ...
 
-📄 Vector index rebuilt
-  - Files indexed: [count]
-  - Chunks indexed: [count]
+📄 Changes synced to backend
+  - Incremental sync completed
+  - Checkpoint saved: [timestamp]
+
+📊 Conflicts: [count]
+  - Use `conflict_list` to review
+  - Use `conflict_resolve` to resolve
 
 📈 Memory health: Good
   - Long-term: [count] entries
@@ -369,9 +430,12 @@ If nothing needed consolidation:
 ✓ No new information needed to be consolidated
 ✓ Memory system is healthy
 
-📄 Vector index is current
-  - Files indexed: [count]
-  - Last rebuilt: [date]
+📄 Sync status: Up to date
+  - Last sync: [timestamp]
+  - Checkpoints: [count]
+
+📊 Conflicts: 0
+  - No unresolved conflicts
 ```
 
 ## Important Notes

@@ -21,21 +21,9 @@ import { execSync } from 'child_process';
 const HOME = process.env.HOME || process.env.USERPROFILE;
 const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
 const MAPPINGS_FILE = path.join(MEMORY_DIR, 'project-mappings.json');
-const DETAILED_DEBUG_LOG = path.join(MEMORY_DIR, 'project-resolver-detailed.log');
 
 const gitRemoteCache = new Map();
 
-function debugLog(context, data) {
-  try {
-    const entry = `[${new Date().toISOString()}] ${context}: ${JSON.stringify(data)}\n`;
-    fs.appendFileSync(DETAILED_DEBUG_LOG, entry);
-    // eslint-disable-next-line no-empty
-  } catch {}
-}
-
-/**
- * 规范化路径 (统一分隔符，转为小写)
- */
 function normalizePath(p) {
   return path.resolve(p).toLowerCase().replace(/\\/g, '/');
 }
@@ -50,36 +38,28 @@ function normalizePath(p) {
  * - 多级: https://gitlab.com/org/sub/proj.git -> @org/sub/proj
  */
 function extractProjectIdFromGitUrl(url) {
-  debugLog('extractProjectIdFromGitUrl:input', { url });
-
   if (!url) {
-    debugLog('extractProjectIdFromGitUrl:result', { result: null, reason: 'url is null' });
     return null;
   }
 
   const originalUrl = url;
   url = url.replace(/\.git$/, '');
 
-  // 处理 SSH 格式: git@github.com:user/repo
   if (url.includes('@') && url.includes(':')) {
     const match = url.match(/@[^:]+:(.+)$/);
     if (match) {
       const result = '@' + match[1];
-      debugLog('extractProjectIdFromGitUrl:result', { originalUrl, result, format: 'SSH' });
       return result;
     }
   }
 
-  // 处理 HTTPS 格式: https://github.com/user/repo
   url = url.replace(/^https?:\/\//, '');
   const pathMatch = url.match(/^[^/]+\/(.+)$/);
   if (pathMatch) {
     const result = '@' + pathMatch[1];
-    debugLog('extractProjectIdFromGitUrl:result', { originalUrl, result, format: 'HTTPS' });
     return result;
   }
 
-  debugLog('extractProjectIdFromGitUrl:result', { originalUrl, result: null, reason: 'no match' });
   return null;
 }
 
@@ -115,7 +95,6 @@ function getGitRemote(cwd, retries = 2) {
 
   if (gitRemoteCache.has(normalizedCwd)) {
     const cached = gitRemoteCache.get(normalizedCwd);
-    debugLog('getGitRemote:cache', { cwd, remote: cached });
     return cached;
   }
 
@@ -128,19 +107,11 @@ function getGitRemote(cwd, retries = 2) {
       });
       const trimmed = result.trim();
       gitRemoteCache.set(normalizedCwd, trimmed);
-      debugLog('getGitRemote', { cwd, success: true, remote: trimmed, attempt: i + 1 });
       return trimmed;
     } catch (error) {
       if (i === retries) {
-        debugLog('getGitRemote', {
-          cwd,
-          success: false,
-          error: error.message,
-          attempts: retries + 1,
-        });
         return null;
       }
-      debugLog('getGitRemote:retry', { cwd, attempt: i + 1, error: error.message });
     }
   }
   return null;
@@ -234,10 +205,8 @@ export class ProjectResolver {
         return getConfigProjectId(this.config);
 
       case 'git': {
-        debugLog('tryStrategy:git:start', { cwd: this.cwd });
         const remote = getGitRemote(this.cwd);
         const projectId = extractProjectIdFromGitUrl(remote);
-        debugLog('tryStrategy:git:end', { cwd: this.cwd, remote, projectId });
         return projectId;
       }
 
@@ -331,16 +300,6 @@ export class ProjectResolver {
  */
 export async function resolveProjectId(config) {
   const resolver = new ProjectResolver(config);
-
-  // Debug logging to file (temporary)
-  try {
-    const details = await resolver.resolveWithDetails();
-    const logPath = path.join(HOME, '.opencode', 'memory', 'project-resolver-debug.log');
-    const logEntry = `\n[${new Date().toISOString()}]\n${JSON.stringify(details, null, 2)}\n`;
-    fs.appendFileSync(logPath, logEntry);
-    // eslint-disable-next-line no-empty
-  } catch {}
-
   resolver.clearCache();
   return await resolver.resolve();
 }

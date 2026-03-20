@@ -34,7 +34,7 @@
 - Checkpoint数据结构（8个字段）
 - API请求/响应模型（BatchSyncRequest/Response）
 - 新增/更新/删除条目模型
-- 数据库Schema更新（SurrealDB + Redis）
+- 数据库Schema更新（SurrealDB，包含idempotency表）
 - 配置文件扩展
 
 **关键点**：
@@ -57,7 +57,7 @@
 - Checkpoint压缩策略
 - 批量同步优化
 - 并发控制（乐观锁）
-- 幂等性实现（Redis）
+- 幂等性实现（SurrealDB）
 
 **关键点**：
 
