@@ -90,6 +90,47 @@ When invoked with "dry-run" or "preview":
 
 ## Consolidation Process
 
+### Step 0: Understand Context (Context Awareness)
+
+Before analyzing entries, understand the overall context:
+
+1. **Read recent priorities**:
+```
+memory_read file="MEMORY.md"
+```
+Focus on the last 20 entries to understand ongoing projects and current focus.
+
+2. **Understand current workspace**:
+- Check project context from MEMORY.md
+- Identify active development areas
+- Note user's recent discussions
+
+3. **Assess consolidation intent**:
+- **Cleanup mode**: Focus on organization and deduplication
+- **Update mode**: Focus on recent changes and new learnings
+- **Comprehensive mode**: Full review of all content
+
+**Why this matters**: Context-aware consolidation produces more relevant results than mechanical processing.
+
+### Step 0.5: Detect User Intent
+
+When triggered, analyze the intent:
+
+**Intent Detection Guide**:
+
+| Trigger Phrase | Intent | Action |
+|---------------|--------|--------|
+| "整理" / "organize" | Organization | Focus on structure |
+| "更新" / "update" | Update recent | Focus on new content |
+| "全面" / "comprehensive" | Full review | Everything |
+| "保守" / "conservative" | Minimal changes | Few, high-quality only |
+| "激进" / "aggressive" | Aggressive cleanup | More deletions |
+
+**Scope Detection**:
+- "project X" → Scoped to specific project
+- "topic Y" → Scoped to specific topic
+- No scope → Full review
+
 ### Step 1: Browse Recent Memories
 
 Use browser tools to get overview:
@@ -98,7 +139,7 @@ Use browser tools to get overview:
 # Get timeline summary
 memory_timeline days=30
 
-# Get topic overview
+# Get topic overview  
 memory_topics min_entries=3
 ```
 
@@ -108,7 +149,63 @@ Use `list_daily` for detailed daily logs:
 list_daily days=30
 ```
 
-### Step 2: Analyze Each Daily File
+### Step 2: Temporal Awareness
+
+Assess the freshness and relevance of information:
+
+**Temporal Priority Matrix**:
+
+| Age | Freshness | Priority Adjustment |
+|-----|-----------|-------------------|
+| <7 days | Fresh | High - process fully |
+| 7-30 days | Normal | Standard processing |
+| >30 days | Stale | Low - only if unique |
+
+**Decay Rules**:
+- Technical decisions → May be outdated, verify relevance
+- User preferences → Stable, higher retention
+- Project patterns → Medium decay, verify still valid
+- Debugging notes → Fast decay, skip if resolved
+
+**Redundancy Check**:
+- If >3 similar entries exist → SKIP (already covered)
+- If superseded by recent entry → SKIP (outdated)
+- If contradicting recent entry → UPDATE (supersede old)
+
+### Step 2.1: Cross-Entry Pattern Recognition
+
+Don't analyze entries in isolation. Look for patterns across entries:
+
+**Pattern Detection**:
+
+1. **Cluster Related Entries**:
+   - Same project + same topic → Cluster together
+   - Sequential decisions → Group into strategy
+   - Related lessons → Merge into principle
+
+2. **Identify Cross-Cutting Themes**:
+   - Recurring problems → General lesson
+   - Repeated preferences → User habit
+   - Multiple approaches → Best practice
+
+3. **Pattern Consolidation Strategy**:
+   ```
+   # Instead of 5 separate entries about TypeScript:
+   - Entry: "Use TypeScript for backend"
+   - Entry: "User prefers explicit types"
+   - Entry: "TypeScript catches bugs"
+   
+   # Create 1 consolidated entry:
+   "TypeScript Best Practice: User prefers TypeScript for type safety. 
+    Explicit types catch bugs early. Aligns with user's quality focus."
+   ```
+
+4. **Reference Instead of Duplicate**:
+   - If similar entry exists with good quality → Reference it
+   - If old entry is better → Use old, update date
+   - Preserve the best version
+
+### Step 2.2: Analyze Each Daily File
 
 For each daily file, analyze and identify:
 
@@ -208,26 +305,47 @@ For content going to MEMORY.md, use this priority to determine project_id:
 
 **When in doubt**: Omit Project field (better general than wrong)
 
-### Step 3: Check for Duplicates
+### Step 3: Smart Duplicate Detection
 
-Before consolidating, always check if similar information already exists:
+Before consolidating, check for duplicates using multiple strategies:
 
+**1. Semantic Search**:
 ```
-memory_search query="[topic or keyword]" scope="long-term"
+memory_search query="[core concept or topic]" mode="hybrid"
 ```
 
-Only consolidate if information is new or provides additional context.
+**2. Cross-Reference Check**:
+- Check if >3 entries cover this topic → High redundancy risk
+- Check if user preferences already documented → Preference exists
+- Check if patterns are already in AGENTS.md → Pattern exists
 
-### Step 4: Smart Consolidation
+**3. Smart Decision Matrix**:
+
+| Similar Entry Exists? | Quality Comparison | Action |
+|---------------------|-------------------|--------|
+| No | N/A | Create new |
+| Yes | This is better | Replace old |
+| Yes | Similar quality | Reference existing |
+| Yes | This is worse | Skip |
+| Yes | Complementary | Enhance existing |
+
+**4. Enhancement vs. Replacement**:
+- **Enhance**: Add missing perspective, update context
+- **Replace**: New info is more accurate/complete
+- **Reference**: Add "See also: [existing]" instead of duplicate
+- **Skip**: Existing covers it adequately
+
+### Step 4: Intelligent Consolidation
 
 **For Static Content** (SOUL.md, AGENTS.md, USER.md, IDENTITY.md, TOOLS.md):
 
 1. **Read target file**: Use `memory_read file="[target].md"` or `read` tool
-2. **Check duplicates**: Search for similar content in target file
-3. **Merge strategy**:
-   - If duplicate: **Enhance existing entry** (add details, update context)
-   - If new: Append to appropriate section
-   - If related: Merge with existing content
+2. **Understand existing structure**: Note existing sections and formats
+3. **Merge strategy** (choose one):
+   - **Enhance**: If duplicate found, add missing details to existing
+   - **Replace**: If new info is better, replace old content
+   - **Reference**: Add "See also: [existing]" to avoid duplication
+   - **Skip**: If existing adequately covers this
 4. **Maintain structure**: Respect existing headings and format
 5. **Use appropriate tool**: Use `write` or `edit` tool (not memory_write)
 
@@ -240,7 +358,7 @@ memory_write content="
 ## [Type] Entry
 
 **Date**: [ISO timestamp]
-**Type**: long-term | preference | general
+**Type**: long-term | preference | decision | general
 **Tags**: daily-consolidation, [topic-tags]
 **Project**: @owner/repo (if applicable, based on Step 2.6)
 
@@ -250,7 +368,7 @@ memory_write content="
 
 **Enhancement Strategy** (when duplicate found in MEMORY.md):
 
-- Search existing entries: `memory_search query="[topic]" scope="long-term"`
+- Search existing entries: `memory_search query="[topic]" mode="hybrid"`
 - If similar entry exists: Add new insights, update date, merge tags
 - Preserve original context, append new context
 - Use memory_write to create enhanced version
@@ -321,9 +439,50 @@ batch_resolve strategy="ACCEPT_ALL"
 batch_resolve strategy="USE_LOCAL_ALL"
 ```
 
-## Quality Guidelines
+## Quality Gates (Smart Filtering)
 
-### Consolidation Criteria
+Before consolidating ANY entry, pass through these gates:
+
+### Gate 1: Value Test
+Ask these questions:
+- Will this be useful in 3 months?
+- Is it better than what already exists?
+- Does it add NEW context or perspective?
+
+**If NO to any → SKIP**
+
+### Gate 2: Effort-Test
+Ask:
+- Can I summarize this in <100 words?
+- Is copy-paste lazy vs. genuinely useful?
+
+**If summarization loses value → Keep original**
+
+### Gate 3: Placement Test
+Ask:
+- Is this the BEST file for this information?
+- Will it be findable by future search?
+- Does it conflict with existing content?
+
+**If placement is wrong → Choose correct file**
+
+### Gate 4: Deduplication Test
+Ask:
+- Does similar entry exist with equal or better quality?
+- Is this just restating known information?
+
+**If duplicate → Enhance existing, don't create new**
+
+### Gate 5: Freshness Test
+Ask:
+- Is this still accurate and relevant?
+- Has it been superseded by newer information?
+
+**If outdated → Update existing or SKIP**
+
+---
+
+## Consolidation Criteria
 
 **Do Consolidate If**:
 
@@ -440,11 +599,32 @@ If nothing needed consolidation:
 
 ## Important Notes
 
-- **Always search before consolidating** to avoid duplicates
-- **Rebuild vector index** after major consolidation
-- **Archive old files** to keep system performant
-- **Be conservative**: Quality over quantity
-- **User feedback**: Prioritize what user says works well
+### Smart Consolidation Principles
+
+1. **Context First**: Always understand the big picture before making decisions
+   - Read recent MEMORY.md entries first
+   - Identify ongoing projects and focus areas
+   
+2. **Quality Over Quantity**: One good entry > Ten mediocre ones
+   - Use all 5 quality gates before deciding to consolidate
+   - It's okay to skip information that doesn't add value
+   
+3. **Enhance, Don't Duplicate**: Look for ways to improve existing entries
+   - Add missing perspective to existing entries
+   - Reference related entries instead of creating new ones
+   
+4. **Temporal Awareness**: Fresh information > Old information
+   - Recent entries get higher priority
+   - Check if old entries are still valid
+   
+5. **Cross-Entry Patterns**: Look for connections across entries
+   - Group related entries together
+   - Identify themes and consolidate into principles
+   
+6. **User Intent**: Adapt your approach based on the user's needs
+   - "整理" → Focus on organization
+   - "更新" → Focus on recent changes
+   - "保守" → Minimal changes only
 
 ## Automation Hook
 
