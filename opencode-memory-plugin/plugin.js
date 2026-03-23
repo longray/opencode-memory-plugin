@@ -19,7 +19,7 @@ const HOME = process.env.HOME || process.env.USERPROFILE;
 const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
 const MEMORY_FILE = path.join(MEMORY_DIR, 'MEMORY.md');
 const CONFIG_FILE = path.join(MEMORY_DIR, 'memory-config.json');
-const DAILY_DIR = path.join(MEMORY_DIR, 'daily');
+const TIMELINE_DIR = path.join(MEMORY_DIR, 'timeline');
 const ACTIVE_DIR = path.join(MEMORY_DIR, 'active');
 const SYNC_DIR = path.join(MEMORY_DIR, '.sync');
 const CHECKPOINT_FILE = path.join(SYNC_DIR, 'checkpoint.jsonl');
@@ -1227,25 +1227,7 @@ function getMemoryFiles() {
     }
   }
 
-  if (fs.existsSync(DAILY_DIR)) {
-    const dailyFiles = fs
-      .readdirSync(DAILY_DIR)
-      .filter(f => f.endsWith('.md'))
-      .sort()
-      .reverse()
-      .slice(0, 30);
-
-    for (const file of dailyFiles) {
-      files.push({
-        path: path.join(DAILY_DIR, file),
-        name: `daily/${file}`,
-      });
-    }
-  }
-
-  // 添加 timeline/ 目录
-  const timelineDir = path.join(MEMORY_DIR, 'timeline');
-  if (fs.existsSync(timelineDir)) {
+  if (fs.existsSync(TIMELINE_DIR)) {
     const scanTimeline = (dir, prefix = '') => {
       const entries = fs.readdirSync(dir, { withFileTypes: true });
       for (const entry of entries) {
@@ -1260,7 +1242,7 @@ function getMemoryFiles() {
         }
       }
     };
-    scanTimeline(timelineDir);
+    scanTimeline(TIMELINE_DIR);
   }
 
   return files;
@@ -1523,21 +1505,23 @@ ${content}
 `;
 
             const today = new Date().toISOString().split('T')[0];
+            const [year, month, day] = today.split('-');
             const isDailyType = type === 'daily';
-            const targetFile = isDailyType ? path.join(DAILY_DIR, `${today}.md`) : MEMORY_FILE;
+            
+            let targetFile;
+            if (isDailyType) {
+              const dayDir = path.join(TIMELINE_DIR, year, month, day);
+              if (!fs.existsSync(dayDir)) {
+                fs.mkdirSync(dayDir, { recursive: true });
+              }
+              const entryId = `entry-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+              targetFile = path.join(dayDir, `${entryId}.md`);
+            } else {
+              targetFile = MEMORY_FILE;
+            }
 
             if (!fs.existsSync(MEMORY_DIR)) {
               fs.mkdirSync(MEMORY_DIR, { recursive: true });
-            }
-
-            if (isDailyType && !fs.existsSync(targetFile)) {
-              if (!fs.existsSync(DAILY_DIR)) {
-                fs.mkdirSync(DAILY_DIR, { recursive: true });
-              }
-              const projectMeta =
-                projectId && projectId !== 'unknown' ? `**Project**: ${projectId}\n\n` : '';
-              const dailyTemplate = `# Daily Memory Log - ${today}\n\n${projectMeta}*Session starts: ${new Date().toISOString()}*\n\n## Notes\n\n## Tasks\n\n## Learnings\n\n---\n`;
-              fs.writeFileSync(targetFile, dailyTemplate, 'utf-8');
             }
 
             fs.appendFileSync(targetFile, entry, 'utf-8');
@@ -1695,7 +1679,7 @@ ${content}`;
       }),
 
       list_daily: tool({
-        description: 'List available daily log files from past N days.',
+        description: 'List available timeline entries from past N days.',
         args: {
           days: tool.schema
             .number()
@@ -1707,74 +1691,75 @@ ${content}`;
           try {
             const { days } = args;
 
-            if (!fs.existsSync(DAILY_DIR)) {
-              return `📂 Daily directory not found`;
+            if (!fs.existsSync(TIMELINE_DIR)) {
+              return `📂 Timeline directory not found`;
             }
 
-            const allFiles = fs
-              .readdirSync(DAILY_DIR)
-              .filter(f => f.endsWith('.md'))
-              .sort()
-              .reverse()
-              .slice(0, days);
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - days);
 
-            if (allFiles.length === 0) {
-              return `📂 No daily log files found in the last ${days} days`;
+            const entries = [];
+            const scanDir = (dir) => {
+              const items = fs.readdirSync(dir, { withFileTypes: true });
+              for (const item of items) {
+                const fullPath = path.join(dir, item.name);
+                if (item.isDirectory()) {
+                  scanDir(fullPath);
+                } else if (item.name.endsWith('.md')) {
+                  const stats = fs.statSync(fullPath);
+                  if (stats.mtime >= cutoffDate) {
+                    entries.push({
+                      path: fullPath,
+                      name: path.relative(TIMELINE_DIR, fullPath),
+                      size: stats.size,
+                      mtime: stats.mtime,
+                    });
+                  }
+                }
+              }
+            };
+
+            scanDir(TIMELINE_DIR);
+            entries.sort((a, b) => b.mtime - a.mtime);
+
+            if (entries.length === 0) {
+              return `📂 No timeline entries found in the last ${days} days`;
             }
 
-            let output = `📂 Daily log files (last ${days} days):
-`;
-            allFiles.forEach(file => {
-              const filePath = path.join(DAILY_DIR, file);
-              const stats = fs.statSync(filePath);
-              output += `
-  📄 ${file}
-     Size: ${(stats.size / 1024).toFixed(2)} KB
-     Modified: ${stats.mtime.toISOString()}`;
+            let output = `📂 Timeline entries (last ${days} days):\n`;
+            entries.slice(0, 20).forEach(entry => {
+              output += `\n  📄 ${entry.name}\n     Size: ${(entry.size / 1024).toFixed(2)} KB\n     Modified: ${entry.mtime.toISOString()}`;
             });
+
+            if (entries.length > 20) {
+              output += `\n\n  ... and ${entries.length - 20} more entries`;
+            }
 
             return output;
           } catch (e) {
-            return `❌ Error listing daily logs: ${e.message}`;
+            return `❌ Error listing timeline entries: ${e.message}`;
           }
         },
       }),
 
       init_daily: tool({
-        description: "Initialize today's daily log file if it doesn't exist.",
+        description: "Initialize today's timeline directory if it doesn't exist.",
         args: {},
         async execute(_args) {
           try {
             const today = new Date().toISOString().split('T')[0];
-            const dailyFile = path.join(DAILY_DIR, `${today}.md`);
+            const [year, month, day] = today.split('-');
+            const dayDir = path.join(TIMELINE_DIR, year, month, day);
 
-            if (fs.existsSync(dailyFile)) {
-              return `✅ Daily log already exists: ${dailyFile}`;
+            if (fs.existsSync(dayDir)) {
+              return `✅ Timeline directory already exists: ${dayDir}`;
             }
 
-            if (!fs.existsSync(DAILY_DIR)) {
-              fs.mkdirSync(DAILY_DIR, { recursive: true });
-            }
+            fs.mkdirSync(dayDir, { recursive: true });
 
-            const content = `# Daily Memory Log - ${today}
-
-*Session starts: ${new Date().toISOString()}*
-
-## Notes
-
-## Tasks
-
-## Learnings
-
----
-`;
-
-            fs.writeFileSync(dailyFile, content, 'utf-8');
-
-            return `✅ Daily log created: ${dailyFile}
-- Date: ${today}`;
+            return `✅ Timeline directory created: ${dayDir}\n- Date: ${today}`;
           } catch (e) {
-            return `❌ Error creating daily log: ${e.message}`;
+            return `❌ Error creating timeline directory: ${e.message}`;
           }
         },
       }),
@@ -1967,9 +1952,21 @@ ${totalDuplicate > 0 ? `ℹ️ ${totalDuplicate} duplicate(s) skipped (already e
               };
             });
 
-            let dailyLogCount = 0;
-            if (fs.existsSync(DAILY_DIR)) {
-              dailyLogCount = fs.readdirSync(DAILY_DIR).filter(f => f.endsWith('.md')).length;
+            let timelineCount = 0;
+            if (fs.existsSync(TIMELINE_DIR)) {
+              const countFiles = (dir) => {
+                const items = fs.readdirSync(dir, { withFileTypes: true });
+                let count = 0;
+                for (const item of items) {
+                  if (item.isDirectory()) {
+                    count += countFiles(path.join(dir, item.name));
+                  } else if (item.name.endsWith('.md')) {
+                    count++;
+                  }
+                }
+                return count;
+              };
+              timelineCount = countFiles(TIMELINE_DIR);
             }
 
             // Queue status
@@ -2008,7 +2005,7 @@ ${totalDuplicate > 0 ? `ℹ️ ${totalDuplicate} duplicate(s) skipped (already e
             Object.entries(files).forEach(([file, info]) => {
               output += `- ${file}: ${info.exists ? '✓' : '✗'} (${(info.size / 1024).toFixed(2)} KB)\n`;
             });
-            output += `- Daily logs: ${dailyLogCount} files\n`;
+            output += `- Timeline entries: ${timelineCount} files\n`;
             output += `- Upload queue: ${queueStats.pending} pending, ${queueStats.exhausted} exhausted\n`;
             output += `\n`;
 

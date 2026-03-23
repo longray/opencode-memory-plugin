@@ -119,6 +119,15 @@
   - Fix: Added timeline directory scanning with date-based grouping
   - Result: Now returns 5 topics (2026-03-16 through 2026-03-20)
 
+#### 💥 Breaking Changes
+
+- **Removed `daily/` directory support**
+  - All memory entries now use `timeline/` directory structure
+  - `memory_write` with `type="daily"` now writes to `timeline/YYYY/MM/DD/`
+  - `list_daily` renamed to list timeline entries (backward compatible)
+  - `init_daily` renamed to init timeline directory (backward compatible)
+  - Migration: Existing `daily/` files should be moved to `timeline/`
+
 ---
 
 ## [2.2.0] - 2026-03-19
