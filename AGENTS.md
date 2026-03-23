@@ -1,17 +1,17 @@
 # AGENTS.md - OpenCode Memory Plugin 核心指南
 
-**生成时间**: 2026-03-17  
+**生成时间**: 2026-03-23  
 **分支**: main  
-**当前版本**: v1.2.1
+**当前版本**: v2.3.0
 
-## 📝 最近更新 (2026-03-17)
+## 📝 最近更新 (2026-03-23)
 
-- ✅ 优化自动触发逻辑（基于新增消息数而非总消息数）
-- ✅ 实现智能过滤机制（增强版：三层过滤）
-- ✅ 优化提示词避免触发analyze-mode
-- ✅ 添加debug_logging开关和日志输出
-- ✅ 修复API调用问题（session.messages格式）
-- ✅ 更新项目文档（README、ARCHITECTURE、CHANGELOG等）
+- ✅ 完成 Timeline 迁移（daily/ → timeline/YYYY/MM/DD/）
+- ✅ 添加迁移脚本 scripts/migrate-daily-to-timeline.mjs
+- ✅ 迁移 9 个 daily 文件到 timeline 结构
+- ✅ 删除旧的 daily/ 目录
+- ✅ 更新项目文档（README、CHANGELOG、AGENTS.md）
+- ✅ 总计 137 个时间线条目
 
 ## 📝 历史更新 (2026-03-16)
 
@@ -28,9 +28,12 @@
 D:/github/opencode-memory-plugin/
 ├── opencode-memory-plugin/          # 插件主目录
 │   ├── lib/                        # 核心库文件
-│   │   ├── vector-store.js         # 向量存储和外部API集成
+│   │   ├── wrapper-client.js       # 后端API客户端
+│   │   ├── project-resolver.js     # 项目ID解析器
 │   │   ├── bm25.js                 # BM25关键词搜索算法
-│   │   └── service-validator.js    # 外部服务验证工具
+│   │   ├── trie.js                 # Trie索引结构
+│   │   ├── trie-index.js           # Trie索引管理器
+│   │   └── ws-client.js            # WebSocket客户端
 │   ├── bin/                        # CLI和安装脚本
 │   │   ├── cli.cjs                 # 命令行界面
 │   │   └── install.cjs             # NPM安装钩子
@@ -38,7 +41,14 @@ D:/github/opencode-memory-plugin/
 │   │   ├── memory-automation.md    # 自动保存代理
 │   │   └── memory-consolidate.md   # 自动合并代理
 │   ├── memory/                     # OpenClaw式记忆文件
-│   ├── scripts/                     # 实用脚本
+│   │   ├── SOUL.md, AGENTS.md, USER.md, etc.  # 核心记忆文件
+│   │   ├── MEMORY.md               # 长期记忆索引
+│   │   └── timeline/               # 时间线结构的记忆条目
+│   │       └── YYYY/MM/DD/         # 日期组织结构
+│   ├── scripts/                    # 实用脚本
+│   │   ├── migrate-daily-to-timeline.mjs  # Timeline迁移脚本
+│   │   └── cleanup-memory.mjs      # 记忆清理工具
+│   ├── tests/                      # 测试文件
 │   ├── ARCHITECTURE.md             # 系统架构文档
 │   ├── CONFIGURATION.md            # 配置说明文档
 │   ├── EXTERNAL_EMBEDDING.md       # 外部embedding服务文档
@@ -48,8 +58,9 @@ D:/github/opencode-memory-plugin/
 │   ├── plugin.js                   # OpenCode插件入口
 │   ├── index.js                    # 插件元数据
 │   └── package.json                # NPM包配置
-│   ├── test-external-embedding.mjs    # 外部服务测试工具
-│   ├── test-rebuild.mjs               # 索引重建测试工具
+├── docs/                           # 设计文档
+│   ├── incremental-sync-design-*.md  # 增量同步设计
+│   └── v2.3-enhanced-implementation-plan.md
 ├── README.md                       # 项目说明
 ├── CHANGELOG.md                    # 版本变更日志
 └── INSTALL.md                      # 安装说明
@@ -195,56 +206,54 @@ opencode-memory list --days 7
 
 ### 主要模块
 
-| 符号           | 文件                | 说明                       |
-| -------------- | ------------------- | -------------------------- |
-| VectorStore    | lib/vector-store.js | 向量存储和外部API集成      |
-| BM25Index      | lib/bm25.js         | 关键词搜索算法             |
-| OpenCodePlugin | plugin.js           | OpenCode插件入口和工具注册 |
-| InstallScript  | bin/install.cjs     | 插件安装脚本               |
-
-### 服务集成
-
-| 符号                 | 文件                | 说明                     |
-| -------------------- | ------------------- | ------------------------ |
-| ExternalEmbeddingAPI | lib/vector-store.js | 外部embedding服务API接口 |
-| getExternalEmbedding | lib/vector-store.js | 外部embedding获取方法    |
-| useExternalService   | lib/vector-store.js | 外部服务启用标志         |
+| 符号            | 文件                    | 说明                       |
+| --------------- | ----------------------- | -------------------------- |
+| WrapperClient   | lib/wrapper-client.js   | 后端API客户端              |
+| ProjectResolver | lib/project-resolver.js | 项目ID解析器               |
+| BM25Index       | lib/bm25.js             | 关键词搜索算法             |
+| TrieIndex       | lib/trie-index.js       | Trie索引管理器             |
+| WebSocketClient | lib/ws-client.js        | WebSocket实时同步          |
+| OpenCodePlugin  | plugin.js               | OpenCode插件入口和工具注册 |
+| InstallScript   | bin/install.cjs         | 插件安装脚本               |
 
 ### 工具模块
 
-| 符号          | 文件      | 说明                        |
-| ------------- | --------- | --------------------------- |
-| memory_write  | plugin.js | 写入记忆工具                |
-| memory_search | plugin.js | 搜索记忆工具（关键词+语义） |
-| rebuild_index | plugin.js | 索引重建工具                |
-| index_status  | plugin.js | 索引状态检查工具            |
+| 符号             | 文件      | 说明                        |
+| ---------------- | --------- | --------------------------- |
+| memory_write     | plugin.js | 写入记忆工具                |
+| memory_search    | plugin.js | 搜索记忆工具（关键词+语义） |
+| memory_timeline  | plugin.js | 时间线浏览工具              |
+| memory_topics    | plugin.js | 主题浏览工具                |
+| incremental_sync | plugin.js | 增量同步工具                |
+| full_sync        | plugin.js | 完整同步工具                |
+| conflict_list    | plugin.js | 冲突列表工具                |
+| conflict_resolve | plugin.js | 冲突解决工具                |
+| rebuild_index    | plugin.js | 索引重建工具                |
+| index_status     | plugin.js | 索引状态检查工具            |
 
 ## 📊 核心特性总结
 
 ### 主要功能
 
-- ✅ **8个记忆工具**: 提供完整的记忆管理功能
-- ✅ **外部embedding集成**: 通过HTTP API连接自定义embedding服务
-- ✅ **混合搜索算法**: 70%向量相似度 + 30%BM25关键词评分
-- ✅ **OpenClaw式记忆结构**: 包含SOUL、AGENTS、USER等9个核心记忆文件
+- ✅ **19个记忆工具**: 提供完整的记忆管理功能（核心11 + 同步4 + 浏览2 + 冲突2）
+- ✅ **v2.3 双模同步**: 增量同步（基于指纹）+ 完整同步（支持断点续传）
+- ✅ **v2.3 冲突解决**: 自动检测、智能解决、手动合并
+- ✅ **v2.3 记忆浏览**: 时间线浏览器 + 主题探索器
+- ✅ **Timeline 结构**: 基于 timeline/YYYY/MM/DD/ 的日期组织结构
+- ✅ **SurrealDB 后端**: 支持 HNSW 向量搜索的外部记忆服务
+- ✅ **图关系**: 连接记忆的语义关系
+- ✅ **项目隔离**: 多租户支持（tenant_id + project_id）
+- ✅ **混合模式**: 本地文件 + 后端服务，自动回退
 - ✅ **零配置**: 安装后立即可用
-- ✅ **回退机制**: 服务不可用时自动使用BM25关键词搜索
-- ✅ **向量存储**: 基于SQLite和sqlite-vec的高效向量存储
+- ✅ **OpenClaw式记忆结构**: 包含SOUL、AGENTS、USER等9个核心记忆文件
+- ✅ **Phase C 性能优化**: Trie索引（10x更快）、自动补全（<50ms）、实时同步
 
 ### 性能特征
 
-- **响应时间**: 首次 ~50-100ms，后续 ~50-100ms/查询
-- **内存使用**: ~50-100MB RAM (显著低于本地模型)
-- **服务依赖**: 需要 `localhost:18000` 上的embedding服务
-
-### 部署配置
-
-- **默认端点**: `http://localhost:18000/embeddings`
-- **API格式**: POST JSON请求，返回embedding向量
-- **支持格式**:
-  - OpenAI兼容: `{ "data": [{ "embedding": [...] }] }`
-  - 直接数组: `[0.1, 0.2, ...]`
-  - 包装embedding: `{ "embeddings": [...] }`
+- **响应时间**: Trie搜索 <10ms，自动补全 <50ms
+- **同步性能**: 增量同步仅上传变更，完整同步支持断点续传
+- **服务依赖**: 后端服务 localhost:17999，WebSocket 实时同步
+- **内存使用**: 本地 Trie 索引轻量级，后端承担向量计算
 
 ## 🎯 使用外部服务指南
 

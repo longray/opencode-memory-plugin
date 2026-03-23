@@ -282,21 +282,25 @@ opencode-memory-plugin/
 │   ├── USER.md            # User profile
 │   ├── IDENTITY.md        # Assistant identity
 │   ├── TOOLS.md           # Tool conventions
-│   ├── MEMORY.md          # Long-term memory
+│   ├── MEMORY.md          # Long-term memory index
 │   ├── HEARTBEAT.md       # Health checklist
 │   ├── BOOT.md            # Startup checklist
 │   ├── BOOTSTRAP.md       # One-time ritual
-│   └── daily/             # Daily logs
+│   └── timeline/           # Timeline-structured memory entries
+│       └── YYYY/MM/DD/     # Date-based memory organization
 ├── agents/              # Custom OpenCode agents
 │   ├── memory-automation.md    # Auto-save agent
 │   └── memory-consolidate.md   # Auto-consolidate agent
 ├── scripts/             # Utility scripts
-│   ├── init.sh             # Installation script
-│   ├── docker-init.sh     # Docker setup
-│   ├── uninstall.sh        # Uninstall script
-│   └── test-memory-functions.sh # Test script
+│   ├── migrate-daily-to-timeline.mjs  # Migration script
+│   └── cleanup-memory.mjs      # Memory cleanup utilities
 ├── lib/                 # Core library files
-│   └── bm25.js            # BM25 keyword search algorithm
+│   ├── bm25.js            # BM25 keyword search algorithm
+│   ├── trie.js            # Trie index for fast search
+│   ├── trie-index.js      # Trie index manager
+│   ├── wrapper-client.js  # Backend API client
+│   ├── project-resolver.js # Project ID detection
+│   └── ws-client.js       # WebSocket client
 ├── bin/                 # CLI and install scripts
 │   ├── cli.cjs            # Command-line interface
 │   └── install.cjs        # NPM install hook
@@ -304,6 +308,49 @@ opencode-memory-plugin/
 ├── index.js             # Plugin metadata
 └── package.json         # NPM package config
 ```
+
+## 🗂️ Memory Architecture (v2.3)
+
+### Timeline-Based Organization
+
+**Major Change in v2.3**: Memory entries now use a timeline-based directory structure:
+
+```
+memory/
+├── timeline/
+│   └── 2026/
+│       └── 03/
+│           ├── 16/
+│           │   ├── entry-001.md
+│           │   └── entry-002.md
+│           ├── 17/
+│           └── 23/
+├── SOUL.md, AGENTS.md, USER.md, etc.
+└── MEMORY.md (index file)
+```
+
+**Benefits**:
+
+- ✅ **Better Organization**: Entries grouped by date for easier browsing
+- ✅ **Scalability**: No single directory with thousands of files
+- ✅ **Timeline Browser**: `memory_timeline` tool for date-based navigation
+- ✅ **Migration**: `scripts/migrate-daily-to-timeline.mjs` for existing users
+
+**Migration from v2.2**:
+
+If upgrading from v2.2 or earlier, run the migration script:
+
+```bash
+node scripts/migrate-daily-to-timeline.mjs
+```
+
+This will:
+
+1. Scan existing `daily/` directory
+2. Parse dates from filenames (YYYY-MM-DD.md)
+3. Create new `timeline/YYYY/MM/DD/` structure
+4. Move files to appropriate directories
+5. Remove empty `daily/` directory
 
 ## 🔬 Under the Hood
 
@@ -364,10 +411,11 @@ The plugin supports multiple external embedding services:
 
 ## 📚 Documentation
 
-### Current Version (v2.2.0)
+### Current Version (v2.3.0)
 
 - [Configuration Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
 - [Architecture Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/ARCHITECTURE.md) - System architecture and data flows
+- [Migration Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/MIGRATION_GUIDE.md) - Migrate from v2.2 to v2.3
 - [Quick Start Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/QUICK_START.md) - Getting started with external service
 - [Troubleshooting Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/TROUBLESHOOTING.md) - Deployment and troubleshooting
 

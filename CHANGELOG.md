@@ -1,8 +1,18 @@
-## [2.3.0] - 2026-03-20
+## [2.3.0] - 2026-03-23
 
 ### v2.3 Enhanced - Dual-Mode Sync & Conflict Resolution
 
 **Full dual-mode synchronization with intelligent conflict resolution**
+
+#### 🗂️ Latest Update (2026-03-23)
+
+- **Timeline Migration**
+  - Migrated from `daily/` to `timeline/YYYY/MM/DD/` structure
+  - Added `scripts/migrate-daily-to-timeline.mjs` migration script
+  - Migrated 9 daily files to timeline structure
+  - Removed old `daily/` directory
+  - Total timeline entries: 137 files across 5 days
+  - Better scalability and organization for long-term memory storage
 
 #### 🚀 New Features - Sync Tools (4)
 

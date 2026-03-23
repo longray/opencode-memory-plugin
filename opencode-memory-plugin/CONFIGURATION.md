@@ -1,6 +1,6 @@
-# Configuration Guide
+# Configuration Guide (v2.3.0)
 
-OpenCode Memory Plugin supports flexible configuration for embedding models, search modes, and indexing parameters.
+OpenCode Memory Plugin supports flexible configuration for embedding models, search modes, sync settings, and timeline structure.
 
 ## Configuration File Location
 
@@ -12,8 +12,19 @@ The plugin works out of the box with sensible defaults. You only need to customi
 
 - Use a different embedding model
 - Change search mode (hybrid, vector-only, bm25-only, hash-only)
-- Adjust search quality vs speed tradeoffs
-- Configure fallback behavior
+- Configure sync settings (incremental vs full sync)
+- Adjust timeline structure
+- Configure conflict resolution behavior
+
+## Configuration Version
+
+```json
+{
+  "version": "3.0"
+}
+```
+
+**Note**: Version 3.0 is for v2.3+ with timeline structure and dual-mode sync.
 
 ## Configuration Options
 
@@ -401,9 +412,463 @@ Controls automatic memory saving when conversations reach certain thresholds.
 **Trigger Conditions:**
 
 Auto-trigger activates when ALL conditions are met:
+
 - New messages >= 8 (since last trigger)
 - New user messages >= 5 (since last trigger)
 - Total characters >= 400
 - Session duration >= 5 minutes
 - Has tool usage OR code blocks OR long replies
 - No test keywords in short conversations
+
+---
+
+## v2.3 Configuration Options
+
+### Backend Configuration (NEW)
+
+Controls connection to SurrealDB backend service.
+
+```json
+{
+  "backend": {
+    "enabled": true,
+    "url": "http://localhost:17999",
+    "tenant_id": "auto",
+    "project_id": "auto",
+    "project_resolution": {
+      "strategy": "auto",
+      "priority": ["config", "git", "package", "dirname"]
+    },
+    "sync": {
+      "mode": "incremental",
+      "auto_sync": true,
+      "batch_size": 50
+    },
+    "health_check": {
+      "enabled": true,
+      "interval_ms": 60000,
+      "timeout_ms": 5000
+    }
+  }
+}
+```
+
+**Options:**
+
+- `enabled`: Enable/disable backend integration (default: true)
+- `url`: Backend service URL (default: `http://localhost:17999`)
+- `tenant_id`: User/tenant identifier
+  - `"auto"`: Use OS username
+  - Custom string: Use provided value
+- `project_id`: Project identifier
+  - `"auto"`: Resolve automatically (see `project_resolution`)
+  - Custom string: Use provided value
+
+**Project Resolution Strategy:**
+
+| Priority | Method    | Description                        |
+| -------- | --------- | ---------------------------------- |
+| 1        | `config`  | Use `project_id` from config file  |
+| 2        | `git`     | Parse git remote URL               |
+| 3        | `package` | Use `name` field from package.json |
+| 4        | `dirname` | Use directory name                 |
+
+**Sync Configuration:**
+
+- `mode`: Sync mode
+  - `"incremental"`: Only sync changes (fingerprint-based)
+  - `"full"`: Full sync (all entries)
+- `auto_sync`: Automatically sync on changes (default: true)
+- `batch_size`: Batch size for full sync (default: 50)
+
+### Timeline Configuration (NEW)
+
+Controls timeline-based memory organization.
+
+```json
+{
+  "timeline": {
+    "enabled": true,
+    "base_path": "memory/timeline",
+    "date_format": "YYYY/MM/DD",
+    "auto_create": true,
+    "cleanup": {
+      "enabled": false,
+      "retention_days": 365
+    }
+  }
+}
+```
+
+**Options:**
+
+- `enabled`: Use timeline structure (default: true)
+- `base_path`: Base directory for timeline (default: `memory/timeline`)
+- `date_format`: Date directory format (default: `YYYY/MM/DD`)
+- `auto_create`: Automatically create date directories (default: true)
+- `cleanup.retention_days`: Days to keep old entries (0 = forever)
+
+### Conflict Resolution Configuration (NEW)
+
+Controls automatic conflict resolution behavior.
+
+```json
+{
+  "conflict": {
+    "auto_resolve": true,
+    "strategies": {
+      "timestamp_diff": "latest",
+      "content_diff": "longer",
+      "metadata_diff": "merge"
+    },
+    "manual_timeout_hours": 168
+  }
+}
+```
+
+**Options:**
+
+- `auto_resolve`: Enable automatic conflict resolution (default: true)
+- `strategies`: Resolution strategies by conflict type
+  - `timestamp_diff`:
+    - `"latest"`: Most recent timestamp wins (default)
+    - `"local"`: Always prefer local
+    - `"backend"`: Always prefer backend
+  - `content_diff`:
+    - `"longer"`: Longer content wins (default)
+    - `"local"`: Always prefer local
+    - `"backend"`: Always prefer backend
+  - `metadata_diff`:
+    - `"merge"`: Merge metadata (default)
+    - `"local"`: Use local metadata
+    - `"backend"`: Use backend metadata
+- `manual_timeout_hours`: Hours before auto-resolving manual conflicts (default: 168 / 7 days)
+
+### WebSocket Configuration (NEW)
+
+Controls real-time sync with backend.
+
+```json
+{
+  "websocket": {
+    "enabled": true,
+    "url": "ws://localhost:17999/ws",
+    "reconnect": {
+      "enabled": true,
+      "max_attempts": 10,
+      "initial_delay_ms": 1000,
+      "max_delay_ms": 30000
+    }
+  }
+}
+```
+
+**Options:**
+
+- `enabled`: Enable WebSocket real-time sync (default: true)
+- `url`: WebSocket endpoint (default: from `backend.url`)
+- `reconnect.max_attempts`: Max reconnection attempts (default: 10, 0 = infinite)
+- `reconnect.initial_delay_ms`: Initial delay (default: 1000ms)
+- `reconnect.max_delay_ms`: Max delay (default: 30000ms)
+
+### Trie Index Configuration (NEW)
+
+Controls local fast search index.
+
+```json
+{
+  "trie": {
+    "enabled": true,
+    "min_prefix_length": 2,
+    "max_results": 10,
+    "case_sensitive": false
+  }
+}
+```
+
+**Options:**
+
+- `enabled`: Enable Trie index for fast search (default: true)
+- `min_prefix_length`: Minimum prefix length for autocomplete (default: 2)
+- `max_results`: Max autocomplete suggestions (default: 10)
+- `case_sensitive`: Case-sensitive matching (default: false)
+
+---
+
+## v2.3 Example Configurations
+
+### Default Configuration (Recommended)
+
+```json
+{
+  "version": "3.0",
+  "search": {
+    "mode": "hybrid",
+    "options": {
+      "hybrid": {
+        "vectorWeight": 0.7,
+        "bm25Weight": 0.3
+      }
+    }
+  },
+  "embedding": {
+    "enabled": true,
+    "provider": "external",
+    "endpoint": "https://api-inference.modelscope.cn/v1/embeddings",
+    "model": "Qwen/Qwen3-Embedding-0.6B",
+    "fallbackMode": "bm25"
+  },
+  "backend": {
+    "enabled": true,
+    "url": "http://localhost:17999",
+    "tenant_id": "auto",
+    "project_id": "auto",
+    "sync": {
+      "mode": "incremental",
+      "auto_sync": true
+    }
+  },
+  "timeline": {
+    "enabled": true,
+    "base_path": "memory/timeline"
+  },
+  "websocket": {
+    "enabled": true
+  },
+  "trie": {
+    "enabled": true
+  }
+}
+```
+
+### Offline Mode (No Backend)
+
+```json
+{
+  "version": "3.0",
+  "search": {
+    "mode": "bm25"
+  },
+  "embedding": {
+    "enabled": false
+  },
+  "backend": {
+    "enabled": false
+  },
+  "timeline": {
+    "enabled": true
+  },
+  "trie": {
+    "enabled": true
+  }
+}
+```
+
+### High Performance Mode
+
+```json
+{
+  "version": "3.0",
+  "search": {
+    "mode": "hybrid"
+  },
+  "embedding": {
+    "enabled": true,
+    "provider": "external",
+    "endpoint": "https://api-inference.modelscope.cn/v1/embeddings",
+    "model": "Qwen/Qwen3-Embedding-0.6B"
+  },
+  "backend": {
+    "enabled": true,
+    "url": "http://localhost:17999",
+    "sync": {
+      "mode": "incremental",
+      "batch_size": 100
+    }
+  },
+  "trie": {
+    "enabled": true,
+    "min_prefix_length": 1,
+    "max_results": 20
+  }
+}
+```
+
+### Multi-Project Setup
+
+```json
+{
+  "version": "3.0",
+  "backend": {
+    "enabled": true,
+    "tenant_id": "my-company",
+    "project_resolution": {
+      "strategy": "git"
+    }
+  }
+}
+```
+
+This will:
+
+- Use `"my-company"` as tenant_id (shared across all projects)
+- Automatically detect project_id from git remote URL
+- Isolate memories per project
+
+---
+
+## Configuration Migration
+
+### From v2.2 to v2.3
+
+v2.2 config:
+
+```json
+{
+  "version": "2.0",
+  "search": { "mode": "hybrid" },
+  "backend": {
+    "url": "http://localhost:17999"
+  }
+}
+```
+
+v2.3 config (add new sections):
+
+```json
+{
+  "version": "3.0",
+  "search": { "mode": "hybrid" },
+  "backend": {
+    "url": "http://localhost:17999",
+    "sync": { "mode": "incremental" }
+  },
+  "timeline": { "enabled": true },
+  "websocket": { "enabled": true },
+  "trie": { "enabled": true }
+}
+```
+
+**Migration Steps:**
+
+1. Update version to `"3.0"`
+2. Add `backend.sync` section
+3. Add `timeline` section
+4. Add `websocket` section
+5. Add `trie` section
+6. Run timeline migration: `node scripts/migrate-daily-to-timeline.mjs`
+
+---
+
+## Troubleshooting v2.3
+
+### Backend Connection Issues
+
+**Backend Not Running:**
+
+```bash
+# Check backend status
+curl http://localhost:17999/api/v1/health
+
+# If not running, start it (see backend documentation)
+```
+
+**Fallback Behavior:**
+
+- Plugin automatically falls back to local BM25 search
+- All tools continue to work
+- Sync operations queued until backend available
+
+### Sync Conflicts
+
+**View Conflicts:**
+
+```bash
+# List unresolved conflicts
+conflict_list limit=10
+```
+
+**Resolve Conflicts:**
+
+```bash
+# Resolve specific conflict
+conflict_resolve conflict_id="xxx" resolution="USE_LOCAL"
+
+# Batch resolve
+batch_resolve strategy="ACCEPT_ALL"
+```
+
+### Timeline Migration Issues
+
+**Migration Script Errors:**
+
+```bash
+# Check if daily/ directory exists
+ls ~/.opencode/memory/daily/
+
+# Run migration
+node scripts/migrate-daily-to-timeline.mjs
+
+# Verify migration
+ls ~/.opencode/memory/timeline/
+```
+
+**Rollback:**
+
+If migration fails, the script preserves original `daily/` directory. You can manually move files back if needed.
+
+### WebSocket Connection Issues
+
+**Connection Drops:**
+
+The plugin automatically reconnects with exponential backoff. Check logs:
+
+```bash
+tail -f ~/.opencode/memory/sync.log
+```
+
+**Disable WebSocket:**
+
+```json
+{
+  "websocket": {
+    "enabled": false
+  }
+}
+```
+
+Plugin will use HTTP polling instead.
+
+---
+
+## Environment Variables (v2.3)
+
+### Backend Configuration
+
+```bash
+# Backend URL
+export MEMORY_BACKEND_URL="http://localhost:17999"
+
+# Tenant ID override
+export MEMORY_TENANT_ID="custom-tenant"
+
+# Project ID override
+export MEMORY_PROJECT_ID="custom-project"
+```
+
+### Embedding Service
+
+```bash
+# ModelScope API Key (recommended)
+export MODELSCOPE_API_KEY='your-api-key'
+
+# Custom embedding endpoint
+export EMBEDDING_ENDPOINT='http://localhost:18000/embeddings'
+```
+
+**Priority**: Environment variables override config file settings.
+
+---
+
+**Last Updated**: 2026-03-23  
+**Version**: v2.3.0
