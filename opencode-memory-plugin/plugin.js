@@ -219,12 +219,21 @@ async function incrementalSync(ctx, options = {}) {
   try {
     console.log('[Incremental Sync] Starting...');
 
-    // Load checkpoint
     const checkpoint = await loadCheckpoint();
-    console.log(`[Incremental Sync] Last sync: ${checkpoint.timestamp}`);
+    
+    if (!checkpoint || typeof checkpoint !== 'object') {
+      throw new Error('Invalid checkpoint data loaded');
+    }
+    
+    const lastSyncTime = checkpoint.timestamp || 'N/A';
+    console.log(`[Incremental Sync] Last sync: ${lastSyncTime}`);
 
-    // Detect changes
     const changes = await detectFileChanges(checkpoint);
+    
+    if (!changes || typeof changes !== 'object' || !Array.isArray(changes.added) || !Array.isArray(changes.modified) || !Array.isArray(changes.deleted)) {
+      throw new Error('Invalid changes data structure');
+    }
+    
     results.files_changed = changes.added.length + changes.modified.length + changes.deleted.length;
 
     if (results.files_changed === 0) {
@@ -236,13 +245,15 @@ async function incrementalSync(ctx, options = {}) {
       `[Incremental Sync] Changes: ${changes.added.length} added, ${changes.modified.length} modified, ${changes.deleted.length} deleted`
     );
 
-    // Get backend client
     const config = getConfig();
     const client = getWrapperClient(config?.backend?.url);
 
-    // Process added files
     for (const file of changes.added) {
       try {
+        if (!file || !file.path) {
+          throw new Error(`Invalid file object: ${JSON.stringify(file)}`);
+        }
+        
         const entries = await parseMemoryFile(file.path);
         const uploadResults = await uploadEntries(client, entries, ctx);
         results.entries_uploaded += uploadResults.success;
@@ -254,11 +265,13 @@ async function incrementalSync(ctx, options = {}) {
       }
     }
 
-    // Process modified files
     for (const file of changes.modified) {
       try {
+        if (!file || !file.path) {
+          throw new Error(`Invalid file object: ${JSON.stringify(file)}`);
+        }
+        
         const entries = await parseMemoryFile(file.path);
-        // For modified files, we need to check if entries are new or updated
         const uploadResults = await uploadEntries(client, entries, ctx, {
           mode: 'upsert',
           checkpoint: checkpoint.files?.[file.path],
@@ -272,10 +285,12 @@ async function incrementalSync(ctx, options = {}) {
       }
     }
 
-    // Process deleted files
     for (const file of changes.deleted) {
       try {
-        // Mark entries as deleted in backend
+        if (!file || !file.path) {
+          throw new Error(`Invalid file object: ${JSON.stringify(file)}`);
+        }
+        
         await deleteEntries(client, file.path);
         results.entries_deleted++;
         results.files_processed++;
@@ -284,20 +299,22 @@ async function incrementalSync(ctx, options = {}) {
       }
     }
 
-    // Build updated file index
     const updatedFiles = { ...(checkpoint.files || {}) };
     for (const file of [...changes.added, ...changes.modified]) {
-      updatedFiles[file.path] = {
-        mtime: file.mtime,
-        size: file.size,
-        hash: file.hash,
-      };
+      if (file && file.path && file.mtime && file.size && file.hash) {
+        updatedFiles[file.path] = {
+          mtime: file.mtime,
+          size: file.size,
+          hash: file.hash,
+        };
+      }
     }
     for (const file of changes.deleted) {
-      delete updatedFiles[file.path];
+      if (file && file.path) {
+        delete updatedFiles[file.path];
+      }
     }
 
-    // Update checkpoint
     const duration = Date.now() - startTime;
     await updateCheckpoint({
       operation: 'incremental_sync',
@@ -309,7 +326,7 @@ async function incrementalSync(ctx, options = {}) {
       entries_deleted: results.entries_deleted,
       status: results.errors.length > 0 ? 'partial' : 'completed',
       duration_ms: duration,
-      errors: results.errors.slice(0, 10), // Keep first 10 errors
+      errors: results.errors.slice(0, 10),
       files: updatedFiles,
     });
 
@@ -326,7 +343,6 @@ async function incrementalSync(ctx, options = {}) {
     console.error('[Incremental Sync] Error:', error.message);
     results.errors.push({ error: error.message });
 
-    // Update checkpoint with error
     await updateCheckpoint({
       operation: 'incremental_sync',
       status: 'failed',
@@ -343,39 +359,60 @@ async function incrementalSync(ctx, options = {}) {
 }
 
 async function parseMemoryFile(filePath) {
-  const content = fs.readFileSync(filePath, 'utf-8');
+  if (!filePath) {
+    throw new Error('filePath is required for parseMemoryFile');
+  }
+  
+  const rawContent = fs.readFileSync(filePath, 'utf-8');
+  
+  if (typeof rawContent !== 'string' || rawContent.length === 0) {
+    console.warn(`[ParseMemoryFile] Empty or invalid content for file: ${filePath}`);
+    return [];
+  }
+  
+  const content = String(rawContent);
   const entries = [];
 
-  // Split by entry separator (##)
-  const sections = content.split(/^## /m).slice(1);
+  try {
+    const sections = content.split(/^## /m).slice(1);
 
-  for (const section of sections) {
-    const lines = section.split('\n');
-    const title = lines[0].trim();
-    const type = title.match(/(\w+) Entry/)?.[1] || 'general';
-
-    // Parse metadata
-    const metadata = {};
-    let contentStart = 1;
-
-    for (let i = 1; i < lines.length; i++) {
-      const match = lines[i].match(/\*\*(\w+)\*\*:\s*(.+)/);
-      if (match) {
-        metadata[match[1].toLowerCase()] = match[2].trim();
-      } else if (lines[i].trim() === '') {
-        contentStart = i + 1;
-        break;
+    for (const section of sections) {
+      const sectionStr = String(section);
+      const lines = sectionStr.split('\n');
+      
+      if (!Array.isArray(lines) || lines.length === 0) {
+        continue;
       }
+      
+      const title = lines[0]?.trim() || '';
+      const type = (title.match(/(\w+) Entry/)?.[1] || 'general');
+
+      const metadata = {};
+      let contentStart = 1;
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i]?.toString?.() || '';
+        const match = line.match(/\*\*(\w+)\*\*:\s*(.+)/);
+        if (match) {
+          metadata[match[1].toLowerCase()] = match[2].trim();
+        } else if (line.trim() === '') {
+          contentStart = i + 1;
+          break;
+        }
+      }
+
+      const entryContent = lines.slice(contentStart).join('\n').trim();
+
+      entries.push({
+        type,
+        ...metadata,
+        content: entryContent,
+        source_file: filePath,
+      });
     }
-
-    const entryContent = lines.slice(contentStart).join('\n').trim();
-
-    entries.push({
-      type,
-      ...metadata,
-      content: entryContent,
-      source_file: filePath,
-    });
+  } catch (error) {
+    console.error(`[ParseMemoryFile] Error parsing file ${filePath}:`, error.message);
+    throw error;
   }
 
   return entries;
@@ -1049,34 +1086,76 @@ function getConfig() {
 async function scanAllTopics() {
   const topics = new Map();
 
-  if (!fs.existsSync(ACTIVE_DIR)) {
-    return [];
+  // 扫描 active/ 目录
+  if (fs.existsSync(ACTIVE_DIR)) {
+    const topicDirs = fs
+      .readdirSync(ACTIVE_DIR, { withFileTypes: true })
+      .filter(e => e.isDirectory() && !e.name.startsWith('.'));
+
+    for (const dir of topicDirs) {
+      const topicPath = path.join(ACTIVE_DIR, dir.name);
+      const files = await scanDirectory(topicPath);
+
+      let count = 0;
+      let lastUpdated = new Date(0);
+
+      for (const file of files) {
+        const stats = fs.statSync(file);
+        count++;
+        if (stats.mtime > lastUpdated) {
+          lastUpdated = stats.mtime;
+        }
+      }
+
+      topics.set(dir.name, {
+        name: dir.name,
+        count,
+        last_updated: lastUpdated.toISOString(),
+      });
+    }
   }
 
-  const topicDirs = fs
-    .readdirSync(ACTIVE_DIR, { withFileTypes: true })
-    .filter(e => e.isDirectory() && !e.name.startsWith('.'));
+  // 扫描 timeline/ 目录，按日期分组
+  const timelineDir = path.join(MEMORY_DIR, 'timeline');
+  if (fs.existsSync(timelineDir)) {
+    const years = fs.readdirSync(timelineDir, { withFileTypes: true })
+      .filter(e => e.isDirectory());
 
-  for (const dir of topicDirs) {
-    const topicPath = path.join(ACTIVE_DIR, dir.name);
-    const files = await scanDirectory(topicPath);
+    for (const year of years) {
+      const yearPath = path.join(timelineDir, year.name);
+      const months = fs.readdirSync(yearPath, { withFileTypes: true })
+        .filter(e => e.isDirectory());
 
-    let count = 0;
-    let lastUpdated = new Date(0);
+      for (const month of months) {
+        const monthPath = path.join(yearPath, month.name);
+        const days = fs.readdirSync(monthPath, { withFileTypes: true })
+          .filter(e => e.isDirectory());
 
-    for (const file of files) {
-      const stats = fs.statSync(file);
-      count++;
-      if (stats.mtime > lastUpdated) {
-        lastUpdated = stats.mtime;
+        for (const day of days) {
+          const dayPath = path.join(monthPath, day.name);
+          const files = fs.readdirSync(dayPath)
+            .filter(f => f.endsWith('.md'));
+
+          if (files.length > 0) {
+            const topicName = `${year.name}-${month.name}-${day.name}`;
+            let lastUpdated = new Date(0);
+
+            for (const file of files) {
+              const stats = fs.statSync(path.join(dayPath, file));
+              if (stats.mtime > lastUpdated) {
+                lastUpdated = stats.mtime;
+              }
+            }
+
+            topics.set(topicName, {
+              name: topicName,
+              count: files.length,
+              last_updated: lastUpdated.toISOString(),
+            });
+          }
+        }
       }
     }
-
-    topics.set(dir.name, {
-      name: dir.name,
-      count,
-      last_updated: lastUpdated.toISOString(),
-    });
   }
 
   return Array.from(topics.values());
@@ -1162,6 +1241,26 @@ function getMemoryFiles() {
         name: `daily/${file}`,
       });
     }
+  }
+
+  // 添加 timeline/ 目录
+  const timelineDir = path.join(MEMORY_DIR, 'timeline');
+  if (fs.existsSync(timelineDir)) {
+    const scanTimeline = (dir, prefix = '') => {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          scanTimeline(fullPath, `${prefix}${entry.name}/`);
+        } else if (entry.name.endsWith('.md')) {
+          files.push({
+            path: fullPath,
+            name: `timeline/${prefix}${entry.name}`,
+          });
+        }
+      }
+    };
+    scanTimeline(timelineDir);
   }
 
   return files;
@@ -1716,20 +1815,32 @@ ${content}`;
 
             for (const file of files) {
               try {
-                const content = fs.readFileSync(file.path, 'utf-8');
-                // Parse markdown entries (simplified)
+                const rawContent = fs.readFileSync(file.path, 'utf-8');
+                
+                if (typeof rawContent !== 'string' || rawContent.length === 0) {
+                  console.warn(`[Rebuild Index] Skipping empty or invalid file: ${file.path}`);
+                  continue;
+                }
+                
+                const content = String(rawContent);
                 const entryMatches = content.split(/\n## /).slice(1);
 
                 for (const entryContent of entryMatches) {
-                  const lines = entryContent.split('\n');
-                  const title = lines[0];
+                  const entryStr = String(entryContent);
+                  const lines = entryStr.split('\n');
+                  
+                  if (!Array.isArray(lines) || lines.length === 0) {
+                    continue;
+                  }
+                  
+                  const title = lines[0]?.toString?.() || '';
                   const typeMatch = title.match(/^(\w+) Entry/);
                   const type = typeMatch ? typeMatch[1].toLowerCase() : 'general';
 
-                  // Extract tags
-                  const tagsLine = lines.find(l => l.startsWith('**Tags**:'));
+                  const tagsLine = lines.find(l => l && l.toString().startsWith('**Tags**:'));
                   const tags = tagsLine
                     ? tagsLine
+                        .toString()
                         .replace('**Tags**:', '')
                         .trim()
                         .split(',')
@@ -1737,10 +1848,10 @@ ${content}`;
                         .filter(t => t && t !== 'none')
                     : [];
 
-                  // Extract content (everything after the metadata)
-                  const contentStart = lines.findIndex(l => l === '') + 1;
+                  const contentStart = lines.findIndex(l => l && l.toString() === '') + 1;
                   const entryText = lines
                     .slice(contentStart)
+                    .map(l => l ? l.toString() : '')
                     .join('\n')
                     .replace(/---\s*$/, '')
                     .trim();
@@ -1759,8 +1870,8 @@ ${content}`;
                     });
                   }
                 }
-              } catch {
-                // Skip files that can't be read
+              } catch (e) {
+                console.warn(`[Rebuild Index] Failed to parse file ${file.path}: ${e.message}`);
               }
             }
 
@@ -2377,25 +2488,18 @@ ${totalDuplicate > 0 ? `ℹ️ ${totalDuplicate} duplicate(s) skipped (already e
               const checkpoint = await loadCheckpoint();
               const changes = await detectFileChanges(checkpoint);
 
-              return {
-                dry_run: true,
-                changes: {
-                  added: changes.added.length,
-                  modified: changes.modified.length,
-                  deleted: changes.deleted.length,
-                },
-                message: `Dry run: ${changes.added.length} added, ${changes.modified.length} modified, ${changes.deleted.length} deleted`,
-              };
+              return `📋 Incremental Sync Dry Run\n\n` +
+                `Changes detected:\n` +
+                `  Added: ${changes.added.length} files\n` +
+                `  Modified: ${changes.modified.length} files\n` +
+                `  Deleted: ${changes.deleted.length} files\n\n` +
+                `Last sync: ${checkpoint.timestamp || 'Never'}`;
             }
 
             const result = await incrementalSync(ctx);
-            return result;
+            return `Incremental sync completed: ${result.message}`;
           } catch (error) {
-            return {
-              success: false,
-              error: error.message,
-              message: `Incremental sync failed: ${error.message}`,
-            };
+            return `❌ Incremental sync failed: ${error.message}`;
           }
         },
       }),

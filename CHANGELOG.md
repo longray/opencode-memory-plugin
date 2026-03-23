@@ -100,6 +100,25 @@
   - Content quality: Longer content wins (if >1.5x)
   - Simple conflicts: Auto-resolve with merge
 
+#### 🐛 Bug Fixes
+
+- **Fixed `incremental_sync` return value error**
+  - Error: `text7.split is not a function`
+  - Cause: Tool returned object instead of string
+  - Fix: Changed all return values to string format
+
+- **Fixed `getMemoryFiles` missing timeline directory**
+  - Issue: `rebuild_index` only synced 31 files (core + daily)
+  - Cause: Function didn't include `timeline/` directory
+  - Fix: Added recursive scan for `timeline/` directory
+  - Result: Now syncs 151 files (includes all timeline entries)
+
+- **Fixed `memory_topics` returning 0 results**
+  - Issue: Tool returned empty list despite having memories
+  - Cause: Only scanned `active/` directory, not `timeline/`
+  - Fix: Added timeline directory scanning with date-based grouping
+  - Result: Now returns 5 topics (2026-03-16 through 2026-03-20)
+
 ---
 
 ## [2.2.0] - 2026-03-19
