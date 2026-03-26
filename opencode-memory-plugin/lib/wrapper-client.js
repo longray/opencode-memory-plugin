@@ -183,12 +183,21 @@ export class WrapperClient {
    * @param {string} params.project_id - 项目ID (可选)
    * @returns {Promise<{results: Array, total: number, mode: string}>}
    */
-  async search({ query, mode = 'hybrid', limit = 10, threshold = 0.3, tenant_id, project_id }) {
+  async search({
+    query,
+    mode = 'hybrid',
+    limit = 10,
+    threshold = 0.3,
+    level = 2,
+    tenant_id,
+    project_id,
+  }) {
     const requestBody = {
       query,
       mode,
       limit,
       threshold,
+      level,
       tenant_id: tenant_id || this.tenantId,
     };
 
@@ -242,10 +251,13 @@ export class WrapperClient {
     const requestBody = {
       memories: memories.map(m => ({
         content: m.content,
+        abstract: m.abstract,
+        overview: m.overview,
         type: m.type || 'general',
         tags: m.tags || [],
         project_id: m.project_id || 'global',
         source_id: m.source_id,
+        local_id: m.local_id,
         source: m.source || 'plugin',
         tenant_id: m.tenant_id || this.tenantId,
         metadata: m.metadata || {},
@@ -254,6 +266,19 @@ export class WrapperClient {
     };
 
     return await withRetry(() => this.http.post('/api/v1/memories', requestBody), this.maxRetries);
+  }
+
+  async reportAccessLog({ entries, tenant_id }) {
+    const requestBody = {
+      entries: entries.map(e => ({
+        entry_id: e.entry_id,
+        timestamp: e.timestamp,
+        type: e.type,
+      })),
+      tenant_id: tenant_id || this.tenantId,
+    };
+
+    return await this.http.post('/api/v1/access-log', requestBody);
   }
 
   /**
@@ -355,9 +380,9 @@ export class WrapperClient {
         path: fp.path,
         mtime: fp.mtime,
         hash: fp.hash,
-        source_id: fp.source_id
+        source_id: fp.source_id,
       })),
-      tenant_id: tenant_id || this.tenantId
+      tenant_id: tenant_id || this.tenantId,
     };
 
     return await withRetry(
@@ -382,15 +407,12 @@ export class WrapperClient {
         source_id: m.source_id,
         source: m.source || 'plugin',
         metadata: m.metadata || {},
-        tenant_id: m.tenant_id || this.tenantId
+        tenant_id: m.tenant_id || this.tenantId,
       })),
-      tenant_id: tenant_id || this.tenantId
+      tenant_id: tenant_id || this.tenantId,
     };
 
-    return await withRetry(
-      () => this.http.post('/api/v1/sync/full', requestBody),
-      this.maxRetries
-    );
+    return await withRetry(() => this.http.post('/api/v1/sync/full', requestBody), this.maxRetries);
   }
 
   /**
@@ -418,7 +440,7 @@ export class WrapperClient {
   async resolveConflict(conflict_id, resolution, tenant_id) {
     const requestBody = {
       resolution,
-      tenant_id: tenant_id || this.tenantId
+      tenant_id: tenant_id || this.tenantId,
     };
 
     return await withRetry(

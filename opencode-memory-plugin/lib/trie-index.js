@@ -29,34 +29,34 @@ export function tokenizeForTrie(text) {
   }
 
   const lowerText = text.toLowerCase();
-  
+
   // Remove markdown syntax
   const cleanText = lowerText
-    .replace(/[#*_`\[\](){}]/g, ' ')
+    .replace(/[#*_`[\](){}]/g, ' ')
     .replace(/\*\*.*?\*\*/g, ' ')
     .replace(/`.*?`/g, ' ')
     .replace(/\[.*?\]\(.*?\)/g, ' ');
-  
+
   // Split by whitespace and punctuation
   const tokens = cleanText
     .replace(/[^\w\u4e00-\u9fa5\s-]/g, ' ')
     .split(/\s+/)
     .filter(token => token.length >= 2); // Min 2 chars
-  
+
   // Extract additional keywords: camelCase, snake_case, kebab-case
   const additionalTokens = [];
   for (const token of tokens) {
     // camelCase
     const camelSplit = token.replace(/([a-z])([A-Z])/g, '$1 $2').split(' ');
     additionalTokens.push(...camelSplit);
-    
+
     // snake_case and kebab-case
     const underscoreSplit = token.split(/[_-]+/);
     if (underscoreSplit.length > 1) {
       additionalTokens.push(...underscoreSplit);
     }
   }
-  
+
   // Combine and deduplicate
   const allTokens = [...tokens, ...additionalTokens];
   return [...new Set(allTokens)].filter(t => t.length >= 2);
@@ -73,9 +73,9 @@ export function extractMetadata(content) {
     type: 'general',
     project: 'global',
   };
-  
+
   if (!content) return metadata;
-  
+
   // Extract tags: **Tags**: tag1, tag2
   const tagsMatch = content.match(/\*\*Tags\*\*:\s*([^\n]+)/i);
   if (tagsMatch) {
@@ -84,19 +84,19 @@ export function extractMetadata(content) {
       .map(t => t.trim().toLowerCase())
       .filter(t => t.length > 0);
   }
-  
+
   // Extract type: **Type**: type
   const typeMatch = content.match(/\*\*Type\*\*:\s*(\w+)/i);
   if (typeMatch) {
     metadata.type = typeMatch[1].toLowerCase();
   }
-  
+
   // Extract project: **Project**: project
   const projectMatch = content.match(/\*\*Project\*\*:\s*([^\n]+)/i);
   if (projectMatch) {
     metadata.project = projectMatch[1].trim().toLowerCase();
   }
-  
+
   return metadata;
 }
 
@@ -107,24 +107,24 @@ export function extractMetadata(content) {
  */
 export async function buildTrieIndex(force = false) {
   const now = Date.now();
-  
+
   // Return cached index if fresh
-  if (!force && trieIndex && (now - lastBuildTime) < INDEX_TTL) {
+  if (!force && trieIndex && now - lastBuildTime < INDEX_TTL) {
     return trieIndex;
   }
-  
+
   console.log('[TrieIndex] Building index...');
   const startTime = Date.now();
-  
+
   trieIndex = new Trie();
-  let entryCount = 0;
-  
+  const _entryCount = 0;
+
   // Scan timeline directory
   const timelineDir = path.join(MEMORY_DIR, 'timeline');
   if (fs.existsSync(timelineDir)) {
     await scanDirectory(timelineDir, trieIndex);
   }
-  
+
   // Scan active topics
   if (fs.existsSync(ACTIVE_DIR)) {
     const topics = fs.readdirSync(ACTIVE_DIR);
@@ -135,7 +135,7 @@ export async function buildTrieIndex(force = false) {
       }
     }
   }
-  
+
   // Scan core memory files
   const coreFiles = ['MEMORY.md', 'SOUL.md', 'AGENTS.md', 'USER.md', 'IDENTITY.md', 'TOOLS.md'];
   for (const file of coreFiles) {
@@ -144,13 +144,13 @@ export async function buildTrieIndex(force = false) {
       await indexFile(filePath, 'core-' + file, trieIndex);
     }
   }
-  
+
   lastBuildTime = now;
   const duration = Date.now() - startTime;
   const stats = trieIndex.getStats();
-  
+
   console.log(`[TrieIndex] Built in ${duration}ms:`, stats);
-  
+
   return trieIndex;
 }
 
@@ -159,7 +159,7 @@ export async function buildTrieIndex(force = false) {
  */
 async function scanDirectory(dir, trie) {
   const files = fs.readdirSync(dir, { recursive: true });
-  
+
   for (const file of files) {
     if (typeof file === 'string' && file.endsWith('.md')) {
       const filePath = path.join(dir, file);
@@ -176,13 +176,13 @@ async function indexFile(filePath, entryId, trie) {
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split('\n');
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      
+
       // Skip empty lines
       if (!line.trim()) continue;
-      
+
       // Skip metadata lines but extract keywords from them
       if (line.startsWith('**')) {
         const metaKeywords = extractMetadataKeywords(line);
@@ -191,7 +191,7 @@ async function indexFile(filePath, entryId, trie) {
         }
         continue;
       }
-      
+
       // Index content lines
       const keywords = tokenizeForTrie(line);
       for (const keyword of keywords) {
@@ -208,26 +208,26 @@ async function indexFile(filePath, entryId, trie) {
  */
 function extractMetadataKeywords(line) {
   const keywords = [];
-  
+
   // **Tags**: tag1, tag2
   const tagsMatch = line.match(/\*\*Tags\*\*:\s*([^\n]+)/i);
   if (tagsMatch) {
     const tags = tagsMatch[1].split(/[,;]/).map(t => t.trim().toLowerCase());
     keywords.push(...tags);
   }
-  
+
   // **Type**: type
   const typeMatch = line.match(/\*\*Type\*\*:\s*(\w+)/i);
   if (typeMatch) {
     keywords.push(typeMatch[1].toLowerCase());
   }
-  
+
   // **Project**: project
   const projectMatch = line.match(/\*\*Project\*\*:\s*([^\n]+)/i);
   if (projectMatch) {
     keywords.push(...tokenizeForTrie(projectMatch[1]));
   }
-  
+
   return keywords.filter(k => k.length >= 2);
 }
 
@@ -242,20 +242,20 @@ export async function updateTrieIndex(entryId, content, tags = []) {
     await buildTrieIndex();
     return;
   }
-  
+
   // Index content
   const keywords = tokenizeForTrie(content);
   for (const keyword of keywords) {
     trieIndex.insert(keyword, entryId, 1);
   }
-  
+
   // Index tags with higher weight
   for (const tag of tags) {
     if (tag && tag.length >= 2) {
       trieIndex.insert(tag.toLowerCase(), entryId, 2);
     }
   }
-  
+
   console.log(`[TrieIndex] Updated with entry: ${entryId}`);
 }
 
@@ -268,7 +268,7 @@ export async function searchByPrefix(prefix) {
   if (!trieIndex) {
     await buildTrieIndex();
   }
-  
+
   return trieIndex.search(prefix);
 }
 
@@ -282,7 +282,7 @@ export async function getAutocompleteSuggestions(prefix, limit = 10) {
   if (!trieIndex) {
     await buildTrieIndex();
   }
-  
+
   return trieIndex.getSuggestions(prefix, limit);
 }
 
@@ -314,7 +314,7 @@ export async function saveTrieIndex(filePath) {
   if (!trieIndex) {
     return;
   }
-  
+
   try {
     const serialized = trieIndex.serialize();
     fs.writeFileSync(filePath, JSON.stringify(serialized), 'utf-8');
@@ -333,11 +333,11 @@ export async function loadTrieIndex(filePath) {
     if (!fs.existsSync(filePath)) {
       return false;
     }
-    
+
     const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     trieIndex = Trie.deserialize(data);
     lastBuildTime = Date.now();
-    
+
     console.log(`[TrieIndex] Loaded from ${filePath}`);
     return true;
   } catch (e) {

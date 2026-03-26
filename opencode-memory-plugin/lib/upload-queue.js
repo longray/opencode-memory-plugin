@@ -24,7 +24,7 @@ function readQueue() {
       const content = fs.readFileSync(QUEUE_FILE, 'utf-8');
       return JSON.parse(content);
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   return { failed_uploads: [] };

@@ -1,7 +1,7 @@
 {
   "name": "@csuwl/opencode-memory-plugin",
-  "version": "2.3.0",
-  "description": "OpenClaw-style memory system with SurrealDB backend, dual-mode sync, conflict resolution, and timeline-based organization",
+  "version": "2.4.0",
+  "description": "OpenClaw-style memory system with L0/L1/L2 layered storage, ULID naming, and automatic sync",
   "license": "MIT",
   "type": "module",
   "main": "plugin.js",
@@ -12,7 +12,7 @@
   },
   "bin": {
     "opencode-memory-plugin": "bin/install.cjs",
-    "opencode-memory": "bin/cli.cjs"
+    "opencode-memory": "cli/index.cjs"
   },
   "repository": {
     "type": "git",
@@ -47,6 +47,8 @@
   "files": [
     "memory/",
     "lib/",
+    "cli/",
+    "tools/",
     "agents/",
     "scripts/",
     "bin/",

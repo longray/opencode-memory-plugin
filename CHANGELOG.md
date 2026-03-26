@@ -1,3 +1,51 @@
+## [2.4.0] - 2026-03-26
+
+### v2.4.0 - L0/L1/L2 Layered Storage
+
+**Unified ULID-based storage with required abstract/overview layers**
+
+#### 🗂️ Core Changes
+
+- **Unified Filename Format**: `entry_{ulid}.md` for all timeline files
+- **Required Layers**: `abstract` (建议 ≤100 chars) and `overview` (建议 ≤500 chars) now REQUIRED
+  - 超长内容可容忍，不再强制截断
+- **Frontmatter Fields**: Added `id`, `memory_id`, `synced`, `synced_at`
+- **Content Structure**: `# Abstract` / `## Overview` / `## Content` sections
+- **Code Refactoring**: 模块化拆分 (lib/, tools/, cli/)
+- **Shared Code**: CLI 和 Plugin 共用 lib/ 核心库
+
+#### 🚀 New Tools
+
+- **memory_pin**: Pin/unpin entries for hot storage
+- **memory_list**: List all entries from link-map.json
+- **sync_status_local**: Check local sync status (pending/synced)
+
+#### 🔧 New Functions
+
+- `generateULID()`: Generate 18-char unique IDs
+- `buildEntryContent()`: Build layered content with frontmatter
+- `writeEntryToTimeline()`: Write with ULID filename
+- `updateDayOverview()`: Debounced (2s) daily overview updates
+- `updateLinkMap()`: Maintain link-map.json index
+- `extractByLevel()`: Extract by layer (0=abstract, 1=overview, 2=full)
+- `checkAndSyncIfNeeded()`: Auto-sync on read/write
+- `logAccess()`: Local access logging
+- `reportAccessToBackend()`: Batch report access logs
+- `handleConflict()`: Handle server deduplication actions
+
+#### 📁 New Files
+
+- `.access-log.jsonl`: Offline access frequency tracking
+- `link-map.json`: Entry ID to file path mapping
+
+#### ⚠️ Breaking Changes
+
+- `abstract` and `overview` are now REQUIRED in memory_write
+- Filename format changed from `entry-{timestamp}.md` to `entry_{ulid}.md`
+- memory_read now supports `entry_id` and `level` parameters
+
+---
+
 ## [2.3.0] - 2026-03-23
 
 ### v2.3 Enhanced - Dual-Mode Sync & Conflict Resolution

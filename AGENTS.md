@@ -1,10 +1,20 @@
 # AGENTS.md - OpenCode Memory Plugin 核心指南
 
-**生成时间**: 2026-03-23  
+**生成时间**: 2026-03-26  
 **分支**: main  
-**当前版本**: v2.3.0
+**当前版本**: v2.4.0
 
-## 📝 最近更新 (2026-03-23)
+## 📝 最近更新 (2026-03-26)
+
+- ✅ v2.4.0 L0/L1/L2 分层存储架构完成
+- ✅ 统一使用 ULID 格式 `entry_{ulid}.md`
+- ✅ 新增 frontmatter 字段：id, memory_id, synced, synced_at
+- ✅ 分层格式：`# Abstract` / `## Overview` / `## Content`
+- ✅ abstract/overview 必填（建议 ≤100/≤500 字符，超长可容忍）
+- ✅ 代码重构：lib/、tools/、cli/ 模块化拆分
+- ✅ CLI 和 Plugin 共享 lib/ 核心库
+
+## 📝 历史更新 (2026-03-23)
 
 - ✅ 完成 Timeline 迁移（daily/ → timeline/YYYY/MM/DD/）
 - ✅ 添加迁移脚本 scripts/migrate-daily-to-timeline.mjs
@@ -13,13 +23,6 @@
 - ✅ 更新项目文档（README、CHANGELOG、AGENTS.md）
 - ✅ 总计 137 个时间线条目
 
-## 📝 历史更新 (2026-03-16)
-
-- ✅ 实现 daily 日志路由功能（memory_write 支持 type="daily"）
-- ✅ 自动创建 daily/YYYY-MM-DD.md 文件
-- ✅ memory-automation 代理支持智能识别 daily 类型
-- ✅ 完善数据一致性分析和智能增量同步设计
-
 ## 🔧 快速上手
 
 ### 项目结构
@@ -27,43 +30,40 @@
 ```
 D:/github/opencode-memory-plugin/
 ├── opencode-memory-plugin/          # 插件主目录
-│   ├── lib/                        # 核心库文件
+│   ├── lib/                        # 核心库文件（CLI和Plugin共用）
+│   │   ├── constants.js            # 常量定义
+│   │   ├── ulid.js                 # ULID生成
+│   │   ├── entry.js                # buildEntryContent, writeEntryToTimeline
+│   │   ├── indexer.js              # updateLinkMap, updateMemoryIndex
+│   │   ├── extractor.js            # extractByLevel
+│   │   ├── storage.js              # getConfig, getLinkMap, getEntryById
 │   │   ├── wrapper-client.js       # 后端API客户端
 │   │   ├── project-resolver.js     # 项目ID解析器
 │   │   ├── bm25.js                 # BM25关键词搜索算法
-│   │   ├── trie.js                 # Trie索引结构
-│   │   ├── trie-index.js           # Trie索引管理器
 │   │   └── ws-client.js            # WebSocket客户端
-│   ├── bin/                        # CLI和安装脚本
-│   │   ├── cli.cjs                 # 命令行界面
+│   ├── tools/                      # OpenCode插件工具
+│   │   ├── core.js                 # memory_write
+│   │   ├── search.js              # memory_search, memory_suggest
+│   │   ├── graph.js                # memory_relate, memory_graph
+│   │   ├── browse.js               # memory_timeline, memory_topics
+│   │   └── sync.js                # 同步相关工具
+│   ├── cli/                        # CLI工具
+│   │   └── index.cjs               # 命令行界面（使用lib/）
+│   ├── bin/                        # 安装脚本
 │   │   └── install.cjs             # NPM安装钩子
-│   ├── agents/                     # 自定义OpenCode代理
-│   │   ├── memory-automation.md    # 自动保存代理
-│   │   └── memory-consolidate.md   # 自动合并代理
 │   ├── memory/                     # OpenClaw式记忆文件
 │   │   ├── SOUL.md, AGENTS.md, USER.md, etc.  # 核心记忆文件
-│   │   ├── MEMORY.md               # 长期记忆索引
+│   │   ├── MEMORY.md               # 长期记忆索引（程序化更新）
 │   │   └── timeline/               # 时间线结构的记忆条目
 │   │       └── YYYY/MM/DD/         # 日期组织结构
+│   ├── agents/                     # 自定义OpenCode代理
 │   ├── scripts/                    # 实用脚本
-│   │   ├── migrate-daily-to-timeline.mjs  # Timeline迁移脚本
-│   │   └── cleanup-memory.mjs      # 记忆清理工具
-│   ├── tests/                      # 测试文件
-│   ├── ARCHITECTURE.md             # 系统架构文档
-│   ├── CONFIGURATION.md            # 配置说明文档
-│   ├── EXTERNAL_EMBEDDING.md       # 外部embedding服务文档
-│   ├── QUICK_START.md              # 快速开始指南
-│   ├── TROUBLESHOOTING.md          # 故障排除指南
-│   ├── WINDOWS_SETUP.md            # Windows设置指南
 │   ├── plugin.js                   # OpenCode插件入口
-│   ├── index.js                    # 插件元数据
 │   └── package.json                # NPM包配置
 ├── docs/                           # 设计文档
-│   ├── incremental-sync-design-*.md  # 增量同步设计
-│   └── v2.3-enhanced-implementation-plan.md
 ├── README.md                       # 项目说明
 ├── CHANGELOG.md                    # 版本变更日志
-└── INSTALL.md                      # 安装说明
+└── AGENTS.md                       # 本文件
 ```
 
 ### 命令速查
@@ -165,17 +165,26 @@ opencode-memory list --days 7
 
 ## 🔍 核心概念
 
-### 8个记忆工具
+### L0/L1/L2 分层存储
 
-| 工具            | 功能       | 说明                 |
-| --------------- | ---------- | -------------------- |
-| `memory_write`  | 写入记忆   | 将信息写入长期记忆   |
-| `memory_read`   | 读取记忆   | 从记忆文件读取内容   |
-| `memory_search` | 搜索记忆   | 关键词和语义搜索     |
-| `list_daily`    | 列出日志   | 显示每日日志文件     |
-| `init_daily`    | 初始化日志 | 创建今日的日志文件   |
-| `rebuild_index` | 重建索引   | 重新索引所有记忆文件 |
-| `index_status`  | 状态检查   | 检查向量索引状态     |
+| 层级 | 字段     | 内容       | 大小   | 使用场景         |
+| ---- | -------- | ---------- | ------ | ---------------- |
+| L0   | abstract | 一句话摘要 | ≤100字 | 快速浏览条目列表 |
+| L1   | overview | 核心要点   | ≤500字 | 了解条目大意     |
+| L2   | content  | 完整内容   | 无限制 | 需要详细阅读     |
+
+### 19个记忆工具
+
+| 工具             | 功能       | 说明                    |
+| ---------------- | ---------- | ----------------------- |
+| `memory_write`   | 写入记忆   | 必填 abstract, overview |
+| `memory_read`    | 读取记忆   | 支持 level=0/1/2        |
+| `memory_search`  | 搜索记忆   | 关键词和语义搜索        |
+| `memory_suggest` | 自动补全   | 前缀搜索建议            |
+| `list_daily`     | 列出日志   | 显示每日日志文件        |
+| `init_daily`     | 初始化日志 | 创建今日的日志文件      |
+| `rebuild_index`  | 重建索引   | 重新索引所有记忆文件    |
+| `index_status`   | 状态检查   | 检查向量索引状态        |
 
 ### 搜索模式
 
@@ -218,24 +227,27 @@ opencode-memory list --days 7
 
 ### 工具模块
 
-| 符号             | 文件      | 说明                        |
-| ---------------- | --------- | --------------------------- |
-| memory_write     | plugin.js | 写入记忆工具                |
-| memory_search    | plugin.js | 搜索记忆工具（关键词+语义） |
-| memory_timeline  | plugin.js | 时间线浏览工具              |
-| memory_topics    | plugin.js | 主题浏览工具                |
-| incremental_sync | plugin.js | 增量同步工具                |
-| full_sync        | plugin.js | 完整同步工具                |
-| conflict_list    | plugin.js | 冲突列表工具                |
-| conflict_resolve | plugin.js | 冲突解决工具                |
-| rebuild_index    | plugin.js | 索引重建工具                |
-| index_status     | plugin.js | 索引状态检查工具            |
+| 符号             | 文件            | 说明                        |
+| ---------------- | --------------- | --------------------------- |
+| memory_write     | tools/core.js   | 写入记忆工具                |
+| memory_search    | tools/search.js | 搜索记忆工具（关键词+语义） |
+| memory_timeline  | tools/browse.js | 时间线浏览工具              |
+| memory_topics    | tools/browse.js | 主题浏览工具                |
+| incremental_sync | tools/sync.js   | 增量同步工具                |
+| full_sync        | tools/sync.js   | 完整同步工具                |
+| conflict_list    | tools/sync.js   | 冲突列表工具                |
+| conflict_resolve | tools/sync.js   | 冲突解决工具                |
+| rebuild_index    | tools/sync.js   | 索引重建工具                |
+| index_status     | tools/sync.js   | 索引状态检查工具            |
 
 ## 📊 核心特性总结
 
 ### 主要功能
 
 - ✅ **19个记忆工具**: 提供完整的记忆管理功能（核心11 + 同步4 + 浏览2 + 冲突2）
+- ✅ **v2.4 L0/L1/L2 分层存储**: abstract/overview/content 分层结构
+- ✅ **v2.4 ULID 格式**: `entry_{ulid}.md` 统一文件名
+- ✅ **v2.4 模块化架构**: lib/、tools/、cli/ 代码分离，共享核心库
 - ✅ **v2.3 双模同步**: 增量同步（基于指纹）+ 完整同步（支持断点续传）
 - ✅ **v2.3 冲突解决**: 自动检测、智能解决、手动合并
 - ✅ **v2.3 记忆浏览**: 时间线浏览器 + 主题探索器

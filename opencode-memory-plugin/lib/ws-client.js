@@ -6,7 +6,7 @@
 import WebSocket from 'ws';
 
 // WebSocket connection state
-let wsClient = null;
+const _wsClient = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 5000;
@@ -38,22 +38,22 @@ export class SyncWebSocketClient {
 
     try {
       console.log(`[WebSocket] Connecting to ${this.url}...`);
-      
+
       this.ws = new WebSocket(this.url);
-      
+
       this.ws.on('open', () => {
         console.log('[WebSocket] Connected successfully');
         this.isConnected = true;
         reconnectAttempts = 0;
-        
+
         // Send any queued messages
         this.flushMessageQueue();
-        
+
         // Trigger callback
         this.triggerHandler('connected', { tenantId: this.tenantId });
       });
 
-      this.ws.on('message', (data) => {
+      this.ws.on('message', data => {
         try {
           const message = JSON.parse(data);
           this.handleMessage(message);
@@ -70,11 +70,10 @@ export class SyncWebSocketClient {
         this.scheduleReconnect();
       });
 
-      this.ws.on('error', (error) => {
+      this.ws.on('error', error => {
         console.error('[WebSocket] Error:', error.message);
         this.triggerHandler('error', { error: error.message });
       });
-
     } catch (error) {
       console.error('[WebSocket] Connection failed:', error.message);
       this.scheduleReconnect();
@@ -90,7 +89,7 @@ export class SyncWebSocketClient {
     }
 
     const { action, type, data } = message;
-    
+
     // Handle SurrealDB LIVE notifications
     if (type === 'CREATE' || type === 'UPDATE' || type === 'DELETE') {
       console.log(`[WebSocket] Memory ${type}:`, data?.id);
@@ -108,16 +107,16 @@ export class SyncWebSocketClient {
         console.log('[WebSocket] Sync required:', data);
         this.triggerHandler('sync_required', data);
         break;
-      
+
       case 'conflict_detected':
         console.log('[WebSocket] Conflict detected:', data);
         this.triggerHandler('conflict_detected', data);
         break;
-      
+
       case 'ping':
         this.send({ action: 'pong', timestamp: Date.now() });
         break;
-      
+
       default:
         console.log('[WebSocket] Unknown message:', message);
     }
@@ -188,9 +187,9 @@ export class SyncWebSocketClient {
 
     reconnectAttempts++;
     const delay = RECONNECT_DELAY * reconnectAttempts;
-    
+
     console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
-    
+
     this.reconnectTimer = setTimeout(() => {
       this.connect();
     }, delay);
@@ -253,11 +252,12 @@ export async function initRealtimeSync(config, onSyncRequired, onConflictDetecte
   }
 
   const backendUrl = config?.backend?.url || 'http://localhost:17999';
-  const wsUrl = backendUrl.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws/memories/live';
+  const wsUrl =
+    backendUrl.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws/memories/live';
   const tenantId = config?.backend?.tenant_id || process.env.USERNAME || 'default';
 
   globalWsClient = new SyncWebSocketClient(wsUrl, tenantId);
-  
+
   // Register handlers
   globalWsClient.on('sync_required', onSyncRequired);
   globalWsClient.on('conflict_detected', onConflictDetected);
@@ -265,7 +265,7 @@ export async function initRealtimeSync(config, onSyncRequired, onConflictDetecte
   globalWsClient.on('disconnected', () => console.log('[Sync] Real-time sync paused'));
 
   await globalWsClient.connect();
-  
+
   return globalWsClient;
 }
 
@@ -276,7 +276,7 @@ export async function notifyLocalChange(entry) {
   if (!globalWsClient || !globalWsClient.isConnected) {
     return false;
   }
-  
+
   return globalWsClient.notifyLocalChange(entry);
 }
 
@@ -287,7 +287,7 @@ export async function requestRealtimeSync() {
   if (!globalWsClient || !globalWsClient.isConnected) {
     return false;
   }
-  
+
   return globalWsClient.requestSync();
 }
 

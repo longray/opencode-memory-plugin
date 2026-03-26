@@ -1,6 +1,6 @@
 /**
  * Trie (Prefix Tree) Data Structure Implementation
- * 
+ *
  * Used for fast keyword matching and autocomplete suggestions.
  * Time Complexity:
  * - Insert: O(m) where m is the length of the word
@@ -15,14 +15,14 @@ class TrieNode {
   constructor() {
     // Map of character -> TrieNode
     this.children = new Map();
-    
+
     // Flag indicating if this node marks the end of a complete word
     this.isEndOfWord = false;
-    
+
     // Set of entry IDs associated with this word
     // Supports multiple entries with the same keyword
     this.entryIds = new Set();
-    
+
     // Frequency counter for ranking suggestions
     this.frequency = 0;
   }
@@ -97,7 +97,7 @@ export class Trie {
     // Collect all entry IDs from this node and its children
     const entryIds = new Set();
     this._collectEntryIds(node, entryIds);
-    
+
     return entryIds;
   }
 
@@ -128,9 +128,7 @@ export class Trie {
     this._collectWords(node, lowerPrefix, suggestions);
 
     // Sort by frequency (descending) and limit results
-    return suggestions
-      .sort((a, b) => b.frequency - a.frequency)
-      .slice(0, limit);
+    return suggestions.sort((a, b) => b.frequency - a.frequency).slice(0, limit);
   }
 
   /**
@@ -189,7 +187,7 @@ export class Trie {
     let nodeCount = 0;
     let totalEntryIds = 0;
 
-    const traverse = (node) => {
+    const traverse = node => {
       if (!node) return;
       nodeCount++;
       totalEntryIds += node.entryIds.size;
@@ -220,7 +218,7 @@ export class Trie {
    * @returns {object}
    */
   serialize() {
-    const serializeNode = (node) => {
+    const serializeNode = node => {
       const children = {};
       for (const [char, childNode] of node.children) {
         children[char] = serializeNode(childNode);
@@ -248,7 +246,7 @@ export class Trie {
     const trie = new Trie();
     trie.size = data.size || 0;
 
-    const deserializeNode = (nodeData) => {
+    const deserializeNode = nodeData => {
       const node = new TrieNode();
       node.isEndOfWord = nodeData.isEndOfWord;
       node.entryIds = new Set(nodeData.entryIds || []);

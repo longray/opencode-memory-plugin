@@ -42,7 +42,7 @@ function extractProjectIdFromGitUrl(url) {
     return null;
   }
 
-  const originalUrl = url;
+  const _originalUrl = url;
   url = url.replace(/\.git$/, '');
 
   if (url.includes('@') && url.includes(':')) {
@@ -108,7 +108,7 @@ function getGitRemote(cwd, retries = 2) {
       const trimmed = result.trim();
       gitRemoteCache.set(normalizedCwd, trimmed);
       return trimmed;
-    } catch (error) {
+    } catch {
       if (i === retries) {
         return null;
       }
