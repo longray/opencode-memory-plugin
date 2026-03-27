@@ -29,7 +29,7 @@ export const memory_relate = tool({
           await client.createRelation({
             from_id: args.from_id,
             to_id: args.to_id,
-            relation_type: args.relation_type || 'related',
+            relationship_type: args.relation_type || 'related',
             weight: args.weight || 0.5,
           });
           return `✅ Relation created: ${args.from_id} → ${args.to_id} (${args.relation_type})`;
@@ -39,11 +39,19 @@ export const memory_relate = tool({
           if (!args.from_id) {
             return '❌ from_id is required for query action';
           }
-          const queryResult = await client.getRelations(args.from_id);
-          if (!queryResult || queryResult.length === 0) {
+          const queryResult = await client.getRelations({ memory_id: args.from_id });
+          const relations = Array.isArray(queryResult) ? queryResult : queryResult?.relations || [];
+          if (!relations || relations.length === 0) {
             return `❌ No relations found for: ${args.from_id}`;
           }
-          return queryResult.map(r => `- ${r.to_id}: ${r.relation_type} (${r.weight})`).join('\n');
+          return relations
+            .map(r => {
+              const targetId = r.to || r.to_id || 'unknown';
+              const relType = r.relationship_type || r.relation_type || 'unknown';
+              const weight = r.weight ?? 0.5;
+              return `- ${targetId}: ${relType} (${weight})`;
+            })
+            .join('\n');
         }
 
         case 'delete':
@@ -72,24 +80,31 @@ export const memory_graph = tool({
   async execute(args) {
     const config = getConfig();
     const client = getWrapperClient(config);
-    const backendEnabled = config?.backend?.enabled !== false;
-
-    if (!backendEnabled) {
-      return '❌ Backend not enabled. Graph traversal requires backend service.';
-    }
 
     try {
       const results = await client.traverseGraph({
-        start_id: args.memory_id,
+        memory_id: args.memory_id,
         depth: args.depth || 2,
         limit: args.limit || 20,
       });
 
-      if (!results || results.length === 0) {
+      if (!results) {
         return `❌ No related memories found for: ${args.memory_id}`;
       }
 
-      return results.map(r => `[${r.depth}] ${r.id}: ${r.abstract || ''}...`).join('\n');
+      const nodes = Array.isArray(results) ? results : results.memories || results.relations || [];
+      if (nodes.length === 0) {
+        return `❌ No related memories found for: ${args.memory_id}`;
+      }
+
+      return nodes
+        .map(r => {
+          const nodeId = r.id || r.memory_id || 'unknown';
+          const abstract = r.abstract || '';
+          const depth = r.depth || 0;
+          return `[${depth}] ${nodeId}: ${abstract}...`;
+        })
+        .join('\n');
     } catch (e) {
       return `❌ Error: ${e.message}`;
     }

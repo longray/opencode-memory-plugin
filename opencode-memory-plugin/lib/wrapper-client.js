@@ -498,10 +498,13 @@ export class WrapperClient {
     const requestBody = {
       memories: memories.map(m => ({
         content: m.content,
+        abstract: m.abstract || null,
+        overview: m.overview || null,
         type: m.type || 'general',
         tags: m.tags || [],
         project_id: m.project_id || 'global',
         source_id: m.source_id,
+        local_id: m.local_id,
         source: m.source || 'plugin',
         metadata: m.metadata || {},
         tenant_id: m.tenant_id || this.tenantId,
@@ -544,6 +547,15 @@ export class WrapperClient {
       () => this.http.post(`/api/v1/sync/conflicts/${conflict_id}/resolve`, requestBody),
       this.maxRetries
     );
+  }
+
+  async listConflicts({ limit = 10, tenant_id }) {
+    const body = { tenant_id: tenant_id || this.tenantId, limit };
+    try {
+      return await this.http.post('/api/v1/sync/conflicts/list', body);
+    } catch {
+      return [];
+    }
   }
 }
 

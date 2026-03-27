@@ -10,7 +10,6 @@ import {
   full_sync,
   conflict_list,
   conflict_resolve,
-  batch_resolve,
   sync_checkpoint,
 } from './tools/sync.js';
 
@@ -53,7 +52,6 @@ export const MemoryPlugin = async _ctx => {
       full_sync,
       conflict_list,
       conflict_resolve,
-      batch_resolve,
       sync_checkpoint,
     },
   };

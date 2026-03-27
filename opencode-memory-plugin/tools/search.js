@@ -1,7 +1,7 @@
 import { tool } from '@opencode-ai/plugin/tool';
 import { getConfig } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
-import { searchByPrefix } from '../lib/trie-index.js';
+import { getAutocompleteSuggestions } from '../lib/trie-index.js';
 import fs from 'fs';
 import path from 'path';
 import { MEMORY_DIR } from '../lib/constants.js';
@@ -129,11 +129,15 @@ export const memory_suggest = tool({
   },
   async execute(args) {
     try {
-      const suggestions = searchByPrefix(args.prefix, args.limit || 10);
-      if (suggestions.length === 0) {
+      const suggestions = await getAutocompleteSuggestions(args.prefix, args.limit || 10);
+      if (!Array.isArray(suggestions) || suggestions.length === 0) {
         return '❌ No suggestions';
       }
-      return suggestions.map(s => `- ${s}`).join('\n');
+      return suggestions
+        .map(s =>
+          typeof s === 'string' ? `- ${s}` : `- ${s.word || s.suggestion || JSON.stringify(s)}`
+        )
+        .join('\n');
     } catch (e) {
       return `❌ Suggestion error: ${e.message}`;
     }

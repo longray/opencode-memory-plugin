@@ -127,16 +127,35 @@ export const incremental_sync = tool({
   async execute(args) {
     const config = getConfig();
     const client = getWrapperClient(config);
+    const linkMap = getLinkMap();
+    const entries = Object.values(linkMap.entries || {});
 
     if (args.dry_run) {
-      const linkMap = getLinkMap();
-      const pending = Object.values(linkMap.entries || {}).filter(e => !e.synced);
+      const pending = entries.filter(e => !e.synced);
       return `📋 Dry run: ${pending.length} entries would be synced`;
     }
 
+    const fingerprints = entries.map(e => {
+      const filePath = path.join(MEMORY_DIR, e.path);
+      const stat = fs.statSync(filePath);
+      return {
+        path: e.path,
+        mtime: Math.floor(stat.mtimeMs),
+        hash: e.hash || '',
+        source_id: e.id,
+      };
+    });
+
+    if (fingerprints.length === 0) {
+      return '✅ No entries to sync';
+    }
+
     try {
-      const result = await client.incrementalSync();
-      return `✅ Incremental sync: ${result.synced || 0} synced`;
+      const tenantId = config?.backend?.tenant_id || 'default';
+      const result = await client.syncIncremental(fingerprints, tenantId);
+      const toUpload = result.to_upload?.length || 0;
+      const toDelete = result.to_delete?.length || 0;
+      return `✅ Incremental sync: ${toUpload} to upload, ${toDelete} to delete`;
     } catch (e) {
       return `❌ Sync error: ${e.message}`;
     }
@@ -144,21 +163,45 @@ export const incremental_sync = tool({
 });
 
 export const full_sync = tool({
-  description: 'Perform full synchronization with resume support',
+  description: 'Perform full synchronization - upload all local memories to backend',
   args: {
-    resume: tool.schema.boolean().optional().default(false),
-    batch_size: tool.schema.number().optional().default(50),
+    dry_run: tool.schema.boolean().optional().default(false),
   },
   async execute(args) {
     const config = getConfig();
     const client = getWrapperClient(config);
 
+    const linkMap = getLinkMap();
+    const entries = Object.values(linkMap.entries || {});
+
+    if (entries.length === 0) {
+      return '✅ No entries to sync';
+    }
+
+    if (args.dry_run) {
+      return `📋 Dry run: ${entries.length} entries would be synced`;
+    }
+
     try {
-      const result = await client.fullSync({
-        resume: args.resume || false,
-        batch_size: args.batch_size || 50,
+      const memories = entries.map(e => {
+        const filePath = path.join(MEMORY_DIR, e.path);
+        const content = fs.readFileSync(filePath, 'utf-8');
+        return {
+          content,
+          abstract: e.abstract || null,
+          overview: e.overview || null,
+          type: e.type || 'general',
+          tags: e.tags || [],
+          source: 'plugin',
+          source_id: e.id || null,
+          local_id: e.id || null,
+          project_id: e.project || 'global',
+        };
       });
-      return `✅ Full sync: ${result.synced || 0} synced`;
+
+      const tenantId = config?.backend?.tenant_id || 'default';
+      const result = await client.syncFull(memories, tenantId);
+      return `✅ Full sync: ${result.uploaded || 0} uploaded, ${result.skipped || 0} skipped`;
     } catch (e) {
       return `❌ Sync error: ${e.message}`;
     }
@@ -190,36 +233,20 @@ export const conflict_resolve = tool({
   description: 'Resolve a sync conflict',
   args: {
     conflict_id: tool.schema.string().describe('Conflict ID'),
-    resolution: tool.schema.string().describe('Resolution: USE_LOCAL, USE_BACKEND, MERGE'),
+    resolution: tool.schema.string().describe('Resolution: use_local, use_remote, keep_both'),
   },
   async execute(args) {
     const config = getConfig();
     const client = getWrapperClient(config);
 
     try {
-      await client.resolveConflict({
-        conflict_id: args.conflict_id,
-        resolution: args.resolution,
-      });
-      return `✅ Conflict resolved: ${args.conflict_id}`;
-    } catch (e) {
-      return `❌ Error: ${e.message}`;
-    }
-  },
-});
-
-export const batch_resolve = tool({
-  description: 'Batch resolve multiple conflicts',
-  args: {
-    strategy: tool.schema.string().describe('Strategy: ACCEPT_ALL, USE_LOCAL_ALL, USE_BACKEND_ALL'),
-  },
-  async execute(args) {
-    const config = getConfig();
-    const client = getWrapperClient(config);
-
-    try {
-      const result = await client.batchResolve({ strategy: args.strategy });
-      return `✅ Batch resolved: ${result.resolved || 0} conflicts`;
+      const normalizedResolution = (args.resolution || '').toLowerCase();
+      await client.resolveConflict(
+        args.conflict_id,
+        normalizedResolution,
+        config?.backend?.tenant_id
+      );
+      return `✅ Conflict resolved: ${args.conflict_id} (${normalizedResolution})`;
     } catch (e) {
       return `❌ Error: ${e.message}`;
     }
@@ -241,7 +268,10 @@ export const sync_checkpoint = tool({
       return '❌ Backend not enabled';
     }
 
-    if (args.action === 'list') {
+    const action = args.action || 'list';
+    const limit = args.limit || 20;
+
+    if (action === 'list') {
       try {
         const fingerprints = await client.getServerFingerprints(
           config?.backend?.tenant_id || 'default'
@@ -252,7 +282,7 @@ export const sync_checkpoint = tool({
           return '✅ No fingerprints on server';
         }
 
-        const shown = list.slice(0, args.limit || 20);
+        const shown = list.slice(0, limit);
         let output = `## Sync Checkpoints\n\n`;
         output += `**Total on server:** ${list.length}\n\n`;
         output += `| Source ID | Hash | Path |\n`;
@@ -263,8 +293,8 @@ export const sync_checkpoint = tool({
           output += `| ${fp.source_id || 'N/A'} | ${hash}... | ${p}... |\n`;
         });
 
-        if (list.length > (args.limit || 20)) {
-          output += `\n... and ${list.length - (args.limit || 20)} more\n`;
+        if (list.length > limit) {
+          output += `\n... and ${list.length - limit} more\n`;
         }
 
         return output;
@@ -273,6 +303,6 @@ export const sync_checkpoint = tool({
       }
     }
 
-    return `❌ Unknown action: ${args.action}. Use: list`;
+    return `❌ Unknown action: ${action}. Use: list`;
   },
 });
