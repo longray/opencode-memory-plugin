@@ -52,7 +52,6 @@ Identify and preserve valuable information that should persist across sessions. 
 2. **Assess conversation value**:
    - Is this a productive working session?
    - Or casual chat/testing?
-   
 3. **Determine scope**:
    - **Specific project work** → Focus on project-relevant saves
    - **General discussion** → Focus on universal patterns
@@ -83,6 +82,7 @@ You should automatically save information when:
 ### When NOT to Trigger
 
 Skip saving entirely if:
+
 - Casual chat without productive outcome
 - Testing without meaningful result
 - Duplicate information detected (<30 min)
@@ -93,34 +93,44 @@ Skip saving entirely if:
 **CRITICAL: Every entry MUST pass all 5 gates before saving.**
 
 ### Gate 1: Value Test
+
 Ask:
+
 - Will this be useful in 3 months?
 - Is it actionable or just interesting?
 - Does it help future decisions?
 - **If NO to any → SKIP**
 
 ### Gate 2: Completeness Test
+
 Ask:
+
 - Does it have enough context to be useful later?
 - Is the rationale included for decisions?
 - Can I understand it without the original conversation?
 - **If NO → ENHANCE or SKIP**
 
 ### Gate 3: Freshness Test
+
 Ask:
+
 - Is this new information?
 - Or has it already been captured in memory?
 - Is it consistent with what I already know?
 - **If duplicate → ENHANCE existing or SKIP**
 
 ### Gate 4: Project Relevance Test
+
 Ask:
+
 - Which project does this apply to?
 - Is it project-specific or universal knowledge?
 - **Assign correct project_id or mark as global**
 
 ### Gate 5: Temporal Test
+
 Ask:
+
 - Is this permanent knowledge or temporary context?
 - Debugging notes → Save to daily, not long-term
 - Project conventions → Save to long-term
@@ -166,6 +176,7 @@ Ask:
 ### Step 2: Apply Quality Gates
 
 For each candidate:
+
 - Run through all 5 quality gates
 - Mark as SAVE, ENHANCE, or SKIP
 
@@ -174,6 +185,7 @@ For each candidate:
 **Instead of saving 5 separate entries about the same topic:**
 
 ❌ **Don't do this**:
+
 ```
 memory_write: "User likes TypeScript"
 memory_write: "User prefers type safety"
@@ -183,9 +195,10 @@ memory_write: "User讨厌隐式any"
 ```
 
 ✅ **Do this**:
+
 ```
-memory_write: "User TypeScript Preferences: Prefers TypeScript for type safety. 
-Wants explicit types on all function parameters. Avoids 'any' type. 
+memory_write: "User TypeScript Preferences: Prefers TypeScript for type safety.
+Wants explicit types on all function parameters. Avoids 'any' type.
 Clear communication preference."
 ```
 
@@ -195,14 +208,15 @@ Clear communication preference."
 
 When detecting similar existing entry:
 
-| Situation | Action |
-|-----------|--------|
-| Exact duplicate | **Skip** |
-| Similar with NEW info | **Enhance existing** |
-| Contradicts old info | Update with correction |
-| Complementary | Merge perspectives |
+| Situation             | Action                 |
+| --------------------- | ---------------------- |
+| Exact duplicate       | **Skip**               |
+| Similar with NEW info | **Enhance existing**   |
+| Contradicts old info  | Update with correction |
+| Complementary         | Merge perspectives     |
 
 **Enhancement Example**:
+
 - **Existing**: "User prefers TypeScript"
 - **New detected**: "User values type safety"
 - **Action**: Enhance to "User prefers TypeScript. Values type safety and explicit types."
@@ -210,6 +224,7 @@ When detecting similar existing entry:
 ### Step 5: Execute Batched Saves
 
 After consolidation:
+
 1. Write enhanced entries
 2. Skip duplicates
 3. Summarize what was saved
@@ -236,17 +251,17 @@ After consolidation:
 
 Use this matrix to determine the correct type:
 
-| Information Type | Decision Criteria | Default Type |
-|----------------|-------------------|--------------|
-| User preference (firm) | User stated clearly | **preference** |
-| User preference (casual) | Casual mention, might change | **daily** |
-| Technical decision | With rationale | **decision** |
-| Technical decision | Without rationale | **daily** |
-| Project convention | Established pattern | **long-term** |
-| Lesson learned | With context and solution | **long-term** |
-| Debugging notes | Temporary investigation | **daily** |
-| Debugging solved | With resolution | **long-term** |
-| Success pattern | Worked well, repeatable | **long-term** |
+| Information Type         | Decision Criteria            | Default Type   |
+| ------------------------ | ---------------------------- | -------------- |
+| User preference (firm)   | User stated clearly          | **preference** |
+| User preference (casual) | Casual mention, might change | **daily**      |
+| Technical decision       | With rationale               | **decision**   |
+| Technical decision       | Without rationale            | **daily**      |
+| Project convention       | Established pattern          | **long-term**  |
+| Lesson learned           | With context and solution    | **long-term**  |
+| Debugging notes          | Temporary investigation      | **daily**      |
+| Debugging solved         | With resolution              | **long-term**  |
+| Success pattern          | Worked well, repeatable      | **long-term**  |
 
 ### Type Classification Guide
 
@@ -367,18 +382,21 @@ If nothing worth saving was found:
 ## Timing: When to Save
 
 ### Save Immediately If:
+
 - User explicitly states firm preference
 - Major decision with clear rationale
 - Agreement on way of working
 - Critical lesson learned
 
 ### Buffer and Batch If:
+
 - Multiple related discoveries on same topic
 - Incremental debugging findings
 - Multiple preferences on same subject
 - Partial notes that could be combined
 
 ### Skip Entirely If:
+
 - Casual chat without productive outcome
 - Testing without meaningful result
 - Duplicate of recent save (<30 min)

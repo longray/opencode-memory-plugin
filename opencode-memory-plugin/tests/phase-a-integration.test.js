@@ -70,10 +70,10 @@ describe('Phase A - Integration Tests (A-INT)', () => {
       const year = now.getFullYear().toString();
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const day = String(now.getDate()).padStart(2, '0');
-      
+
       const dayDir = path.join(TIMELINE_DIR, year, month, day);
       await fs.mkdir(dayDir, { recursive: true });
-      
+
       // Verify directory exists
       const stats = await fs.stat(dayDir);
       expect(stats.isDirectory()).toBe(true);
@@ -85,11 +85,11 @@ describe('Phase A - Integration Tests (A-INT)', () => {
       const year = now.getFullYear().toString();
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const day = String(now.getDate()).padStart(2, '0');
-      
+
       const entryId = `entry-${Date.now().toString(36)}-test`;
       const dayDir = path.join(TIMELINE_DIR, year, month, day);
       await fs.mkdir(dayDir, { recursive: true });
-      
+
       const entryFile = path.join(dayDir, `${entryId}.md`);
       const content = `---
 entry_id: ${entryId}
@@ -108,16 +108,16 @@ Testing the new timeline storage with backend sync
 ## Content (L2)
 This is a full content for Phase A integration testing.
 `;
-      
+
       await fs.writeFile(entryFile, content, 'utf8');
-      
+
       // Verify file exists and contains expected content
       const fileContent = await fs.readFile(entryFile, 'utf8');
       expect(fileContent).toContain('## Abstract (L0)');
       expect(fileContent).toContain('## Overview (L1)');
       expect(fileContent).toContain('## Content (L2)');
       expect(fileContent).toContain('Phase A integration test entry');
-      
+
       console.log('✅ Entry file written:', entryFile);
     });
 
@@ -126,10 +126,10 @@ This is a full content for Phase A integration testing.
       const year = now.getFullYear().toString();
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const day = String(now.getDate()).padStart(2, '0');
-      
+
       const dayDir = path.join(TIMELINE_DIR, year, month, day);
       await fs.mkdir(dayDir, { recursive: true });
-      
+
       const overviewFile = path.join(dayDir, '.overview.md');
       const overview = `# Day Overview - ${year}-${month}-${day}
 
@@ -137,42 +137,42 @@ This is a full content for Phase A integration testing.
 - [long-term] Phase A integration test entry
 - [test] Another test entry
 `;
-      
+
       await fs.writeFile(overviewFile, overview, 'utf8');
-      
+
       // Verify overview file
       const content = await fs.readFile(overviewFile, 'utf8');
       expect(content).toContain('## Entries');
       expect(content).toContain('Phase A integration test entry');
-      
+
       console.log('✅ Day overview updated:', overviewFile);
     });
 
     it('should keep MEMORY.md index under 200 lines', async () => {
       const memoryFile = path.join(MEMORY_DIR, 'MEMORY.md');
-      
+
       // Create index with many entries
       let index = '# Memory Index v2.2\n\n## Timeline Entries\n\n';
       for (let i = 0; i < 250; i++) {
         index += `- Entry ${i} → timeline/2026/03/19/entry-${i}.md\n`;
       }
-      
+
       await fs.writeFile(memoryFile, index, 'utf8');
-      
+
       // Verify file size
       const content = await fs.readFile(memoryFile, 'utf8');
       const lines = content.split('\n');
-      
+
       // Trim to 200 lines if needed (simulating the plugin behavior)
       if (lines.length > 200) {
         const trimmed = lines.slice(0, 200).join('\n');
         await fs.writeFile(memoryFile, trimmed, 'utf8');
       }
-      
+
       const finalContent = await fs.readFile(memoryFile, 'utf8');
       const finalLines = finalContent.split('\n');
       expect(finalLines.length).toBeLessThanOrEqual(200);
-      
+
       console.log('✅ MEMORY.md index maintained:', finalLines.length, 'lines');
     });
   });
@@ -186,29 +186,37 @@ This is a full content for Phase A integration testing.
         type: 'test',
         tags: ['test', 'integration', 'phase-a'],
         project_id: '@longray/opencode-memory-plugin',
-        tenant_id: 'default'
+        tenant_id: 'default',
       };
-      
+
       try {
         const response = await fetch(`${BACKEND_URL}/api/v1/memories`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memories: [testMemory] })
+          body: JSON.stringify({ memories: [testMemory] }),
         });
-        
+
         expect(response.status).toBe(200);
         const result = await response.json();
         expect(result).toHaveProperty('memory_ids');
-        
+
         const totalProcessed = (result.success || 0) + (result.updated || 0) + (result.failed || 0);
         expect(totalProcessed).toBeGreaterThan(0);
-        
+
         if (result.success > 0) {
           console.log('✅ Memory uploaded to backend:', result.memory_ids[0]);
         } else if (result.failed > 0 && result.errors?.[0]?.type === 'duplicate') {
           console.log('✅ Upload processed (detected as duplicate):', result.errors[0].existing_id);
         } else {
-          console.log('✅ Upload processed:', result.success, 'success,', result.updated, 'updated,', result.failed, 'failed');
+          console.log(
+            '✅ Upload processed:',
+            result.success,
+            'success,',
+            result.updated,
+            'updated,',
+            result.failed,
+            'failed'
+          );
         }
       } catch (error) {
         console.error('❌ Upload failed:', error.message);
@@ -223,17 +231,19 @@ This is a full content for Phase A integration testing.
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            memories: [{
-              content: uniqueContent,
-              type: 'test',
-              tags: ['search-test'],
-              tenant_id: 'default'
-            }]
-          })
+            memories: [
+              {
+                content: uniqueContent,
+                type: 'test',
+                tags: ['search-test'],
+                tenant_id: 'default',
+              },
+            ],
+          }),
         });
-        
+
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         const response = await fetch(`${BACKEND_URL}/api/v1/memories/search`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -241,10 +251,10 @@ This is a full content for Phase A integration testing.
             query: uniqueContent,
             mode: 'hybrid',
             limit: 10,
-            tenant_id: 'default'
-          })
+            tenant_id: 'default',
+          }),
         });
-        
+
         expect(response.status).toBe(200);
         const data = await response.json();
         expect(data).toHaveProperty('results');
@@ -258,29 +268,39 @@ This is a full content for Phase A integration testing.
 
     it('should handle batch upload', async () => {
       const timestamp = Date.now();
-      const memories = Array(5).fill(null).map((_, i) => ({
-        content: `Batch test memory ${timestamp} ${i} ${Math.random().toString(36).substring(7)}`,
-        type: 'test',
-        tags: ['batch', 'test'],
-        project_id: 'test-project',
-        tenant_id: 'default'
-      }));
-      
+      const memories = Array(5)
+        .fill(null)
+        .map((_, i) => ({
+          content: `Batch test memory ${timestamp} ${i} ${Math.random().toString(36).substring(7)}`,
+          type: 'test',
+          tags: ['batch', 'test'],
+          project_id: 'test-project',
+          tenant_id: 'default',
+        }));
+
       try {
         const response = await fetch(`${BACKEND_URL}/api/v1/memories`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memories })
+          body: JSON.stringify({ memories }),
         });
-        
+
         expect(response.status).toBe(200);
         const result = await response.json();
         expect(result.total).toBe(5);
-        
+
         const totalProcessed = (result.success || 0) + (result.updated || 0) + (result.failed || 0);
         expect(totalProcessed).toBeGreaterThan(0);
-        
-        console.log('✅ Batch upload:', result.success, 'success,', result.updated, 'updated,', result.failed, 'failed');
+
+        console.log(
+          '✅ Batch upload:',
+          result.success,
+          'success,',
+          result.updated,
+          'updated,',
+          result.failed,
+          'failed'
+        );
       } catch (error) {
         console.error('❌ Batch upload failed:', error.message);
         throw error;
@@ -294,12 +314,12 @@ This is a full content for Phase A integration testing.
       const year = now.getFullYear().toString();
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const day = String(now.getDate()).padStart(2, '0');
-      
+
       const uniqueId = `e2e-${Date.now().toString(36)}-${Math.random().toString(36).substring(7)}`;
       const entryId = `entry-${uniqueId}`;
       const dayDir = path.join(TIMELINE_DIR, year, month, day);
       await fs.mkdir(dayDir, { recursive: true });
-      
+
       const entryData = {
         content: `[E2E-TEST-${uniqueId}] End-to-end integration test for Phase A v2.2-lite with unique ID ${uniqueId}`,
         abstract: 'E2E test for timeline storage with backend sync',
@@ -307,9 +327,9 @@ This is a full content for Phase A integration testing.
         type: 'long-term',
         tags: ['e2e', 'integration', 'phase-a', 'v2.2-lite'],
         project_id: '@longray/opencode-memory-plugin',
-        tenant_id: 'default'
+        tenant_id: 'default',
       };
-      
+
       const entryFile = path.join(dayDir, `${entryId}.md`);
       const entryContent = `---
 entry_id: ${entryId}
@@ -328,36 +348,47 @@ ${entryData.overview}
 ## Content (L2)
 ${entryData.content}
 `;
-      
+
       await fs.writeFile(entryFile, entryContent, 'utf8');
       console.log('Step 1 ✅: Local entry created');
-      
+
       // Step 2: Upload to backend
       const uploadResponse = await fetch(`${BACKEND_URL}/api/v1/memories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          memories: [{
-            content: entryData.content,
-            type: entryData.type,
-            tags: entryData.tags,
-            project_id: entryData.project_id,
-            tenant_id: entryData.tenant_id
-          }]
-        })
+          memories: [
+            {
+              content: entryData.content,
+              type: entryData.type,
+              tags: entryData.tags,
+              project_id: entryData.project_id,
+              tenant_id: entryData.tenant_id,
+            },
+          ],
+        }),
       });
-      
+
       expect(uploadResponse.status).toBe(200);
       const uploadResult = await uploadResponse.json();
-      
-      const totalProcessed = (uploadResult.success || 0) + (uploadResult.updated || 0) + (uploadResult.failed || 0);
+
+      const totalProcessed =
+        (uploadResult.success || 0) + (uploadResult.updated || 0) + (uploadResult.failed || 0);
       expect(totalProcessed).toBeGreaterThan(0);
-      
-      console.log('Step 2 ✅: Backend sync completed (', uploadResult.success, 'success,', uploadResult.updated, 'updated,', uploadResult.failed, 'failed)');
-      
+
+      console.log(
+        'Step 2 ✅: Backend sync completed (',
+        uploadResult.success,
+        'success,',
+        uploadResult.updated,
+        'updated,',
+        uploadResult.failed,
+        'failed)'
+      );
+
       // Step 3: Search for the memory
       await new Promise(resolve => setTimeout(resolve, 500)); // Wait for indexing
-      
+
       const searchResponse = await fetch(`${BACKEND_URL}/api/v1/memories/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -365,21 +396,24 @@ ${entryData.content}
           query: 'end-to-end integration test Phase A',
           mode: 'hybrid',
           limit: 5,
-          tenant_id: 'default'
-        })
+          tenant_id: 'default',
+        }),
       });
-      
+
       expect(searchResponse.status).toBe(200);
       const searchData = await searchResponse.json();
       expect(searchData.results.length).toBeGreaterThan(0);
       console.log('Step 3 ✅: Search returned', searchData.results.length, 'results');
-      
+
       // Step 4: Verify day overview updated
       const overviewFile = path.join(dayDir, '.overview.md');
-      const overviewExists = await fs.access(overviewFile).then(() => true).catch(() => false);
+      const overviewExists = await fs
+        .access(overviewFile)
+        .then(() => true)
+        .catch(() => false);
       expect(overviewExists).toBe(true);
       console.log('Step 4 ✅: Day overview exists');
-      
+
       console.log('✅ Full E2E workflow completed successfully!');
     }, 30000);
   });
@@ -388,43 +422,56 @@ ${entryData.content}
     it('should detect and handle duplicates', async () => {
       const uniqueToken = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
       const duplicateContent = `[DEDUP-TEST-${uniqueToken}] This is specific duplicate test content ${uniqueToken}`;
-      
+
       // Upload first time
       const response1 = await fetch(`${BACKEND_URL}/api/v1/memories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          memories: [{
-            content: duplicateContent,
-            type: 'test',
-            tags: ['duplicate-test'],
-            tenant_id: 'default'
-          }]
-        })
+          memories: [
+            {
+              content: duplicateContent,
+              type: 'test',
+              tags: ['duplicate-test'],
+              tenant_id: 'default',
+            },
+          ],
+        }),
       });
-      
+
       expect(response1.status).toBe(200);
       const result1 = await response1.json();
-      
-      const totalProcessed1 = (result1.success || 0) + (result1.updated || 0) + (result1.failed || 0);
+
+      const totalProcessed1 =
+        (result1.success || 0) + (result1.updated || 0) + (result1.failed || 0);
       expect(totalProcessed1).toBeGreaterThan(0);
-      
-      console.log('First upload:', result1.success, 'success,', result1.updated, 'updated,', result1.failed, 'failed');
-      
+
+      console.log(
+        'First upload:',
+        result1.success,
+        'success,',
+        result1.updated,
+        'updated,',
+        result1.failed,
+        'failed'
+      );
+
       // Upload same content again
       const response2 = await fetch(`${BACKEND_URL}/api/v1/memories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          memories: [{
-            content: duplicateContent,
-            type: 'test',
-            tags: ['duplicate-test'],
-            tenant_id: 'default'
-          }]
-        })
+          memories: [
+            {
+              content: duplicateContent,
+              type: 'test',
+              tags: ['duplicate-test'],
+              tenant_id: 'default',
+            },
+          ],
+        }),
       });
-      
+
       expect(response2.status).toBe(200);
       const result2 = await response2.json();
       // Should be detected as duplicate or succeed depending on dedup implementation
@@ -435,23 +482,25 @@ ${entryData.content}
   describe('Go/No-Go Checkpoint 6: Performance', () => {
     it('should complete operations within reasonable time', async () => {
       const startTime = Date.now();
-      
+
       // Health check
       await fetch(`${BACKEND_URL}/health`);
-      
+
       // Single upload
       await fetch(`${BACKEND_URL}/memories/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          memories: [{
-            content: 'Performance test',
-            type: 'test',
-            tenant_id: 'default'
-          }]
-        })
+          memories: [
+            {
+              content: 'Performance test',
+              type: 'test',
+              tenant_id: 'default',
+            },
+          ],
+        }),
       });
-      
+
       // Search
       await fetch(`${BACKEND_URL}/memories/search`, {
         method: 'POST',
@@ -460,13 +509,13 @@ ${entryData.content}
           query: 'performance',
           mode: 'hybrid',
           limit: 10,
-          tenant_id: 'default'
-        })
+          tenant_id: 'default',
+        }),
       });
-      
+
       const duration = Date.now() - startTime;
       expect(duration).toBeLessThan(10000); // Should complete within 10 seconds
-      
+
       console.log('✅ Performance test:', duration, 'ms');
     }, 15000);
   });

@@ -270,6 +270,30 @@ opencode-memory list --days 7
 opencode-memory status
 ```
 
+## 代码规范
+
+本项目使用 [Oxlint](https://oxc.rs/) + [Prettier](https://prettier.io/) 进行代码检查和格式化。
+
+```bash
+# 检查代码规范
+npm run lint
+
+# 自动修复可修复的问题
+npm run lint:fix
+
+# 格式化代码
+npm run format
+
+# 检查格式是否正确
+npm run format:check
+```
+
+配置文件：
+
+- `.oxlintrc.json` - Oxlint 规则配置
+- `.prettierrc` - Prettier 格式配置
+- `.eslintignore` - 忽略文件列表
+
 ## 📂 Project Structure
 
 ```

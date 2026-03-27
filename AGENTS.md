@@ -156,6 +156,39 @@ meta: [{键:值}, ...]
 - `@opencode-ai/plugin` - OpenCode 插件框架
 - Node.js 16+
 
+### Lint 配置
+
+**工具**: Oxlint + Prettier（替代 ESLint）
+
+**选择原因**:
+
+- Oxlint 基于 Rust 构建，速度比 ESLint 快 10-50 倍
+- 开箱即用，无需复杂配置
+- 与 Prettier 天然兼容，无规则冲突
+
+**配置要点**:
+
+- `.oxlintrc.json` - Oxlint 规则配置
+  - `caughtErrorsIgnorePattern: "^_"` 需显式配置（catch 参数忽略 `_` 前缀）
+  - `varsIgnorePattern` 和 `argsIgnorePattern` 默认就是 `^_`
+- `.prettierrc` - Prettier 格式配置（保持不变）
+- `.eslintignore` - 忽略文件列表（Oxlint 使用此文件）
+
+**Oxlint 不支持的规则**（原 ESLint 规则）:
+
+- `no-shadow`
+- `prefer-arrow-callback`
+- `object-shorthand`
+- `no-multiple-empty-lines`
+- `eol-last`
+
+**npm scripts**:
+
+- `npm run lint` - 检查代码规范
+- `npm run lint:fix` - 自动修复可修复的问题
+- `npm run format` - 格式化代码
+- `npm run format:check` - 检查格式是否正确
+
 ---
 
 ## 文档分工

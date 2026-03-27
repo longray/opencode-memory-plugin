@@ -16,13 +16,13 @@ const MEMORY_FILE = path.join(MEMORY_DIR, 'MEMORY.md');
 const CONFIG_FILE = path.join(MEMORY_DIR, 'memory-config.json');
 
 const commands = {
-  'write': memoryWrite,
-  'read': memoryRead,
-  'search': memorySearch,
-  'list': listDaily,
-  'init': initDaily,
-  'status': indexStatus,
-  'help': showHelp
+  write: memoryWrite,
+  read: memoryRead,
+  search: memorySearch,
+  list: listDaily,
+  init: initDaily,
+  status: indexStatus,
+  help: showHelp,
 };
 
 function log(msg, color = '') {
@@ -31,7 +31,7 @@ function log(msg, color = '') {
     red: '\x1b[31m',
     yellow: '\x1b[33m',
     blue: '\x1b[34m',
-    reset: '\x1b[0m'
+    reset: '\x1b[0m',
   };
   console.log(`${colors[color] || ''}${msg}${colors.reset || ''}`);
 }
@@ -84,7 +84,7 @@ function memoryWrite(args) {
     process.exit(1);
   }
 
-  const type = typeof (args.type || 'general') === 'string' ? (args.type || 'general') : 'general';
+  const type = typeof (args.type || 'general') === 'string' ? args.type || 'general' : 'general';
   const tags = args.tags ? (typeof args.tags === 'string' ? args.tags.split(',') : args.tags) : [];
   const timestamp = new Date().toISOString();
 
@@ -149,10 +149,10 @@ function memorySearch(args) {
         while ((match = regex.exec(content)) !== null) {
           matches.push({
             text: match[0],
-            index: match.index
+            index: match.index,
           });
         }
-      } catch (e) {
+      } catch (_e) {
         log(`✗ Invalid regex: ${query}`, 'red');
         process.exit(1);
       }
@@ -163,7 +163,7 @@ function memorySearch(args) {
         if (line.toLowerCase().includes(query.toLowerCase())) {
           matches.push({
             text: line.trim(),
-            index: index
+            index: index,
           });
         }
       });
@@ -197,7 +197,8 @@ function listDaily(args) {
   }
 
   try {
-    const files = fs.readdirSync(dailyDir)
+    const files = fs
+      .readdirSync(dailyDir)
       .filter(f => f.endsWith('.md'))
       .sort()
       .reverse()
@@ -223,7 +224,7 @@ function listDaily(args) {
   }
 }
 
-function initDaily(args) {
+function initDaily(_args) {
   const today = new Date().toISOString().split('T')[0];
   const dailyDir = path.join(MEMORY_DIR, 'daily');
   const dailyFile = path.join(dailyDir, `${today}.md`);
@@ -255,7 +256,7 @@ function initDaily(args) {
   }
 }
 
-function indexStatus(args) {
+function indexStatus(_args) {
   log('Memory System Status:', 'blue');
   console.log('');
 
@@ -270,7 +271,7 @@ function indexStatus(args) {
       if (config.embedding?.enabled) {
         log(`  Model: ${config.embedding?.model}`, 'blue');
       }
-    } catch (e) {
+    } catch {
       log('✗ Configuration error', 'red');
     }
   } else {
@@ -307,7 +308,7 @@ function indexStatus(args) {
 // Parse command line arguments
 function parseArgs() {
   const args = {
-    _: []
+    _: [],
   };
 
   process.argv.slice(2).forEach(arg => {

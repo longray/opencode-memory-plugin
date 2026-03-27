@@ -37,11 +37,11 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
     "@jest/globals": "^29.7.0",
     "@types/node": "^22.10.5",
-    "globals": "^15.0.0",
     "jest": "^29.7.0",
+    "oxlint": "1.57.0",
+    "prettier": "3.8.1",
     "typescript": "^5.7.3"
   },
   "files": [
@@ -60,6 +60,10 @@
     "install": "node bin/install.cjs",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
-    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch"
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --fix",
+    "format": "prettier --write \"**/*.{js,mjs,cjs,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,mjs,cjs,json,md}\""
   }
 }

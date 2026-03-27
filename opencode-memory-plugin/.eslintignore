@@ -1,0 +1,15 @@
+# Oxlint 忽略文件
+# Python 测试文件
+tests/test-phase-c-performance.js
+
+# Oxlint 解析器兼容性问题的测试文件
+tests/test-sync-methods.test.js
+
+# 依赖缓存
+node_modules/
+dist/
+build/
+coverage/
+*.log
+.git/
+.opencode/

@@ -1,11 +1,11 @@
 /**
  * Phase B Test Suite - Topic Sync Tools
  * Tests for plugin topic_sync and rebuild_topics tools
- * 
+ *
  * These tests verify the sync tools exist and have correct signatures
  */
 
-import { describe, it, expect, beforeAll, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeAll } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -40,12 +40,12 @@ describe('Topic Sync Tools', () => {
         console.log('⚠️ Skipping - plugin.js not available');
         return;
       }
-      
+
       // Log availability for debugging
       if (!topicSyncAvailable) {
         console.log('⚠️ topic_sync not yet implemented in plugin.js');
       }
-      
+
       expect(pluginModule).toBeDefined();
     });
 
@@ -54,7 +54,7 @@ describe('Topic Sync Tools', () => {
         console.log('⚠️ Skipping - topic_sync not implemented yet');
         return;
       }
-      
+
       expect(pluginModule.topic_sync).toBeDefined();
       expect(pluginModule.topic_sync.execute).toBeDefined();
       expect(typeof pluginModule.topic_sync.execute).toBe('function');
@@ -65,9 +65,9 @@ describe('Topic Sync Tools', () => {
         console.log('⚠️ Skipping - topic_sync not implemented yet');
         return;
       }
-      
+
       const result = await pluginModule.topic_sync.execute({ dry_run: true });
-      
+
       expect(result).toHaveProperty('success');
       expect(result).toHaveProperty('message');
     });
@@ -77,12 +77,12 @@ describe('Topic Sync Tools', () => {
         console.log('⚠️ Skipping - topic_sync not implemented yet');
         return;
       }
-      
-      const result = await pluginModule.topic_sync.execute({ 
+
+      const result = await pluginModule.topic_sync.execute({
         topic: 'test-topic',
-        dry_run: true 
+        dry_run: true,
       });
-      
+
       expect(result.success).toBe(true);
     });
 
@@ -91,9 +91,9 @@ describe('Topic Sync Tools', () => {
         console.log('⚠️ Skipping - topic_sync not implemented yet');
         return;
       }
-      
+
       const result = await pluginModule.topic_sync.execute({ dry_run: true });
-      
+
       if (result.dry_run) {
         expect(result).toHaveProperty('entry_count');
         expect(typeof result.entry_count).toBe('number');
@@ -105,9 +105,9 @@ describe('Topic Sync Tools', () => {
         console.log('⚠️ Skipping - topic_sync not implemented yet');
         return;
       }
-      
+
       const result = await pluginModule.topic_sync.execute({ dry_run: true });
-      
+
       if (result.dry_run) {
         expect(result).toHaveProperty('fingerprints_preview');
       }
@@ -120,11 +120,11 @@ describe('Topic Sync Tools', () => {
         console.log('⚠️ Skipping - plugin.js not available');
         return;
       }
-      
+
       if (!rebuildTopicsAvailable) {
         console.log('⚠️ rebuild_topics not yet implemented in plugin.js');
       }
-      
+
       expect(pluginModule).toBeDefined();
     });
 
@@ -133,7 +133,7 @@ describe('Topic Sync Tools', () => {
         console.log('⚠️ Skipping - rebuild_topics not implemented yet');
         return;
       }
-      
+
       expect(pluginModule.rebuild_topics).toBeDefined();
       expect(pluginModule.rebuild_topics.execute).toBeDefined();
       expect(typeof pluginModule.rebuild_topics.execute).toBe('function');
@@ -144,9 +144,9 @@ describe('Topic Sync Tools', () => {
         console.log('⚠️ Skipping - rebuild_topics not implemented yet');
         return;
       }
-      
+
       const result = await pluginModule.rebuild_topics.execute({ dry_run: true });
-      
+
       expect(result).toHaveProperty('success');
       expect(result).toHaveProperty('total');
       expect(result).toHaveProperty('message');
@@ -157,9 +157,9 @@ describe('Topic Sync Tools', () => {
         console.log('⚠️ Skipping - rebuild_topics not implemented yet');
         return;
       }
-      
+
       const result = await pluginModule.rebuild_topics.execute({ dry_run: true });
-      
+
       expect(result).toHaveProperty('total');
       expect(typeof result.total).toBe('number');
     });
@@ -168,10 +168,10 @@ describe('Topic Sync Tools', () => {
   describe('Helper Functions', () => {
     it('should have TYPE_TO_TOPIC mapping if defined', () => {
       if (!pluginModule) return;
-      
+
       // Check if TYPE_TO_TOPIC constant exists
       const hasMapping = pluginModule.TYPE_TO_TOPIC !== undefined;
-      
+
       if (hasMapping) {
         expect(typeof pluginModule.TYPE_TO_TOPIC).toBe('object');
         // Should have at least some default mappings
@@ -181,9 +181,9 @@ describe('Topic Sync Tools', () => {
 
     it('should have ACTIVE_DIR constant if defined', () => {
       if (!pluginModule) return;
-      
+
       const hasActiveDir = pluginModule.ACTIVE_DIR !== undefined;
-      
+
       if (hasActiveDir) {
         expect(typeof pluginModule.ACTIVE_DIR).toBe('string');
         expect(pluginModule.ACTIVE_DIR).toContain('active');
@@ -192,9 +192,9 @@ describe('Topic Sync Tools', () => {
 
     it('should have TOPIC_KEYWORDS mapping if defined', () => {
       if (!pluginModule) return;
-      
+
       const hasKeywords = pluginModule.TOPIC_KEYWORDS !== undefined;
-      
+
       if (hasKeywords) {
         expect(typeof pluginModule.TOPIC_KEYWORDS).toBe('object');
       }
@@ -204,13 +204,13 @@ describe('Topic Sync Tools', () => {
   describe('Topic Directory Structure', () => {
     it('should be able to create topic directory structure', () => {
       const testTopicDir = path.join(TEST_MEMORY_DIR, 'active', 'preferences');
-      
+
       // Create directory
       fs.mkdirSync(testTopicDir, { recursive: true });
-      
+
       // Verify it exists
       expect(fs.existsSync(testTopicDir)).toBe(true);
-      
+
       // Create entries subdirectory
       const entriesDir = path.join(testTopicDir, 'entries');
       fs.mkdirSync(entriesDir, { recursive: true });
@@ -220,12 +220,12 @@ describe('Topic Sync Tools', () => {
     it('should support .index and .overview files', () => {
       const testTopicDir = path.join(TEST_MEMORY_DIR, 'active', 'test-topic');
       fs.mkdirSync(testTopicDir, { recursive: true });
-      
+
       // Create .index file
       const indexFile = path.join(testTopicDir, '.index');
       fs.writeFileSync(indexFile, '# Test Topic Index\n');
       expect(fs.existsSync(indexFile)).toBe(true);
-      
+
       // Create .overview file
       const overviewFile = path.join(testTopicDir, '.overview');
       fs.writeFileSync(overviewFile, '# Test Topic Overview\n');
@@ -237,7 +237,7 @@ describe('Topic Sync Tools', () => {
     it('should support link-map.json structure', () => {
       const testTopicDir = path.join(TEST_MEMORY_DIR, 'active', 'test-topic');
       fs.mkdirSync(testTopicDir, { recursive: true });
-      
+
       // Create link-map.json
       const linkMapFile = path.join(testTopicDir, 'link-map.json');
       const linkMap = {
@@ -245,13 +245,13 @@ describe('Topic Sync Tools', () => {
           date: '2026-03-19',
           topic: 'preferences',
           abstract: 'Test entry',
-          path: 'active/preferences/entries/entry-001.md'
-        }
+          path: 'active/preferences/entries/entry-001.md',
+        },
       };
-      
+
       fs.writeFileSync(linkMapFile, JSON.stringify(linkMap, null, 2));
       expect(fs.existsSync(linkMapFile)).toBe(true);
-      
+
       // Read back and verify
       const readBack = JSON.parse(fs.readFileSync(linkMapFile, 'utf-8'));
       expect(readBack['entry-001']).toBeDefined();
@@ -266,14 +266,14 @@ describe('Phase B Implementation Status', () => {
     const status = {
       topic_sync: topicSyncAvailable ? '✅ Implemented' : '❌ Not implemented',
       rebuild_topics: rebuildTopicsAvailable ? '✅ Implemented' : '❌ Not implemented',
-      plugin_module: pluginModule ? '✅ Available' : '❌ Not available'
+      plugin_module: pluginModule ? '✅ Available' : '❌ Not available',
     };
-    
+
     console.log('\n📊 Phase B Implementation Status:');
     console.log(`  topic_sync: ${status.topic_sync}`);
     console.log(`  rebuild_topics: ${status.rebuild_topics}`);
     console.log(`  plugin_module: ${status.plugin_module}`);
-    
+
     // This test always passes - it's just for reporting
     expect(true).toBe(true);
   });

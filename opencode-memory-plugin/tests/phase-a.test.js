@@ -25,13 +25,13 @@ const mockPlugin = {
     const year = now.getFullYear().toString();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    
+
     const dayDir = path.join(TIMELINE_DIR, year, month, day);
     await fs.mkdir(dayDir, { recursive: true });
-    
+
     const entryId = mockPlugin.generateEntryId();
     const entryFile = path.join(dayDir, `${entryId}.md`);
-    
+
     const content = `---
 entry_id: ${entryId}
 date: ${now.toISOString()}
@@ -49,7 +49,7 @@ ${layers.overview}
 ## Content (L2)
 ${entry.content}
 `;
-    
+
     await fs.writeFile(entryFile, content, 'utf8');
     return { entryId, filePath: entryFile };
   },
@@ -57,16 +57,16 @@ ${entry.content}
   updateDayOverview: async (dayDir, entry, layers) => {
     const overviewFile = path.join(dayDir, '.overview.md');
     let overview = '';
-    
+
     try {
       overview = await fs.readFile(overviewFile, 'utf8');
     } catch {
       overview = '# Day Overview\n\n';
     }
-    
+
     const entrySummary = `- [${entry.type || 'general'}] ${layers.abstract}\n`;
     overview += entrySummary;
-    
+
     await fs.writeFile(overviewFile, overview, 'utf8');
     return overviewFile;
   },
@@ -74,15 +74,15 @@ ${entry.content}
   updateMemoryIndex: async (entry, layers, filePath) => {
     const memoryFile = path.join(MEMORY_DIR, 'MEMORY.md');
     let index = '';
-    
+
     try {
       index = await fs.readFile(memoryFile, 'utf8');
     } catch {
       index = '# Memory Index\n\n## Timeline Entries\n\n';
     }
-    
+
     const entryLine = `- ${layers.abstract} → ${filePath}\n`;
-    
+
     // Keep index under 200 lines by removing oldest entries
     const lines = index.split('\n');
     if (lines.length > 195) {
@@ -91,7 +91,7 @@ ${entry.content}
         lines.splice(headerEnd, lines.length - 195);
       }
     }
-    
+
     lines.push(entryLine);
     await fs.writeFile(memoryFile, lines.join('\n'), 'utf8');
     return memoryFile;
@@ -99,7 +99,7 @@ ${entry.content}
 
   getMemoryFiles: async () => {
     const files = [];
-    
+
     // Add core files
     const coreDir = path.join(MEMORY_DIR, 'core');
     try {
@@ -110,10 +110,10 @@ ${entry.content}
         }
       }
     } catch {}
-    
+
     // Add MEMORY.md with L0
     files.push({ path: path.join(MEMORY_DIR, 'MEMORY.md'), layer: 'L0' });
-    
+
     // Scan timeline (last 30 days)
     const now = new Date();
     for (let i = 0; i < 30; i++) {
@@ -122,7 +122,7 @@ ${entry.content}
       const year = d.getFullYear().toString();
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
-      
+
       const dayDir = path.join(TIMELINE_DIR, year, month, day);
       try {
         const entries = await fs.readdir(dayDir);
@@ -133,9 +133,9 @@ ${entry.content}
         }
       } catch {}
     }
-    
+
     return files;
-  }
+  },
 };
 
 describe('Phase A - Timeline Storage', () => {
@@ -155,7 +155,7 @@ describe('Phase A - Timeline Storage', () => {
     it('should generate unique entry IDs', () => {
       const id1 = mockPlugin.generateEntryId();
       const id2 = mockPlugin.generateEntryId();
-      
+
       expect(id1).toMatch(/^entry-[a-z0-9]+-[a-z0-9]+$/);
       expect(id2).toMatch(/^entry-[a-z0-9]+-[a-z0-9]+$/);
       expect(id1).not.toBe(id2);
@@ -168,18 +168,18 @@ describe('Phase A - Timeline Storage', () => {
         content: 'Test content',
         type: 'test',
         tags: ['test', 'phase-a'],
-        project: 'test-project'
+        project: 'test-project',
       };
       const layers = {
         abstract: 'Test abstract',
-        overview: 'Test overview'
+        overview: 'Test overview',
       };
-      
+
       const result = await mockPlugin.writeToTimeline(entry, layers);
-      
+
       expect(result.entryId).toMatch(/^entry-/);
       expect(result.filePath).toContain('timeline');
-      
+
       const content = await fs.readFile(result.filePath, 'utf8');
       expect(content).toContain('Test abstract');
       expect(content).toContain('Test overview');
@@ -196,12 +196,12 @@ describe('Phase A - Timeline Storage', () => {
       const day = String(now.getDate()).padStart(2, '0');
       const dayDir = path.join(TIMELINE_DIR, year, month, day);
       await fs.mkdir(dayDir, { recursive: true });
-      
+
       const entry = { type: 'test', content: 'Test' };
       const layers = { abstract: 'Test entry summary' };
-      
+
       await mockPlugin.updateDayOverview(dayDir, entry, layers);
-      
+
       const overviewPath = path.join(dayDir, '.overview.md');
       const content = await fs.readFile(overviewPath, 'utf8');
       expect(content).toContain('Test entry summary');
@@ -213,16 +213,16 @@ describe('Phase A - Timeline Storage', () => {
       const entry = { type: 'test', content: 'Test' };
       const layers = { abstract: 'Test entry' };
       const filePath = 'timeline/2026/03/19/test.md';
-      
+
       // Add many entries
       for (let i = 0; i < 250; i++) {
         await mockPlugin.updateMemoryIndex(entry, layers, filePath);
       }
-      
+
       const memoryFile = path.join(MEMORY_DIR, 'MEMORY.md');
       const content = await fs.readFile(memoryFile, 'utf8');
       const lines = content.split('\n');
-      
+
       expect(lines.length).toBeLessThanOrEqual(200);
     });
   });
@@ -237,9 +237,9 @@ describe('Phase A - Timeline Storage', () => {
       const dayDir = path.join(TIMELINE_DIR, year, month, day);
       await fs.mkdir(dayDir, { recursive: true });
       await fs.writeFile(path.join(dayDir, 'test-entry.md'), 'test', 'utf8');
-      
+
       const files = await mockPlugin.getMemoryFiles();
-      
+
       expect(files.length).toBeGreaterThan(0);
       expect(files[0]).toHaveProperty('path');
       expect(files[0]).toHaveProperty('layer');
@@ -254,18 +254,18 @@ describe('Phase A - End-to-End Workflow', () => {
       content: 'This is a test memory entry for Phase A',
       type: 'long-term',
       tags: ['test', 'phase-a', 'workflow'],
-      project: '@longray/opencode-memory-plugin'
+      project: '@longray/opencode-memory-plugin',
     };
     const layers = {
       abstract: 'Phase A test entry for timeline storage',
-      overview: 'Testing the new timeline storage architecture with L0/L1/L2 layers'
+      overview: 'Testing the new timeline storage architecture with L0/L1/L2 layers',
     };
-    
+
     // Write to timeline
     const { entryId, filePath } = await mockPlugin.writeToTimeline(entry, layers);
     expect(entryId).toBeTruthy();
     expect(filePath).toContain('timeline');
-    
+
     // Update day overview
     const now = new Date();
     const year = now.getFullYear().toString();
@@ -273,16 +273,16 @@ describe('Phase A - End-to-End Workflow', () => {
     const day = String(now.getDate()).padStart(2, '0');
     const dayDir = path.join(TIMELINE_DIR, year, month, day);
     await mockPlugin.updateDayOverview(dayDir, entry, layers);
-    
+
     // Update memory index
     await mockPlugin.updateMemoryIndex(entry, layers, filePath);
-    
+
     // Verify files exist
     const timelineContent = await fs.readFile(filePath, 'utf8');
     expect(timelineContent).toContain(layers.abstract);
     expect(timelineContent).toContain(layers.overview);
     expect(timelineContent).toContain(entry.content);
-    
+
     const overviewPath = path.join(dayDir, '.overview.md');
     const overviewContent = await fs.readFile(overviewPath, 'utf8');
     expect(overviewContent).toContain(layers.abstract);

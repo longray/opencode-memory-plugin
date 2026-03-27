@@ -16,15 +16,6 @@
     "sourceMap": true,
     "types": ["node"]
   },
-  "include": [
-    "tools/**/*",
-    "bin/**/*",
-    "scripts/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "memory",
-    "agents"
-  ]
+  "include": ["tools/**/*", "bin/**/*", "scripts/**/*"],
+  "exclude": ["node_modules", "dist", "memory", "agents"]
 }

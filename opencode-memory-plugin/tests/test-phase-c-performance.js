@@ -1,7 +1,7 @@
-"""
-Phase C (v2.2-lite) Performance Test Suite
-Tests for Trie index, autocomplete, and cache performance
-"""
+/**
+ * Phase C (v2.2-lite) Performance Test Suite
+ * Tests for Trie index, autocomplete, and cache performance
+ */
 
 import asyncio
 import time

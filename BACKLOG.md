@@ -6,6 +6,190 @@
 
 ---
 
+## v2.6.0 - 代码规范迁移
+
+### BL-201: Oxlint + Prettier 迁移（第一阶段：安装与配置）
+
+**真实场景**: 项目当前使用 ESLint，但配置较旧且速度较慢。Oxlint 基于 Rust 构建，速度提升 10-50 倍，且开箱即用无需复杂配置。
+
+**目标**: 完全替换 ESLint，使用 Oxlint + Prettier 作为代码检查和格式化工具
+
+| 项目         | 内容                                                                                                                                                                                                                                                 |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **涉及范围** | `package.json`、`.eslintrc.cjs`、`eslint.config.js`、删除 ESLint 依赖、添加 Oxlint/Prettier                                                                                                                                                          |
+| **前置依赖** | Node.js v22.18.0（已确认支持）                                                                                                                                                                                                                       |
+| **完成标准** | 1. 安装 `oxlint` 和 `prettier` 到 devDependencies<br>2. 移除 `@eslint/js` 和 `globals` 依赖<br>3. 删除 `.eslintrc.cjs` 和 `eslint.config.js`<br>4. 更新 npm scripts：`lint`/`lint:fix`/`format`/`format:check`<br>5. 保留现有 `.prettierrc` 配置不变 |
+| **验证方式** | `npm install` 成功，`npm run lint` 命令存在且不报错                                                                                                                                                                                                  |
+
+---
+
+### BL-202: Oxlint 代码问题修复（第二阶段：自动修复与格式整理）
+
+**真实场景**: 首次运行 Oxlint 发现 8 个问题（5 警告 + 3 错误），同时 Prettier 检查发现大量文件需要格式化。先处理支持自动修复的问题和代码格式化。
+
+**目标**:
+
+1. 运行 `oxlint . --fix` 自动修复可修复的问题
+2. 运行 `prettier --write` 格式化所有代码文件
+3. 修复明显的语法错误（如 `tests/test-phase-c-performance.js` 的三重引号）
+
+| 项目         | 内容                                                                                                                                                                        |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **涉及范围** | 1. `tests/test-phase-c-performance.js`（语法错误修复）<br>2. `tests/test-sync-methods.test.js`（括号不匹配检查）<br>3. 所有 `.js`, `.cjs`, `.mjs` 文件（自动修复 + 格式化） |
+| **前置依赖** | BL-201 完成（Oxlint 和 Prettier 已安装）                                                                                                                                    |
+| **完成标准** | 1. `npm run lint:fix` 执行成功<br>2. `npm run format` 执行成功<br>3. 语法错误文件已修复<br>4. 剩余问题仅为需要手动修复的警告                                                |
+| **验证方式** | 1. `npm run lint` 显示剩余问题数量<br>2. `npm run format:check` 无格式错误<br>3. 记录剩余需要手动修复的问题清单                                                             |
+
+**当前已识别的 8 个问题**（BL-202 处理后剩余应为手动修复项）：
+
+| 文件                                  | 问题                  | 类型    | 修复方式                   |
+| ------------------------------------- | --------------------- | ------- | -------------------------- |
+| `tests/test-phase-c-performance.js:1` | 三重引号 `"""`        | ❌ 错误 | 手动修复为 `//` 或 `/* */` |
+| `tests/test-sync-methods.test.js:24`  | 括号不匹配            | ❌ 错误 | 手动检查修复               |
+| `tests/test-topic-sync.test.js:8`     | `beforeEach` 未使用   | ⚠️ 警告 | `--fix` 自动               |
+| `bin/cli.cjs:155`                     | catch 参数 `e` 未使用 | ⚠️ 警告 | `--fix` 自动或手动         |
+| `bin/cli.cjs:273`                     | catch 参数 `e` 未使用 | ⚠️ 警告 | `--fix` 自动或手动         |
+| `cli/index.cjs:258`                   | 参数 `args` 未使用    | ⚠️ 警告 | 手动（需确认是否保留）     |
+
+---
+
+### BL-203: Oxlint 代码问题修复（第三阶段：手动修复 - 批次一）
+
+**真实场景**: BL-202 自动修复后，仍剩余 5 个 `no-unused-vars` 警告需要人工处理。这些警告分布在测试文件和 CLI 文件中，需要判断是删除未使用变量，还是改为 `_` 前缀保留（Oxlint 会忽略 `_` 前缀的变量）。
+
+**目标**: 手动修复剩余的 5 个 Oxlint 警告
+
+| 项目         | 内容                                                                                                                                                                                                                                                                             |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **涉及范围** | 1. `tests/test-topic-sync.test.js:8`（`beforeEach` 未使用）<br>2. `bin/cli.cjs:155`（catch 参数 `e` 未使用）<br>3. `bin/cli.cjs:227`（参数 `args` 未使用）<br>4. `bin/cli.cjs:259`（参数 `args` 未使用）<br>5. `bin/cli.cjs:274`（catch 参数 `e` 未使用）                        |
+| **前置依赖** | BL-202 完成（自动修复已执行，剩余 5 个警告）                                                                                                                                                                                                                                     |
+| **完成标准** | 1. `tests/test-topic-sync.test.js`：`beforeEach` 从导入中移除<br>2. `bin/cli.cjs:155` 和 `bin/cli.cjs:274`：catch 参数改为 `_e`（表示故意忽略）<br>3. `bin/cli.cjs:227` 和 `bin/cli.cjs:259`：参数改为 `_args`（表示接口保留但暂不实现）<br>4. 修复后 `npm run lint` 显示 0 警告 |
+| **验证方式** | 1. `npm run lint` 显示 "0 warnings and 0 errors"<br>2. `npm test` 仍通过（确保修改未破坏功能）                                                                                                                                                                                   |
+
+**修复策略说明**:
+
+- **导入的未使用变量**（`beforeEach`）：直接删除导入
+- **catch 参数**：改为 `_e` 表示故意忽略错误（保留异常处理结构）
+- **函数参数**：改为 `_args` 表示接口需要但暂未使用（保留函数签名兼容性）
+
+**为什么保留这些变量而不是删除？**
+
+- `catch (_e)`：保留异常处理结构，未来可能需要记录或处理错误
+- `function initDaily(_args)`：保留参数表示接口设计，未来可能扩展功能
+
+---
+
+### BL-204: Oxlint 代码问题修复（第四阶段：最终验证）
+
+**真实场景**: 手动修复完成后，需要验证整个项目是否完全通过 Oxlint 检查，同时确保测试仍然通过。
+
+**目标**: 确保整个项目通过 Oxlint 检查且测试通过
+
+| 项目         | 内容                                                                                                                   |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| **涉及范围** | 整个项目所有文件（除 `.eslintignore` 中排除的）                                                                        |
+| **前置依赖** | BL-203 完成                                                                                                            |
+| **完成标准** | 1. `npm run lint` 显示 "0 warnings and 0 errors"<br>2. `npm run format:check` 无格式错误<br>3. `npm test` 所有测试通过 |
+| **验证方式** | 顺序执行以下命令并全部通过：<br>1. `npm run lint`<br>2. `npm run format:check`<br>3. `npm test`                        |
+
+---
+
+### BL-205: 文档更新 - README 产品文档
+
+**真实场景**: 用户需要知道项目使用什么代码规范，如何运行检查命令。当前 README.md 没有代码规范相关说明。
+
+**目标**: 在 README.md 中新增代码规范章节
+
+| 项目         | 内容                                                                                                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **涉及范围** | `README.md`（根目录）                                                                                                                                                                       |
+| **前置依赖** | BL-204 完成（lint 命令可用，0 warnings and 0 errors）                                                                                                                                       |
+| **完成标准** | 1. 在 "📖 Usage" 章节后新增 "代码规范" 章节<br>2. 说明使用 Oxlint + Prettier<br>3. 列出常用命令：`npm run lint`、`npm run format`<br>4. 说明 `.oxlintrc.json` 和 `.prettierrc` 配置文件位置 |
+| **验证方式** | 1. README 中包含 "代码规范" 章节<br>2. 命令可复制执行<br>3. `npm run lint` 和 `npm run format` 命令存在且可用                                                                               |
+
+**插入位置**: 在 "📖 Usage"（第 200 行）和 "📂 Project Structure"（第 273 行）之间
+
+**预期内容**:
+
+````markdown
+## 代码规范
+
+本项目使用 [Oxlint](https://oxc.rs/) + [Prettier](https://prettier.io/) 进行代码检查和格式化。
+
+```bash
+# 检查代码规范
+npm run lint
+
+# 自动修复可修复的问题
+npm run lint:fix
+
+# 格式化代码
+npm run format
+
+# 检查格式是否正确
+npm run format:check
+```
+````
+
+配置文件：
+
+- `.oxlintrc.json` - Oxlint 规则配置
+- `.prettierrc` - Prettier 格式配置
+- `.eslintignore` - 忽略文件列表
+
+````
+
+---
+
+### BL-206: 文档更新 - AGENTS.md 开发文档
+
+**真实场景**: 开发者需要了解技术决策（为什么选 Oxlint）、配置细节、与 ESLint 的区别。当前 AGENTS.md 没有代码规范相关说明。
+
+**目标**: 在 AGENTS.md 中新增代码规范技术说明
+
+| 项目 | 内容 |
+|------|------|
+| **涉及范围** | `AGENTS.md`（根目录） |
+| **前置依赖** | BL-204 完成（lint 命令可用） |
+| **完成标准** | 1. 新增 "代码规范" 章节<br>2. 说明选择 Oxlint 的原因（速度、Rust 实现、开箱即用）<br>3. 列出 Oxlint 不支持但 ESLint 支持的规则（如 `no-shadow`）<br>4. 说明 `.oxlintrc.json` 配置要点（`caughtErrorsIgnorePattern` 需显式配置）<br>5. 说明 npm scripts 用法 |
+| **验证方式** | 1. AGENTS.md 包含 "代码规范" 章节<br>2. 包含技术决策说明<br>3. 包含配置要点 |
+
+**插入位置**: 在 "代码规范" 章节（如果已有则更新，否则在 "模块映射" 后新增）
+
+**预期内容**:
+```markdown
+### 代码规范
+
+**工具**: Oxlint + Prettier（替代 ESLint）
+
+**选择原因**:
+- Oxlint 基于 Rust 构建，速度比 ESLint 快 10-50 倍
+- 开箱即用，无需复杂配置
+- 与 Prettier 天然兼容，无规则冲突
+
+**配置要点**:
+- `.oxlintrc.json` - Oxlint 规则配置
+  - `caughtErrorsIgnorePattern: "^_"` 需显式配置（catch 参数忽略 `_` 前缀）
+  - `varsIgnorePattern` 和 `argsIgnorePattern` 默认就是 `^_`
+- `.prettierrc` - Prettier 格式配置（保持不变）
+- `.eslintignore` - 忽略文件列表（Oxlint 使用此文件）
+
+**Oxlint 不支持的规则**（原 ESLint 规则）:
+- `no-shadow`
+- `prefer-arrow-callback`
+- `object-shorthand`
+- `no-multiple-empty-lines`
+- `eol-last`
+
+**npm scripts**:
+- `npm run lint` - 检查代码规范
+- `npm run lint:fix` - 自动修复可修复的问题
+- `npm run format` - 格式化代码
+- `npm run format:check` - 检查格式是否正确
+````
+
+---
+
 ## v2.5.2 - 后端 v2.4.0 对齐
 
 ### BL-115: syncIncremental → syncPreview 重命名
@@ -14,12 +198,12 @@
 
 **目标**: wrapper-client 方法名和 HTTP 路径同步更新
 
-| 项目 | 内容 |
-|------|------|
+| 项目         | 内容                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------- |
 | **涉及范围** | `lib/wrapper-client.js`、`tools/sync.js`、`tests/test-sync-methods.test.js`、`docs/API-CONTRACT.md` |
-| **前置依赖** | 后端 v2.4.0 已部署 |
-| **完成标准** | `client.syncPreview()` 调用 `/api/v1/sync/preview`，工具行为不变 |
-| **验证方式** | `node -e "..."` 验证方法存在，ESLint 通过 |
+| **前置依赖** | 后端 v2.4.0 已部署                                                                                  |
+| **完成标准** | `client.syncPreview()` 调用 `/api/v1/sync/preview`，工具行为不变                                    |
+| **验证方式** | `node -e "..."` 验证方法存在，ESLint 通过                                                           |
 
 ---
 
@@ -29,12 +213,12 @@
 
 **目标**: full_sync 新增 `auto_clean: true` 参数，自动删除被后端标记为重复的本地文件
 
-| 项目 | 内容 |
-|------|------|
-| **涉及范围** | `tools/sync.js`、`docs/API-CONTRACT.md` |
-| **前置依赖** | 后端 v2.4.0 skipped 返回值 |
+| 项目         | 内容                                                            |
+| ------------ | --------------------------------------------------------------- |
+| **涉及范围** | `tools/sync.js`、`docs/API-CONTRACT.md`                         |
+| **前置依赖** | 后端 v2.4.0 skipped 返回值                                      |
 | **完成标准** | `auto_clean=true` 时，删除 timeline 文件 + 从 link-map 移除条目 |
-| **验证方式** | ESLint 通过，手动调用 full_sync auto_clean=true 验证 |
+| **验证方式** | ESLint 通过，手动调用 full_sync auto_clean=true 验证            |
 
 ---
 

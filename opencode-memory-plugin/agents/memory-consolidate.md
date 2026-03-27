@@ -95,17 +95,21 @@ When invoked with "dry-run" or "preview":
 Before analyzing entries, understand the overall context:
 
 1. **Read recent priorities**:
+
 ```
 memory_read file="MEMORY.md"
 ```
+
 Focus on the last 20 entries to understand ongoing projects and current focus.
 
 2. **Understand current workspace**:
+
 - Check project context from MEMORY.md
 - Identify active development areas
 - Note user's recent discussions
 
 3. **Assess consolidation intent**:
+
 - **Cleanup mode**: Focus on organization and deduplication
 - **Update mode**: Focus on recent changes and new learnings
 - **Comprehensive mode**: Full review of all content
@@ -118,15 +122,16 @@ When triggered, analyze the intent:
 
 **Intent Detection Guide**:
 
-| Trigger Phrase | Intent | Action |
-|---------------|--------|--------|
-| "整理" / "organize" | Organization | Focus on structure |
-| "更新" / "update" | Update recent | Focus on new content |
-| "全面" / "comprehensive" | Full review | Everything |
-| "保守" / "conservative" | Minimal changes | Few, high-quality only |
-| "激进" / "aggressive" | Aggressive cleanup | More deletions |
+| Trigger Phrase           | Intent             | Action                 |
+| ------------------------ | ------------------ | ---------------------- |
+| "整理" / "organize"      | Organization       | Focus on structure     |
+| "更新" / "update"        | Update recent      | Focus on new content   |
+| "全面" / "comprehensive" | Full review        | Everything             |
+| "保守" / "conservative"  | Minimal changes    | Few, high-quality only |
+| "激进" / "aggressive"    | Aggressive cleanup | More deletions         |
 
 **Scope Detection**:
+
 - "project X" → Scoped to specific project
 - "topic Y" → Scoped to specific topic
 - No scope → Full review
@@ -139,7 +144,7 @@ Use browser tools to get overview:
 # Get timeline summary
 memory_timeline days=30
 
-# Get topic overview  
+# Get topic overview
 memory_topics min_entries=3
 ```
 
@@ -155,19 +160,21 @@ Assess the freshness and relevance of information:
 
 **Temporal Priority Matrix**:
 
-| Age | Freshness | Priority Adjustment |
-|-----|-----------|-------------------|
-| <7 days | Fresh | High - process fully |
-| 7-30 days | Normal | Standard processing |
-| >30 days | Stale | Low - only if unique |
+| Age       | Freshness | Priority Adjustment  |
+| --------- | --------- | -------------------- |
+| <7 days   | Fresh     | High - process fully |
+| 7-30 days | Normal    | Standard processing  |
+| >30 days  | Stale     | Low - only if unique |
 
 **Decay Rules**:
+
 - Technical decisions → May be outdated, verify relevance
 - User preferences → Stable, higher retention
 - Project patterns → Medium decay, verify still valid
 - Debugging notes → Fast decay, skip if resolved
 
 **Redundancy Check**:
+
 - If >3 similar entries exist → SKIP (already covered)
 - If superseded by recent entry → SKIP (outdated)
 - If contradicting recent entry → UPDATE (supersede old)
@@ -189,14 +196,15 @@ Don't analyze entries in isolation. Look for patterns across entries:
    - Multiple approaches → Best practice
 
 3. **Pattern Consolidation Strategy**:
+
    ```
    # Instead of 5 separate entries about TypeScript:
    - Entry: "Use TypeScript for backend"
    - Entry: "User prefers explicit types"
    - Entry: "TypeScript catches bugs"
-   
+
    # Create 1 consolidated entry:
-   "TypeScript Best Practice: User prefers TypeScript for type safety. 
+   "TypeScript Best Practice: User prefers TypeScript for type safety.
     Explicit types catch bugs early. Aligns with user's quality focus."
    ```
 
@@ -310,26 +318,29 @@ For content going to MEMORY.md, use this priority to determine project_id:
 Before consolidating, check for duplicates using multiple strategies:
 
 **1. Semantic Search**:
+
 ```
 memory_search query="[core concept or topic]" mode="hybrid"
 ```
 
 **2. Cross-Reference Check**:
+
 - Check if >3 entries cover this topic → High redundancy risk
 - Check if user preferences already documented → Preference exists
 - Check if patterns are already in AGENTS.md → Pattern exists
 
 **3. Smart Decision Matrix**:
 
-| Similar Entry Exists? | Quality Comparison | Action |
-|---------------------|-------------------|--------|
-| No | N/A | Create new |
-| Yes | This is better | Replace old |
-| Yes | Similar quality | Reference existing |
-| Yes | This is worse | Skip |
-| Yes | Complementary | Enhance existing |
+| Similar Entry Exists? | Quality Comparison | Action             |
+| --------------------- | ------------------ | ------------------ |
+| No                    | N/A                | Create new         |
+| Yes                   | This is better     | Replace old        |
+| Yes                   | Similar quality    | Reference existing |
+| Yes                   | This is worse      | Skip               |
+| Yes                   | Complementary      | Enhance existing   |
 
 **4. Enhancement vs. Replacement**:
+
 - **Enhance**: Add missing perspective, update context
 - **Replace**: New info is more accurate/complete
 - **Reference**: Add "See also: [existing]" instead of duplicate
@@ -444,7 +455,9 @@ batch_resolve strategy="USE_LOCAL_ALL"
 Before consolidating ANY entry, pass through these gates:
 
 ### Gate 1: Value Test
+
 Ask these questions:
+
 - Will this be useful in 3 months?
 - Is it better than what already exists?
 - Does it add NEW context or perspective?
@@ -452,14 +465,18 @@ Ask these questions:
 **If NO to any → SKIP**
 
 ### Gate 2: Effort-Test
+
 Ask:
+
 - Can I summarize this in <100 words?
 - Is copy-paste lazy vs. genuinely useful?
 
 **If summarization loses value → Keep original**
 
 ### Gate 3: Placement Test
+
 Ask:
+
 - Is this the BEST file for this information?
 - Will it be findable by future search?
 - Does it conflict with existing content?
@@ -467,14 +484,18 @@ Ask:
 **If placement is wrong → Choose correct file**
 
 ### Gate 4: Deduplication Test
+
 Ask:
+
 - Does similar entry exist with equal or better quality?
 - Is this just restating known information?
 
 **If duplicate → Enhance existing, don't create new**
 
 ### Gate 5: Freshness Test
+
 Ask:
+
 - Is this still accurate and relevant?
 - Has it been superseded by newer information?
 
@@ -604,23 +625,18 @@ If nothing needed consolidation:
 1. **Context First**: Always understand the big picture before making decisions
    - Read recent MEMORY.md entries first
    - Identify ongoing projects and focus areas
-   
 2. **Quality Over Quantity**: One good entry > Ten mediocre ones
    - Use all 5 quality gates before deciding to consolidate
    - It's okay to skip information that doesn't add value
-   
 3. **Enhance, Don't Duplicate**: Look for ways to improve existing entries
    - Add missing perspective to existing entries
    - Reference related entries instead of creating new ones
-   
 4. **Temporal Awareness**: Fresh information > Old information
    - Recent entries get higher priority
    - Check if old entries are still valid
-   
 5. **Cross-Entry Patterns**: Look for connections across entries
    - Group related entries together
    - Identify themes and consolidate into principles
-   
 6. **User Intent**: Adapt your approach based on the user's needs
    - "整理" → Focus on organization
    - "更新" → Focus on recent changes
