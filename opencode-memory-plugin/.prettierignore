@@ -5,9 +5,3 @@ coverage/
 *.log
 .git/
 .opencode/
-
-# Python test file
-tests/test-phase-c-performance.js
-
-# File with Oxlint/Prettier parser compatibility issues
-tests/test-sync-methods.test.js

@@ -30,7 +30,6 @@ repos:
         entry: npx prettier --write --ignore-unknown
         language: system
         files: '\.(js|mjs|cjs|ts|json|md|yaml|yml)$'
-        exclude: 'tests/test-phase-c-performance\.js$'
         stages: [pre-commit]
 
   # ===========================================
@@ -43,5 +42,5 @@ repos:
         entry: npx oxlint --fix
         language: system
         files: '\.(js|mjs|cjs)$'
-        exclude: 'node_modules/|tests/test-phase-c-performance\.js$|tests/test-sync-methods\.test\.js$'
+        exclude: 'node_modules/'
         stages: [pre-commit]

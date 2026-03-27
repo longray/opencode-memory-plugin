@@ -1,25 +1,27 @@
 /**
  * Phase B Test Suite - Sync Methods
  * Tests for WrapperClient sync functionality
- * 
+ *
  * These tests verify the sync methods exist and have correct signatures
  * without making actual HTTP calls (mocked/stubbed)
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeAll } from '@jest/globals';
 
-// Import the WrapperClient
-let WrapperClient, WrapperError, DuplicateError;
+let WrapperClient;
+let WrapperError;
+let DuplicateError;
 
-try {
-  const module = await import('../lib/wrapper-client.js');
-  WrapperClient = module.WrapperClient;
-  WrapperError = module.WrapperError;
-  DuplicateError = module.DuplicateError;
-} catch (e) {
-  // If import fails, we'll skip the tests that require the actual module
-  console.warn('Warning: Could not import wrapper-client.js:', e.message);
-}
+beforeAll(async () => {
+  try {
+    const module = await import('../lib/wrapper-client.js');
+    WrapperClient = module.WrapperClient;
+    WrapperError = module.WrapperError;
+    DuplicateError = module.DuplicateError;
+  } catch (e) {
+    console.warn('Warning: Could not import wrapper-client.js:', e.message);
+  }
+});
 
 describe('WrapperClient Sync Methods', () => {
   let client;
@@ -29,8 +31,8 @@ describe('WrapperClient Sync Methods', () => {
       client = new WrapperClient({
         backend: {
           url: 'http://localhost:17999',
-          tenant_id: 'test-user'
-        }
+          tenant_id: 'test-user',
+        },
       });
     }
   });
@@ -49,11 +51,7 @@ describe('WrapperClient Sync Methods', () => {
         console.log('⚠️ Skipping - wrapper-client not available');
         return;
       }
-      
-      const fingerprints = [
-        { path: 'active/preferences/entry-001.md', mtime: 1234567890, hash: 'abc123', source_id: 'entry-001' }
-      ];
-      
+
       expect(() => {
         if (typeof client.syncPreview !== 'function') {
           throw new Error('syncPreview is not a function');
@@ -66,7 +64,7 @@ describe('WrapperClient Sync Methods', () => {
         console.log('⚠️ Skipping - wrapper-client not available');
         return;
       }
-      
+
       const fingerprints = [];
       const result = client.syncPreview(fingerprints);
       expect(result).toBeInstanceOf(Promise);
@@ -77,7 +75,7 @@ describe('WrapperClient Sync Methods', () => {
         console.log('⚠️ Skipping - wrapper-client not available');
         return;
       }
-      
+
       const fingerprints = [];
       const result = client.syncPreview(fingerprints);
       expect(result).toBeDefined();
@@ -98,7 +96,7 @@ describe('WrapperClient Sync Methods', () => {
         console.log('⚠️ Skipping - wrapper-client not available');
         return;
       }
-      
+
       const memories = [
         {
           content: 'Test content',
@@ -106,10 +104,10 @@ describe('WrapperClient Sync Methods', () => {
           tags: ['test'],
           project_id: 'test-project',
           source_id: 'entry-001',
-          metadata: { l0: 'Test', l1: 'Test overview' }
-        }
+          metadata: { l0: 'Test', l1: 'Test overview' },
+        },
       ];
-      
+
       const result = client.syncFull(memories);
       expect(result).toBeInstanceOf(Promise);
     });
@@ -119,7 +117,7 @@ describe('WrapperClient Sync Methods', () => {
         console.log('⚠️ Skipping - wrapper-client not available');
         return;
       }
-      
+
       const memories = [];
       const result = client.syncFull(memories);
       expect(result).toBeInstanceOf(Promise);
@@ -140,7 +138,7 @@ describe('WrapperClient Sync Methods', () => {
         console.log('⚠️ Skipping - wrapper-client not available');
         return;
       }
-      
+
       const result = client.getServerFingerprints();
       expect(result).toBeInstanceOf(Promise);
     });
@@ -150,7 +148,7 @@ describe('WrapperClient Sync Methods', () => {
         console.log('⚠️ Skipping - wrapper-client not available');
         return;
       }
-      
+
       const result = client.getServerFingerprints('custom-tenant');
       expect(result).toBeInstanceOf(Promise);
     });
@@ -170,7 +168,7 @@ describe('WrapperClient Sync Methods', () => {
         console.log('⚠️ Skipping - wrapper-client not available');
         return;
       }
-      
+
       const result = client.resolveConflict('conflict-001', 'use_local');
       expect(result).toBeInstanceOf(Promise);
     });
@@ -180,29 +178,15 @@ describe('WrapperClient Sync Methods', () => {
         console.log('⚠️ Skipping - wrapper-client not available');
         return;
       }
-      
-      // Test different resolution strategies
+
       const options = ['use_local', 'use_remote', 'merge', 'keep_both'];
-      
+
       for (const resolution of options) {
         const result = client.resolveConflict('conflict-001', resolution);
         expect(result).toBeInstanceOf(Promise);
       }
     });
-
-    it('should accept fingerprints array parameter', () => {
-      if (!WrapperClient) {
-        console.log('⚠️ Skipping - wrapper-client not available');
-        return;
-      }
-      
-      // Method exists and accepts parameters (will fail when called without backend, but we test signature)
-      expect(() => {
-        if (typeof client.syncPreview !== 'function') {
-          throw new Error('syncPreview is not a function');
-        }
-      }).not.toThrow();
-    });
+  });
 
   describe('Error Classes', () => {
     it('should export WrapperError', () => {
@@ -231,19 +215,13 @@ describe('Sync Method Signatures', () => {
       console.log('⚠️ Skipping - WrapperClient not available');
       return;
     }
-    
+
     const testClient = new WrapperClient({
-      backend: { url: 'http://localhost:17999', tenant_id: 'test' }
+      backend: { url: 'http://localhost:17999', tenant_id: 'test' },
     });
-    
-    // Check all required methods exist
-    const requiredMethods = [
-      'syncPreview',
-      'syncFull', 
-      'getServerFingerprints',
-      'resolveConflict'
-    ];
-    
+
+    const requiredMethods = ['syncPreview', 'syncFull', 'getServerFingerprints', 'resolveConflict'];
+
     for (const method of requiredMethods) {
       expect(testClient).toHaveProperty(method);
       expect(typeof testClient[method]).toBe('function');
