@@ -1,7 +1,8 @@
 import { tool } from '@opencode-ai/plugin/tool';
-import { getConfig, getLinkMap } from '../lib/storage.js';
+import { getConfig, getLinkMap, deleteEntryFile } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
 import { MEMORY_DIR } from '../lib/constants.js';
+import { removeFromLinkMap } from '../lib/indexer.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -152,7 +153,7 @@ export const incremental_sync = tool({
 
     try {
       const tenantId = config?.backend?.tenant_id || 'default';
-      const result = await client.syncIncremental(fingerprints, tenantId);
+      const result = await client.syncPreview(fingerprints, tenantId);
       const toUpload = result.to_upload?.length || 0;
       const toDelete = result.to_delete?.length || 0;
       return `✅ Incremental sync: ${toUpload} to upload, ${toDelete} to delete`;
@@ -166,6 +167,7 @@ export const full_sync = tool({
   description: 'Perform full synchronization - upload all local memories to backend',
   args: {
     dry_run: tool.schema.boolean().optional().default(false),
+    auto_clean: tool.schema.boolean().optional().default(false),
   },
   async execute(args) {
     const config = getConfig();
@@ -201,7 +203,40 @@ export const full_sync = tool({
 
       const tenantId = config?.backend?.tenant_id || 'default';
       const result = await client.syncFull(memories, tenantId);
-      return `✅ Full sync: ${result.uploaded || 0} uploaded, ${result.skipped || 0} skipped`;
+
+      const skipped = result.skipped || [];
+      let output = `✅ Full sync: ${result.success || 0} uploaded, ${skipped.length} skipped`;
+      if (result.updated > 0) {
+        output += `, ${result.updated} updated`;
+      }
+      if (result.failed > 0) {
+        output += `, ${result.failed} failed`;
+      }
+
+      if (skipped.length > 0) {
+        output += '\n\n**Skipped duplicates:**';
+        for (const s of skipped) {
+          const reason =
+            s.reason === 'hash' ? 'exact match' : `semantic (${(s.similarity * 100).toFixed(0)}%)`;
+          output += `\n- ${s.local_id}: ${reason} → ${s.existing_id}`;
+        }
+      }
+
+      if (args.auto_clean && skipped.length > 0) {
+        let cleaned = 0;
+        for (const s of skipped) {
+          if (!s.local_id) continue;
+          const entry = linkMap.entries[s.local_id];
+          if (!entry) continue;
+          const filePath = path.join(MEMORY_DIR, entry.path);
+          deleteEntryFile(filePath);
+          await removeFromLinkMap(s.local_id);
+          cleaned++;
+        }
+        output += `\n\n🧹 Auto-cleaned ${cleaned} local duplicates`;
+      }
+
+      return output;
     } catch (e) {
       return `❌ Sync error: ${e.message}`;
     }

@@ -35,13 +35,13 @@ describe('WrapperClient Sync Methods', () => {
     }
   });
 
-  describe('syncIncremental', () => {
+  describe('syncPreview', () => {
     it('should exist as a method', () => {
       if (!WrapperClient) {
         console.log('⚠️ Skipping - wrapper-client not available');
         return;
       }
-      expect(typeof client.syncIncremental).toBe('function');
+      expect(typeof client.syncPreview).toBe('function');
     });
 
     it('should accept fingerprints array parameter', () => {
@@ -54,11 +54,9 @@ describe('WrapperClient Sync Methods', () => {
         { path: 'active/preferences/entry-001.md', mtime: 1234567890, hash: 'abc123', source_id: 'entry-001' }
       ];
       
-      // Method exists and accepts parameters (will fail when called without backend, but we test signature)
       expect(() => {
-        // Don't actually call - would require backend
-        if (typeof client.syncIncremental !== 'function') {
-          throw new Error('syncIncremental is not a function');
+        if (typeof client.syncPreview !== 'function') {
+          throw new Error('syncPreview is not a function');
         }
       }).not.toThrow();
     });
@@ -70,10 +68,7 @@ describe('WrapperClient Sync Methods', () => {
       }
       
       const fingerprints = [];
-      // Call without await to get the promise
-      const result = client.syncIncremental(fingerprints);
-      
-      // Should return a promise (or reject if no backend)
+      const result = client.syncPreview(fingerprints);
       expect(result).toBeInstanceOf(Promise);
     });
 
@@ -84,9 +79,7 @@ describe('WrapperClient Sync Methods', () => {
       }
       
       const fingerprints = [];
-      const result = client.syncIncremental(fingerprints);
-      
-      // Returns a promise
+      const result = client.syncPreview(fingerprints);
       expect(result).toBeDefined();
     });
   });
@@ -196,7 +189,20 @@ describe('WrapperClient Sync Methods', () => {
         expect(result).toBeInstanceOf(Promise);
       }
     });
-  });
+
+    it('should accept fingerprints array parameter', () => {
+      if (!WrapperClient) {
+        console.log('⚠️ Skipping - wrapper-client not available');
+        return;
+      }
+      
+      // Method exists and accepts parameters (will fail when called without backend, but we test signature)
+      expect(() => {
+        if (typeof client.syncPreview !== 'function') {
+          throw new Error('syncPreview is not a function');
+        }
+      }).not.toThrow();
+    });
 
   describe('Error Classes', () => {
     it('should export WrapperError', () => {
@@ -232,7 +238,7 @@ describe('Sync Method Signatures', () => {
     
     // Check all required methods exist
     const requiredMethods = [
-      'syncIncremental',
+      'syncPreview',
       'syncFull', 
       'getServerFingerprints',
       'resolveConflict'

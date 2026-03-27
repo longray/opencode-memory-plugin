@@ -6,6 +6,38 @@
 
 ---
 
+## v2.5.2 - 后端 v2.4.0 对齐
+
+### BL-115: syncIncremental → syncPreview 重命名
+
+**真实场景**: 后端 v2.4.0 将 `/api/v1/sync/incremental` 重命名为 `/api/v1/sync/preview`。插件 wrapper-client 的方法名应与后端对齐，避免未来旧路由被移除后失效。
+
+**目标**: wrapper-client 方法名和 HTTP 路径同步更新
+
+| 项目 | 内容 |
+|------|------|
+| **涉及范围** | `lib/wrapper-client.js`、`tools/sync.js`、`tests/test-sync-methods.test.js`、`docs/API-CONTRACT.md` |
+| **前置依赖** | 后端 v2.4.0 已部署 |
+| **完成标准** | `client.syncPreview()` 调用 `/api/v1/sync/preview`，工具行为不变 |
+| **验证方式** | `node -e "..."` 验证方法存在，ESLint 通过 |
+
+---
+
+### BL-116: full_sync auto_clean 参数
+
+**真实场景**: 用户重装系统后 full_sync 返回 50 条 skipped，但本地重复文件一直存在，每次同步都会重复上传被跳过。需要一个方式清理这些已同步的本地重复。
+
+**目标**: full_sync 新增 `auto_clean: true` 参数，自动删除被后端标记为重复的本地文件
+
+| 项目 | 内容 |
+|------|------|
+| **涉及范围** | `tools/sync.js`、`docs/API-CONTRACT.md` |
+| **前置依赖** | 后端 v2.4.0 skipped 返回值 |
+| **完成标准** | `auto_clean=true` 时，删除 timeline 文件 + 从 link-map 移除条目 |
+| **验证方式** | ESLint 通过，手动调用 full_sync auto_clean=true 验证 |
+
+---
+
 ## v2.5.1 - Bug 修复（第三轮）
 
 ### BL-107: sync_checkpoint 无参调用默认值失效

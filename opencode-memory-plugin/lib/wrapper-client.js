@@ -471,7 +471,7 @@ export class WrapperClient {
    * @param {string} tenant_id
    * @returns {Promise<{to_upload: Array, to_delete: Array, conflicts: Array, server_fingerprints: Array}>}
    */
-  async syncIncremental(fingerprints, tenant_id) {
+  async syncPreview(fingerprints, tenant_id) {
     const requestBody = {
       fingerprints: fingerprints.map(fp => ({
         path: fp.path,
@@ -483,7 +483,7 @@ export class WrapperClient {
     };
 
     return await withRetry(
-      () => this.http.post('/api/v1/sync/incremental', requestBody),
+      () => this.http.post('/api/v1/sync/preview', requestBody),
       this.maxRetries
     );
   }

@@ -124,8 +124,8 @@
 | 项目        | 值                                                                                                                                |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | 工具文件    | `tools/sync.js`                                                                                                                   |
-| Client 方法 | `client.syncIncremental(fingerprints, tenant_id)`                                                                                 |
-| HTTP        | `POST /api/v1/sync/incremental`（后端 v2.4.0 已重命名为 `/sync/preview`，旧路由保留为别名）                                       |
+| Client 方法 | `client.syncPreview(fingerprints, tenant_id)`                                                                                     |
+| HTTP        | `POST /api/v1/sync/preview`                                                                                                       |
 | 需要参数    | `{fingerprints: [{path, mtime, hash, source_id}], tenant_id}`                                                                     |
 | 返回        | `{synced, to_upload: [{source_id, reason, path}], to_delete: [source_id], conflicts: [{id, source_id, local_hash, server_hash}]}` |
 | 状态        | ✅ 正常                                                                                                                           |
@@ -139,9 +139,10 @@
 | 工具文件    | `tools/sync.js`                                                                                     |
 | Client 方法 | `client.syncFull(memories, tenant_id)`                                                              |
 | HTTP        | `POST /api/v1/sync/full`                                                                            |
+| 参数        | `dry_run?: boolean`, `auto_clean?: boolean`                                                         |
 | 需要参数    | `{memories: [{content, type, tags, local_id, ...}], tenant_id}`                                     |
 | 返回        | `{total, success, failed, updated, skipped: [{local_id, existing_id, reason, similarity}], errors}` |
-| 说明        | 后端 v2.4.0 新增 `skipped` 列表（去重跳过的条目）和 `updated` 字段；`errors` 仅保留真正的异常       |
+| 说明        | 后端 v2.4.0 新增 `skipped` 列表；`auto_clean=true` 时自动删除本地重复文件和 link-map 条目           |
 | 状态        | ✅ 正常                                                                                             |
 
 ---
@@ -185,7 +186,7 @@
 | `getRelations()`          | POST /api/v1/memories/{id}/relations     | 查询关系                      | ✅   |
 | `deleteRelation()`        | DELETE /api/v1/memories/relations/{id}   | 删除关系                      | ✅   |
 | `traverseGraph()`         | POST /api/v1/memories/{id}/graph         | 图遍历                        | ✅   |
-| `syncIncremental()`       | POST /api/v1/sync/incremental            | 同步预览（旧路由别名）        | ✅   |
+| `syncPreview()`           | POST /api/v1/sync/preview                | 同步预览                      | ✅   |
 | `syncFull()`              | POST /api/v1/sync/full                   | 全量同步（返回 skipped 列表） | ✅   |
 | `getServerFingerprints()` | GET /api/v1/sync/fingerprints            | 获取指纹                      | ✅   |
 | `resolveConflict()`       | POST /api/v1/sync/conflicts/{id}/resolve | 解决冲突（大小写不敏感）      | ✅   |
