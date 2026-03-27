@@ -1,7 +1,7 @@
 import { tool } from '@opencode-ai/plugin/tool';
 import { getConfig, getLinkMap } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
-import { MEMORY_DIR, TIMELINE_DIR } from '../lib/constants.js';
+import { MEMORY_DIR } from '../lib/constants.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -59,14 +59,21 @@ export const rebuild_index = tool({
 
 export const index_status = tool({
   description: 'Check the status of the memory system',
-  args: {},
-  async execute() {
+  args: {
+    detailed: tool.schema
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('Show pending entries details'),
+  },
+  async execute(args) {
     const config = getConfig();
     const client = getWrapperClient(config);
     const backendEnabled = config?.backend?.enabled !== false;
     const linkMap = getLinkMap();
     const entries = Object.values(linkMap.entries || {});
     const syncedCount = entries.filter(e => e.synced).length;
+    const pendingCount = entries.length - syncedCount;
 
     let backendStatus = '❌ Offline';
     let backendCount = 0;
@@ -81,12 +88,12 @@ export const index_status = tool({
       }
     }
 
-    return `## Memory System Status
+    let output = `## Memory System Status
 
 **Local:**
 - Total entries: ${entries.length}
 - Synced: ${syncedCount}
-- Pending: ${entries.length - syncedCount}
+- Pending: ${pendingCount}
 
 **Backend:**
 - Status: ${backendStatus}
@@ -96,90 +103,16 @@ export const index_status = tool({
 - Memory dir: ${MEMORY_DIR}
 - Config: ${config ? '✅' : '❌'}
 `;
-  },
-});
 
-export const list_daily = tool({
-  description: 'List available timeline entries from past N days',
-  args: {
-    days: tool.schema.number().optional().default(7),
-  },
-  async execute(args) {
-    const days = args.days || 7;
-    const linkMap = getLinkMap();
-    const entries = Object.values(linkMap.entries || {});
-
-    const now = new Date();
-    const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-
-    const byDate = {};
-    for (const entry of entries) {
-      const match = entry.path.match(/timeline\/(\d{4})\/(\d{2})\/(\d{2})/);
-      if (match) {
-        const dateStr = `${match[1]}-${match[2]}-${match[3]}`;
-        const entryDate = new Date(dateStr);
-        if (entryDate >= cutoff) {
-          if (!byDate[dateStr]) byDate[dateStr] = [];
-          byDate[dateStr].push(entry);
-        }
-      }
-    }
-
-    const sortedDates = Object.keys(byDate).sort().reverse();
-
-    if (sortedDates.length === 0) {
-      return `❌ No entries in the last ${days} days`;
-    }
-
-    return sortedDates.map(d => `${d}: ${byDate[d].length} entries`).join('\n');
-  },
-});
-
-export const init_daily = tool({
-  description: "Initialize today's timeline directory if it doesn't exist",
-  args: {},
-  async execute() {
-    const now = new Date();
-    const dayDir = path.join(
-      TIMELINE_DIR,
-      String(now.getFullYear()),
-      String(now.getMonth() + 1).padStart(2, '0'),
-      String(now.getDate()).padStart(2, '0')
-    );
-
-    if (!fs.existsSync(dayDir)) {
-      fs.mkdirSync(dayDir, { recursive: true });
-      return `✅ Created: ${dayDir}`;
-    }
-
-    return `ℹ️ Already exists: ${dayDir}`;
-  },
-});
-
-export const sync_status = tool({
-  description: 'Get real-time synchronization status',
-  args: {
-    detailed: tool.schema.boolean().optional().default(false),
-  },
-  async execute(args) {
-    const linkMap = getLinkMap();
-    const entries = Object.values(linkMap.entries || {});
-    const synced = entries.filter(e => e.synced).length;
-    const pending = entries.length - synced;
-
-    let output = `## Sync Status\n\n`;
-    output += `- Total: ${entries.length}\n`;
-    output += `- Synced: ${synced}\n`;
-    output += `- Pending: ${pending}\n`;
-
-    if (args.detailed && pending > 0) {
+    if (args.detailed && pendingCount > 0) {
+      const pending = entries.filter(e => !e.synced).slice(0, 10);
       output += `\n**Pending entries:**\n`;
-      entries
-        .filter(e => !e.synced)
-        .slice(0, 10)
-        .forEach(e => {
-          output += `- ${e.id}: ${e.abstract?.substring(0, 40)}...\n`;
-        });
+      pending.forEach(e => {
+        output += `- ${e.id}: ${e.abstract?.substring(0, 40) || '(no abstract)'}...\n`;
+      });
+      if (pendingCount > 10) {
+        output += `... and ${pendingCount - 10} more\n`;
+      }
     }
 
     return output;
@@ -290,5 +223,56 @@ export const batch_resolve = tool({
     } catch (e) {
       return `❌ Error: ${e.message}`;
     }
+  },
+});
+
+export const sync_checkpoint = tool({
+  description: 'View sync checkpoints and fingerprints',
+  args: {
+    action: tool.schema.string().optional().default('list').describe('Action: list'),
+    limit: tool.schema.number().optional().default(20).describe('Max fingerprints to show'),
+  },
+  async execute(args) {
+    const config = getConfig();
+    const client = getWrapperClient(config);
+    const backendEnabled = config?.backend?.enabled !== false;
+
+    if (!backendEnabled) {
+      return '❌ Backend not enabled';
+    }
+
+    if (args.action === 'list') {
+      try {
+        const fingerprints = await client.getServerFingerprints(
+          config?.backend?.tenant_id || 'default'
+        );
+        const list = fingerprints.fingerprints || fingerprints || [];
+
+        if (list.length === 0) {
+          return '✅ No fingerprints on server';
+        }
+
+        const shown = list.slice(0, args.limit || 20);
+        let output = `## Sync Checkpoints\n\n`;
+        output += `**Total on server:** ${list.length}\n\n`;
+        output += `| Source ID | Hash | Path |\n`;
+        output += `|-----------|------|------|\n`;
+        shown.forEach(fp => {
+          const p = fp.path ? fp.path.substring(0, 40) : 'N/A';
+          const hash = fp.hash ? fp.hash.substring(0, 12) : 'N/A';
+          output += `| ${fp.source_id || 'N/A'} | ${hash}... | ${p}... |\n`;
+        });
+
+        if (list.length > (args.limit || 20)) {
+          output += `\n... and ${list.length - (args.limit || 20)} more\n`;
+        }
+
+        return output;
+      } catch (e) {
+        return `❌ Error: ${e.message}`;
+      }
+    }
+
+    return `❌ Unknown action: ${args.action}. Use: list`;
   },
 });

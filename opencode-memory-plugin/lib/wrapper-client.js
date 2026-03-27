@@ -209,6 +209,27 @@ export class WrapperClient {
   }
 
   /**
+   * 获取后端状态信息
+   */
+  async getStatus() {
+    try {
+      const health = await this.health();
+      return {
+        status: health.status || 'unavailable',
+        memory_count: health.memory_count || 0,
+        healthy: health.status === 'healthy',
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        memory_count: 0,
+        healthy: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * 搜索记忆
    * @param {Object} params - 搜索参数
    * @param {string} params.query - 搜索查询

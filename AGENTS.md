@@ -1,15 +1,22 @@
 # AGENTS.md - OpenCode Memory Plugin 核心指南
 
-**生成时间**: 2026-03-26  
+**生成时间**: 2026-03-27  
 **分支**: main  
-**当前版本**: v2.4.0
+**当前版本**: v2.5.0
 
-## 📝 最近更新 (2026-03-26)
+## 📝 最近更新 (2026-03-27)
+
+- ✅ v2.4.1 记忆条目格式升级
+- ✅ 分隔符改为 `# ≡≡≡` (3个≡)
+- ✅ 内容区域使用 ``` 代码块包围
+- ✅ frontmatter 增加 `meta` 字段（可选，支持任意键值对数组）
+- ✅ CLI 添加 `--meta` 参数支持
+
+## 📝 历史更新 (2026-03-26)
 
 - ✅ v2.4.0 L0/L1/L2 分层存储架构完成
 - ✅ 统一使用 ULID 格式 `entry_{ulid}.md`
 - ✅ 新增 frontmatter 字段：id, memory_id, synced, synced_at
-- ✅ 分层格式：`# Abstract` / `## Overview` / `## Content`
 - ✅ abstract/overview 必填（建议 ≤100/≤500 字符，超长可容忍）
 - ✅ 代码重构：lib/、tools/、cli/ 模块化拆分
 - ✅ CLI 和 Plugin 共享 lib/ 核心库
@@ -173,18 +180,63 @@ opencode-memory list --days 7
 | L1   | overview | 核心要点   | ≤500字 | 了解条目大意     |
 | L2   | content  | 完整内容   | 无限制 | 需要详细阅读     |
 
-### 19个记忆工具
+### 记忆条目格式 (v2.4.1)
 
-| 工具             | 功能       | 说明                    |
-| ---------------- | ---------- | ----------------------- |
-| `memory_write`   | 写入记忆   | 必填 abstract, overview |
-| `memory_read`    | 读取记忆   | 支持 level=0/1/2        |
-| `memory_search`  | 搜索记忆   | 关键词和语义搜索        |
-| `memory_suggest` | 自动补全   | 前缀搜索建议            |
-| `list_daily`     | 列出日志   | 显示每日日志文件        |
-| `init_daily`     | 初始化日志 | 创建今日的日志文件      |
-| `rebuild_index`  | 重建索引   | 重新索引所有记忆文件    |
-| `index_status`   | 状态检查   | 检查向量索引状态        |
+```markdown
+---
+id: { ulid }
+date: { ISO8601 }
+type: { type }
+tags: [{ tags }]
+project: { project }
+memory_id: { memory_id }
+source_id: { source_id }
+synced: { boolean }
+synced_at: { timestamp }
+meta: [{ 键:值 }, ...]
+---
+
+# ≡≡≡ Abstract ≡≡≡
+```
+
+{abstract 内容}
+
+```
+
+# ≡≡≡ Overview ≡≡≡
+```
+
+{overview 内容}
+
+```
+
+# ≡≡≡ Contents ≡≡≡
+```
+
+{完整内容}
+
+```
+
+---
+```
+
+**分隔符格式**: `# ≡≡≡ {标题} ≡≡≡` (3个≡符号)
+**内容区域**: 使用 ```代码块包围
+**meta 字段**: 可选，JSON 数组格式`[{"key":"value"},...]`
+
+### 16个记忆工具
+
+| 工具              | 功能       | 说明                    |
+| ----------------- | ---------- | ----------------------- |
+| `memory_write`    | 写入记忆   | 必填 abstract, overview |
+| `memory_read`     | 读取记忆   | 支持 level=0/1/2        |
+| `memory_search`   | 搜索记忆   | 关键词和语义搜索        |
+| `memory_suggest`  | 自动补全   | 前缀搜索建议            |
+| `memory_timeline` | 时间浏览   | 按日期范围浏览          |
+| `memory_topics`   | 主题浏览   | 按主题分类浏览          |
+| `rebuild_index`   | 重建索引   | 同步到后端              |
+| `index_status`    | 状态检查   | 显示系统状态            |
+| `sync_checkpoint` | 同步检查点 | 查看服务器指纹          |
 
 ### 搜索模式
 
@@ -227,24 +279,25 @@ opencode-memory list --days 7
 
 ### 工具模块
 
-| 符号             | 文件            | 说明                        |
-| ---------------- | --------------- | --------------------------- |
-| memory_write     | tools/core.js   | 写入记忆工具                |
-| memory_search    | tools/search.js | 搜索记忆工具（关键词+语义） |
-| memory_timeline  | tools/browse.js | 时间线浏览工具              |
-| memory_topics    | tools/browse.js | 主题浏览工具                |
-| incremental_sync | tools/sync.js   | 增量同步工具                |
-| full_sync        | tools/sync.js   | 完整同步工具                |
-| conflict_list    | tools/sync.js   | 冲突列表工具                |
-| conflict_resolve | tools/sync.js   | 冲突解决工具                |
-| rebuild_index    | tools/sync.js   | 索引重建工具                |
-| index_status     | tools/sync.js   | 索引状态检查工具            |
+| 符号             | 文件            | 说明                    |
+| ---------------- | --------------- | ----------------------- |
+| memory_write     | tools/core.js   | 写入记忆工具            |
+| memory_search    | tools/search.js | 搜索工具（关键词+语义） |
+| memory_timeline  | tools/browse.js | 时间线浏览工具          |
+| memory_topics    | tools/browse.js | 主题浏览工具            |
+| incremental_sync | tools/sync.js   | 增量同步工具            |
+| full_sync        | tools/sync.js   | 完整同步工具            |
+| sync_checkpoint  | tools/sync.js   | 同步检查点工具          |
+| conflict_list    | tools/sync.js   | 冲突列表工具            |
+| conflict_resolve | tools/sync.js   | 冲突解决工具            |
+| rebuild_index    | tools/sync.js   | 索引重建工具            |
+| index_status     | tools/sync.js   | 索引状态检查工具        |
 
 ## 📊 核心特性总结
 
 ### 主要功能
 
-- ✅ **19个记忆工具**: 提供完整的记忆管理功能（核心11 + 同步4 + 浏览2 + 冲突2）
+- ✅ **16个记忆工具**: 提供完整的记忆管理功能（核心8 + 同步5 + 浏览2 + 冲突2）
 - ✅ **v2.4 L0/L1/L2 分层存储**: abstract/overview/content 分层结构
 - ✅ **v2.4 ULID 格式**: `entry_{ulid}.md` 统一文件名
 - ✅ **v2.4 模块化架构**: lib/、tools/、cli/ 代码分离，共享核心库

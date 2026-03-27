@@ -6,14 +6,12 @@ import { memory_timeline, memory_topics } from './tools/browse.js';
 import {
   rebuild_index,
   index_status,
-  list_daily,
-  init_daily,
-  sync_status,
   incremental_sync,
   full_sync,
   conflict_list,
   conflict_resolve,
   batch_resolve,
+  sync_checkpoint,
 } from './tools/sync.js';
 
 const memory_read = tool({
@@ -51,14 +49,12 @@ export const MemoryPlugin = async _ctx => {
       memory_topics,
       rebuild_index,
       index_status,
-      list_daily,
-      init_daily,
-      sync_status,
       incremental_sync,
       full_sync,
       conflict_list,
       conflict_resolve,
       batch_resolve,
+      sync_checkpoint,
     },
   };
 };

@@ -5,6 +5,7 @@ import { TIMELINE_DIR, MEMORY_DIR } from './constants.js';
 
 export function buildEntryContent(data) {
   const tags = Array.isArray(data.tags) ? data.tags.join(', ') : data.tags || '';
+  const meta = data.meta ? JSON.stringify(data.meta) : '[]';
 
   return `---
 id: ${data.id}
@@ -16,16 +17,23 @@ memory_id: ${data.memory_id || 'pending'}
 source_id: ${data.source_id || ''}
 synced: ${data.synced || false}
 synced_at: ${data.synced_at || 'null'}
+meta: ${meta}
 ---
 
-# Abstract
+# ≡≡≡ Abstract ≡≡≡
+\`\`\`
 ${data.abstract}
+\`\`\`
 
-## Overview
+# ≡≡≡ Overview ≡≡≡
+\`\`\`
 ${data.overview}
+\`\`\`
 
-## Content
+# ≡≡≡ Contents ≡≡≡
+\`\`\`
 ${data.content}
+\`\`\`
 
 ---
 `;
@@ -52,6 +60,7 @@ export async function writeEntryToTimeline(layers, metadata) {
     memory_id: 'pending',
     source_id: metadata.source_id || '',
     synced: false,
+    meta: metadata.meta || [],
     abstract: layers.abstract,
     overview: layers.overview,
     content: layers.content,
@@ -79,13 +88,23 @@ export function parseEntryFromFile(filePath) {
   frontmatterMatch[1].split('\n').forEach(line => {
     const [key, ...valueParts] = line.split(':');
     if (key && valueParts.length) {
-      frontmatter[key.trim()] = valueParts.join(':').trim();
+      const k = key.trim();
+      const v = valueParts.join(':').trim();
+      if (k === 'meta' && v.startsWith('[')) {
+        try {
+          frontmatter[k] = JSON.parse(v);
+        } catch {
+          frontmatter[k] = v;
+        }
+      } else {
+        frontmatter[k] = v;
+      }
     }
   });
 
-  const abstractMatch = content.match(/# Abstract\n([\s\S]*?)(?=\n## |\n---|$)/);
-  const overviewMatch = content.match(/## Overview\n([\s\S]*?)(?=\n## |\n---|$)/);
-  const contentMatch = content.match(/## Content\n([\s\S]*?)$/);
+  const abstractMatch = content.match(/# ≡≡≡ Abstract ≡≡≡\n```\n([\s\S]*?)```/);
+  const overviewMatch = content.match(/# ≡≡≡ Overview ≡≡≡\n```\n([\s\S]*?)```/);
+  const contentMatch = content.match(/# ≡≡≡ Contents ≡≡≡\n```\n([\s\S]*?)```/);
 
   return {
     frontmatter,

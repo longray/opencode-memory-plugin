@@ -14,6 +14,7 @@ const commands = {
   list: listCommand,
   init: initCommand,
   status: statusCommand,
+  checkpoint: checkpointCommand,
   help: showHelp,
 };
 
@@ -39,6 +40,7 @@ Commands:
     Options:
       --type <type>            Entry type (default: general)
       --tags <tags>            Comma-separated tags
+      --meta <json>            JSON array of key-value pairs: '[{"k":"v"}]'
       --abstract <text>        Abstract (required, auto-generated if omitted)
       --overview <text>        Overview (required, auto-generated if omitted)
 
@@ -56,14 +58,20 @@ Commands:
   init                         Initialize today's timeline directory
 
   status                       Show system status
+      --detailed              Show pending entries
+
+  checkpoint [options]         View sync checkpoints
+      --action <action>       Action: list (default: list)
+      --limit <n>             Max entries (default: 20)
 
   help                         Show this help message
 
 Examples:
-  opencode-memory write "User prefers TypeScript" --type "preference" --tags "typescript"
+  opencode-memory write "User prefers TypeScript" --abstract "TS preference" --overview "User likes TypeScript"
   opencode-memory read --id 01KMK5N77WBW6J78Y1WAQ5BNMQ --level 0
   opencode-memory search "typescript"
-  opencode-memory status
+  opencode-memory status --detailed
+  opencode-memory checkpoint
 `);
 }
 
@@ -84,16 +92,38 @@ async function writeCommand(args) {
         .filter(Boolean)
     : [];
 
-  let abstract = typeof args.abstract === 'string' ? args.abstract : '';
-  let overview = typeof args.overview === 'string' ? args.overview : '';
+  const abstract = typeof args.abstract === 'string' ? args.abstract.trim() : '';
+  const overview = typeof args.overview === 'string' ? args.overview.trim() : '';
+  let meta = [];
+
+  if (typeof args.meta === 'string') {
+    try {
+      meta = JSON.parse(args.meta);
+      if (!Array.isArray(meta)) {
+        log('Warning: meta should be an array, using empty array', 'yellow');
+        meta = [];
+      }
+    } catch {
+      log('Warning: invalid meta JSON, using empty array', 'yellow');
+      meta = [];
+    }
+  }
 
   if (!abstract) {
-    abstract = content.substring(0, 50) + (content.length > 50 ? '...' : '');
-    log('ℹ️ Abstract auto-generated (建议 ≤100 字符)', 'yellow');
+    log('Error: abstract is REQUIRED (建议 ≤100 字符)', 'red');
+    log('Usage: opencode-memory write <content> --abstract <text> --overview <text>', 'yellow');
+    process.exit(1);
   }
   if (!overview) {
-    overview = content.substring(0, 120) + (content.length > 120 ? '...' : '');
-    log('ℹ️ Overview auto-generated (建议 ≤500 字符)', 'yellow');
+    log('Error: overview is REQUIRED (建议 ≤500 字符)', 'red');
+    log('Usage: opencode-memory write <content> --abstract <text> --overview <text>', 'yellow');
+    process.exit(1);
+  }
+  if (abstract.length > 100) {
+    log('Warning: abstract > 100 characters', 'yellow');
+  }
+  if (overview.length > 500) {
+    log('Warning: overview > 500 characters', 'yellow');
   }
 
   try {
@@ -119,6 +149,7 @@ async function writeCommand(args) {
       source: 'cli',
       tenant_id: tenantId,
       client,
+      meta,
     });
 
     if (!result.success) {
@@ -215,10 +246,10 @@ async function searchCommand(args) {
     console.log('');
     result.results.forEach((e, i) => {
       const type = e.type || 'general';
-      const abstract = e.abstract || e.content_abstract || 'N/A';
+      const display = e.abstract || e.overview || e.content || 'N/A';
       const id = e.id || e.local_id || 'N/A';
 
-      console.log(`${i + 1}. [${type}] ${abstract.substring(0, 60)}`);
+      console.log(`${i + 1}. [${type}] ${display.substring(0, 60)}`);
       console.log(`   ID: ${id}`);
       console.log(`   Score: ${e.score || 'N/A'}`);
       console.log('');
@@ -306,31 +337,117 @@ async function initCommand() {
   }
 }
 
-async function statusCommand() {
+async function statusCommand(args) {
   try {
-    const fs = require('fs');
-    const { getLinkMap } = await import('../lib/storage.js');
-    const { MEMORY_DIR, LINK_MAP_FILE } = await import('../lib/constants.js');
+    const { getLinkMap, getConfig } = await import('../lib/storage.js');
+    const { getWrapperClient } = await import('../lib/wrapper-client.js');
+    const { MEMORY_DIR } = await import('../lib/constants.js');
 
+    const config = getConfig();
+    const client = getWrapperClient(config);
+    const backendEnabled = config?.backend?.enabled !== false;
     const linkMap = getLinkMap();
     const entries = Object.values(linkMap.entries || {});
     const syncedCount = entries.filter(e => e.synced).length;
+    const pendingCount = entries.length - syncedCount;
 
     log('Memory System Status:', 'blue');
     console.log('');
     log('Local:', 'green');
     log(`  Total entries: ${entries.length}`, 'blue');
     log(`  Synced: ${syncedCount}`, 'blue');
-    log(`  Pending: ${entries.length - syncedCount}`, 'blue');
-    console.log('');
+    log(`  Pending: ${pendingCount}`, 'blue');
 
+    if (backendEnabled) {
+      try {
+        const status = await client.getStatus();
+        log('', '');
+        log('Backend:', 'green');
+        log(`  Status: ✅ Online`, 'blue');
+        log(`  Backend entries: ${status.memory_count || 0}`, 'blue');
+      } catch {
+        log('', '');
+        log('Backend:', 'green');
+        log(`  Status: ❌ Offline`, 'red');
+      }
+    }
+
+    log('', '');
     log('Storage:', 'green');
     log(`  Memory dir: ${MEMORY_DIR}`, 'blue');
-    log(`  Link map: ${fs.existsSync(LINK_MAP_FILE) ? '✅' : '❌'}`, 'blue');
+    log(`  Link map: ✅`, 'blue');
+
+    if (args.detailed && pendingCount > 0) {
+      const pending = entries.filter(e => !e.synced).slice(0, 10);
+      log('', '');
+      log('Pending entries:', 'yellow');
+      pending.forEach(e => {
+        log(`  - ${e.id}: ${(e.abstract || '(no abstract)').substring(0, 40)}...`, 'blue');
+      });
+      if (pendingCount > 10) {
+        log(`  ... and ${pendingCount - 10} more`, 'blue');
+      }
+    }
+
     console.log('');
   } catch (e) {
     log(`❌ Status failed: ${e.message}`, 'red');
     console.error(e);
+    process.exit(1);
+  }
+}
+
+async function checkpointCommand(args) {
+  try {
+    const { getConfig } = await import('../lib/storage.js');
+    const { getWrapperClient } = await import('../lib/wrapper-client.js');
+
+    const config = getConfig();
+    const client = getWrapperClient(config);
+    const backendEnabled = config?.backend?.enabled !== false;
+
+    if (!backendEnabled) {
+      log('❌ Backend not enabled', 'red');
+      return;
+    }
+
+    const action = args.action || 'list';
+    const limit = parseInt(args.limit) || 20;
+
+    if (action === 'list') {
+      log('Fetching checkpoints...', 'blue');
+      const fingerprints = await client.getServerFingerprints(
+        config?.backend?.tenant_id || 'default'
+      );
+      const list = fingerprints.fingerprints || fingerprints || [];
+
+      if (list.length === 0) {
+        log('✅ No fingerprints on server', 'green');
+        return;
+      }
+
+      log(`## Sync Checkpoints`, 'blue');
+      log(`Total on server: ${list.length}`, 'green');
+      console.log('');
+
+      const shown = list.slice(0, limit);
+      log('Source ID                          | Hash          | Path', 'blue');
+      log('-----------------------------------|---------------|-------------------', 'blue');
+      shown.forEach(fp => {
+        const sid = (fp.source_id || 'N/A').substring(0, 32);
+        const hash = fp.hash ? fp.hash.substring(0, 12) : 'N/A';
+        const path = fp.path ? fp.path.substring(0, 30) : 'N/A';
+        log(`${sid.padEnd(33)}| ${hash.padEnd(13)}| ${path}`, 'blue');
+      });
+
+      if (list.length > limit) {
+        log(`... and ${list.length - limit} more`, 'yellow');
+      }
+    } else {
+      log(`❌ Unknown action: ${action}`, 'red');
+    }
+  } catch (e) {
+    log(`❌ Checkpoint failed: ${e.message}`, 'red');
     process.exit(1);
   }
 }

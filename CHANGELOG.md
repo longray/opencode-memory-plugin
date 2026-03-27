@@ -1,3 +1,95 @@
+## [2.5.0] - 2026-03-27
+
+### v2.5.0 - Tool Cleanup
+
+**Simplified toolset and improved functionality**
+
+#### 🗂️ Core Changes
+
+- **Tool Cleanup**: Removed 3 redundant tools
+  - Removed: `list_daily`, `init_daily`, `sync_status`
+  - Tool count: 19 → 16
+- **Enhanced index_status**: Added `--detailed` parameter for pending entries
+- **New sync_checkpoint**: View sync checkpoints and fingerprints
+- **Bug Fix**: Added `getStatus()` method to `wrapper-client.js`
+- **CLI Enhancements**: Added `checkpoint` command
+
+#### 🔧 Modified Files
+
+- `tools/sync.js`: Removed 3 tools, added sync_checkpoint
+- `tools/sync.js`: Enhanced index_status with detailed option
+- `lib/wrapper-client.js`: Added getStatus() method
+- `cli/index.cjs`: Added checkpoint command, enhanced status
+
+#### 📋 Tool Changes
+
+| Action   | Tools                                     |
+| -------- | ----------------------------------------- |
+| Removed  | `list_daily`, `init_daily`, `sync_status` |
+| Added    | `sync_checkpoint`                         |
+| Enhanced | `index_status` (--detailed)               |
+
+---
+
+## [2.4.1] - 2026-03-27
+
+### v2.4.1 - Entry Format Upgrade
+
+**Enhanced delimiter format and code block wrapping**
+
+#### 🗂️ Core Changes
+
+- **New Delimiter Format**: `# ≡≡≡ {标题} ≡≡≡` (3x ≡ instead of 2x)
+- **Content Wrapping**: Content areas now wrapped with ``` code blocks
+- **New Meta Field**: Added optional `meta` field in frontmatter
+  - JSON array format: `meta: [{"key":"value"},...]`
+  - Supports arbitrary key-value pairs
+- **CLI Support**: Added `--meta` parameter for `write` command
+
+#### 📝 Format Example
+
+```markdown
+---
+id: xxx
+date: xxx
+type: xxx
+tags: []
+meta: [{ "source": "cli" }]
+---
+
+# ≡≡≡ Abstract ≡≡≡
+```
+
+content
+
+```
+
+# ≡≡≡ Overview ≡≡≡
+```
+
+content
+
+```
+
+# ≡≡≡ Contents ≡≡≡
+```
+
+content
+
+```
+
+---
+```
+
+#### 🔧 Modified Files
+
+- `lib/entry.js`: Updated `buildEntryContent()` for new format
+- `lib/extractor.js`: Updated regex patterns for new delimiter
+- `lib/memory-core.js`: Added `meta` parameter support
+- `cli/index.cjs`: Added `--meta` CLI option
+
+---
+
 ## [2.4.0] - 2026-03-26
 
 ### v2.4.0 - L0/L1/L2 Layered Storage

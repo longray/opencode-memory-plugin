@@ -44,6 +44,7 @@ export async function writeMemory({
   pinned = false,
   source_id,
   project_id,
+  meta = [],
   source: _source = 'cli',
 }) {
   // 参数验证
@@ -111,7 +112,7 @@ export async function writeMemory({
     // 1. 写入本地文件
     const result = await writeEntryToTimeline(
       { abstract, overview, content },
-      { type, tags, project: project_id, source_id }
+      { type, tags, project: project_id, source_id, meta }
     );
 
     // 2. 更新 link-map
@@ -176,6 +177,8 @@ export async function syncMemoryToBackend({
   localId,
   filePath,
   content,
+  abstract,
+  overview,
   type,
   tags,
   project_id,
@@ -188,6 +191,8 @@ export async function syncMemoryToBackend({
   try {
     const memory = {
       content,
+      abstract,
+      overview,
       type,
       tags,
       project_id,
@@ -265,6 +270,7 @@ export async function writeAndSyncMemory({
   pinned = false,
   source_id,
   project_id,
+  meta = [],
   source = 'cli',
   tenant_id,
   client,
@@ -279,6 +285,7 @@ export async function writeAndSyncMemory({
     pinned,
     source_id,
     project_id,
+    meta,
     source,
   });
 
@@ -291,6 +298,8 @@ export async function writeAndSyncMemory({
     localId: writeResult.localId,
     filePath: writeResult.filePath,
     content,
+    abstract,
+    overview,
     type,
     tags,
     project_id,

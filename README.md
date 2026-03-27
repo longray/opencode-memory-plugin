@@ -29,7 +29,7 @@
 ## 🎯 Features
 
 - ✅ **Native OpenCode Plugin** - Using @opencode-ai/plugin API for seamless integration
-- ✅ **19 Memory Tools** - All tools available immediately after installation
+- ✅ **16 Memory Tools** - All tools available immediately after installation
 - ✅ **v2.3: Dual-Mode Sync** - Incremental (fingerprint-based) + Full sync (with resume)
 - ✅ **v2.3: Conflict Resolution** - Detection, auto-resolve, merge, manual resolve
 - ✅ **v2.3: Memory Browsing** - Timeline browser and topic explorer
@@ -44,41 +44,38 @@
 - ✅ **Phase C: Autocomplete** - Smart search suggestions (<50ms)
 - ✅ **Phase C: Real-time Sync** - WebSocket live synchronization
 
-### Available Tools (19)
+### Available Tools (16)
 
-#### Core Tools (11)
+#### Core Tools (8)
 
-| Tool             | Description                              | Backend Required   |
-| ---------------- | ---------------------------------------- | ------------------ |
-| `memory_write`   | Write entries to long-term memory        | Syncs to backend   |
-| `memory_read`    | Read from memory files                   | Local only         |
-| `memory_search`  | All search modes (vector/keyword/hybrid) | Backend + fallback |
-| `memory_relate`  | Create/query graph relations             | ✅ Yes             |
-| `memory_graph`   | Graph traversal                          | ✅ Yes             |
-| `memory_suggest` | Autocomplete suggestions                 | Local only         |
-| `sync_status`    | Real-time sync status                    | WebSocket          |
-| `list_daily`     | List available daily logs                | Local only         |
-| `init_daily`     | Initialize today's daily log             | Local only         |
-| `rebuild_index`  | Sync local files to backend              | ✅ Yes             |
-| `index_status`   | Check system status                      | Backend + local    |
+| Tool              | Description                              | Backend Required   |
+| ----------------- | ---------------------------------------- | ------------------ |
+| `memory_write`    | Write entries to long-term memory        | Syncs to backend   |
+| `memory_read`     | Read from memory files                   | Local only         |
+| `memory_search`   | All search modes (vector/keyword/hybrid) | Backend + fallback |
+| `memory_suggest`  | Autocomplete suggestions                 | Local only         |
+| `memory_relate`   | Create/query graph relations             | ✅ Yes             |
+| `memory_graph`    | Graph traversal                          | ✅ Yes             |
+| `memory_timeline` | Browse memories by date range            | Local only         |
+| `memory_topics`   | Browse memories by topic                 | Local only         |
 
-#### Sync Tools (4)
+#### Sync Tools (5)
 
 | Tool               | Description                        | Sync Mode        |
 | ------------------ | ---------------------------------- | ---------------- |
+| `index_status`     | Check system status                | Backend + local  |
+| `rebuild_index`    | Sync local files to backend        | ✅ Yes           |
 | `incremental_sync` | Fingerprint-based change detection | Smart delta sync |
 | `full_sync`        | Full sync with resume support      | Batch + resume   |
-| `sync_checkpoint`  | Manage sync checkpoints            | History control  |
-| `batch_resolve`    | Batch resolve conflicts            | Bulk operations  |
+| `sync_checkpoint`  | View sync checkpoints              | History control  |
 
-#### Browser & Conflict Tools (4)
+#### Conflict Tools (3)
 
 | Tool               | Description                            | Use Case          |
 | ------------------ | -------------------------------------- | ----------------- |
-| `memory_timeline`  | Browse memories by date range          | Historical view   |
-| `memory_topics`    | Browse memories by topic               | Topic exploration |
 | `conflict_list`    | List detected conflicts                | Review pending    |
 | `conflict_resolve` | Resolve conflict (accept/reject/merge) | Manual resolution |
+| `batch_resolve`    | Batch resolve conflicts                | Bulk operations   |
 
 ### One-Command Installation (Recommended)
 
@@ -216,11 +213,11 @@ memory_search query="how do I handle async errors"
 
 # The model understands meaning, not just keywords!
 
-# List recent daily logs
-list_daily days=7
+# Check system status
+index_status detailed=true
 
-# Initialize today's log
-init_daily
+# View sync checkpoints
+sync_checkpoint
 
 # Rebuild vector index
 rebuild_index force=true
@@ -233,10 +230,11 @@ rebuild_index force=true
 - `memory_write` - Save memories to long-term storage
 - `memory_read` - Read memory files
 - `memory_search` - All search modes (vector/keyword/hybrid) with backend service
-- `list_daily` - List daily log files
-- `init_daily` - Create today's daily log
+- `memory_timeline` - Browse memories by date range
+- `memory_topics` - Browse memories by topic
 - `rebuild_index` - Rebuild vector index with embeddings
 - `index_status` - Check system status including vector index info
+- `sync_checkpoint` - View sync checkpoints
 
 **Fallback Behavior:**
 
@@ -411,7 +409,7 @@ The plugin supports multiple external embedding services:
 
 ## 📚 Documentation
 
-### Current Version (v2.3.0)
+### Current Version (v2.5.0)
 
 - [Configuration Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
 - [Architecture Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/ARCHITECTURE.md) - System architecture and data flows
@@ -459,9 +457,37 @@ MIT License - see [LICENSE](LICENSE) for details
 - Hugging Face for Transformers.js and the all-MiniLM-L6-v2 model
 - All contributors and users
 
-**Current Version**: v2.3.0
+**Current Version**: v2.5.0
 
-### Latest Release: v2.3.0 (2026-03-20)
+### Latest Release: v2.5.0 (2026-03-27)
+
+**v2.5.0 - Tool Cleanup**:
+
+- ✨ **Tool Count**: 19 → 16 tools
+- ✨ **Removed**: `list_daily`, `init_daily`, `sync_status`
+- ✨ **Added**: `sync_checkpoint` - View sync checkpoints
+- ✨ **Enhanced**: `index_status --detailed` - Pending entries
+- ✨ **Bug Fix**: `getStatus()` method added
+
+### Previous Release: v2.4.1 (2026-03-27)
+
+**v2.4.1 - Entry Format Upgrade**:
+
+- ✨ **New Delimiter Format**: `# ≡≡≡ {标题} ≡≡≡` (3x ≡)
+- ✨ **Code Block Wrapping**: Content areas wrapped with ```
+- ✨ **Meta Field**: Optional `meta` field for arbitrary key-value pairs
+- ✨ **CLI Meta Support**: `--meta` parameter for write command
+
+### Previous Release: v2.4.0 (2026-03-26)
+
+**v2.4.0 - L0/L1/L2 Layered Storage**:
+
+- ✨ **Unified ULID Storage**: `entry_{ulid}.md` filename format
+- ✨ **Required Layers**: abstract + overview now REQUIRED
+- ✨ **Frontmatter Fields**: Added id, memory_id, synced, synced_at
+- ✨ **Code Refactoring**: lib/, tools/, cli/ modular architecture
+
+### Previous Release: v2.3.0 (2026-03-20)
 
 **v2.3 Enhanced - Dual-Mode Sync & Conflict Resolution**:
 
