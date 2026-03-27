@@ -23,16 +23,18 @@ const memory_read = tool({
     level: tool.schema.number().optional().default(2).describe('0=abstract, 1=overview, 2=full'),
   },
   async execute(args) {
-    const { getEntryById } = await import('./lib/storage.js');
-    const { extractByLevel } = await import('./lib/extractor.js');
+    const { readMemory } = await import('./lib/memory-core.js');
 
-    const entry = getEntryById(args.entry_id);
-    if (!entry) {
-      return `❌ Entry not found: ${args.entry_id}`;
+    const result = await readMemory({
+      entry_id: args.entry_id,
+      level: args.level !== undefined ? args.level : 2,
+    });
+
+    if (!result.success) {
+      return result.message;
     }
 
-    const level = args.level !== undefined ? args.level : 2;
-    return extractByLevel(entry.content, level);
+    return result.content;
   },
 });
 
