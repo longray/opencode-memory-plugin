@@ -302,22 +302,31 @@ const memory_read = tool({
 
 #### 7.1 功能测试
 
-```javascript
-// 在 OpenCode 中测试
-memory_read((entry_id = "entry_xxx"), (level = 0)); // 返回 abstract
-memory_read((entry_id = "entry_xxx"), (level = 1)); // 返回 overview
-memory_read((entry_id = "entry_xxx"), (level = 2)); // 返回 full content
-memory_read((entry_id = "nonexistent")); // 返回错误信息
+```bash
+# 使用测试脚本
+node opencode-memory-plugin/test-plugin-read.mjs
 ```
 
-#### 7.2 预期输出
+#### 7.2 测试用例
 
-- **成功时**: 返回对应层级的内容字符串
-- **失败时**: 返回错误信息字符串
+| 测试用例               | 预期结果          | 验证点       |
+| ---------------------- | ----------------- | ------------ |
+| Test 1: 缺少 entry_id  | 返回错误信息      | 参数验证     |
+| Test 2: 不存在的条目   | 返回错误信息      | 条目查找     |
+| Test 3: 写入测试条目   | 成功              | 准备测试数据 |
+| Test 4: 读取 level=0   | 返回 abstract     | L0 层级      |
+| Test 5: 读取 level=1   | 返回 overview     | L1 层级      |
+| Test 6: 读取 level=2   | 返回 full content | L2 层级      |
+| Test 7: 读取默认 level | 返回 full content | 默认值       |
 
-#### 7.3 回归测试
+#### 7.3 预期输出
 
-- 确保其他 Plugin 工具不受影响
+- **成功时**: 返回对应层级的内容字符串（纯文本）
+- **失败时**: 返回错误信息字符串（以 "❌" 开头）
+
+#### 7.4 回归测试
+
+- 确保其他 Plugin 工具不受影响（memory_write, memory_search 等）
 - 确保所有使用 memory_read 的 Agent 正常工作
 
 ### 8. 风险和注意事项
@@ -330,7 +339,45 @@ memory_read((entry_id = "nonexistent")); // 返回错误信息
 #### 8.2 注意事项
 
 - 保持向后兼容性（工具签名和返回格式不变）
-- 错误信息格式保持一致
+- 错误信息格式保持一致（使用 emoji 前缀）
+
+### 9. 验证结果
+
+#### 9.1 测试执行
+
+```bash
+node opencode-memory-plugin/test-plugin-read.mjs
+```
+
+#### 9.2 测试结果
+
+**待执行**（实现后填写）
+
+| 测试用例               | 预期结果 | 实际结果 | 状态 |
+| ---------------------- | -------- | -------- | ---- |
+| Test 1: 缺少 entry_id  | 失败     | -        | ⏳   |
+| Test 2: 不存在的条目   | 失败     | -        | ⏳   |
+| Test 3: 写入测试条目   | 成功     | -        | ⏳   |
+| Test 4: 读取 level=0   | 成功     | -        | ⏳   |
+| Test 5: 读取 level=1   | 成功     | -        | ⏳   |
+| Test 6: 读取 level=2   | 成功     | -        | ⏳   |
+| Test 7: 读取默认 level | 成功     | -        | ⏳   |
+
+#### 9.3 回归测试
+
+- [ ] memory_write 工具正常工作
+- [ ] memory_search 工具正常工作
+- [ ] 其他 Plugin 工具正常工作
+
+#### 9.4 输出格式验证
+
+- [ ] 返回值格式为字符串
+- [ ] 错误信息包含 emoji 前缀（❌）
+- [ ] 成功返回对应层级的内容
+
+### 10. 状态
+
+🚧 **进行中** (2026-03-27)
 
 ---
 
