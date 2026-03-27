@@ -150,27 +150,26 @@ async function writeCommand(args) {
 async function readCommand(args) {
   const entryId = args.id;
   if (!entryId) {
-    log('Error: Entry ID is required', 'red');
-    log('Usage: opencode-memory read --id <entry_id> [--level 0|1|2]', 'yellow');
+    console.error('Error: Entry ID is required');
+    console.error('Usage: opencode-memory read --id <entry_id> [--level 0|1|2]');
     process.exit(1);
   }
 
   const level = args.level !== undefined ? parseInt(args.level) : 2;
 
   try {
-    const { getEntryById } = await import('../lib/storage.js');
-    const { extractByLevel } = await import('../lib/extractor.js');
+    const { readMemory } = await import('../lib/memory-core.js');
 
-    const entry = getEntryById(entryId);
-    if (!entry) {
-      log(`❌ Entry not found: ${entryId}`, 'red');
+    const result = await readMemory({ entry_id: entryId, level });
+
+    if (!result.success) {
+      console.error(result.message);
       process.exit(1);
     }
 
-    const content = extractByLevel(entry.content, level);
-    console.log(content);
+    console.log(result.content);
   } catch (e) {
-    log(`❌ Failed to read: ${e.message}`, 'red');
+    console.error(`❌ Failed to read: ${e.message}`);
     console.error(e);
     process.exit(1);
   }
