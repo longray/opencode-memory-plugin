@@ -97,38 +97,49 @@ async function writeCommand(args) {
   }
 
   try {
-    const { writeEntryToTimeline } = await import('../lib/entry.js');
-    const { updateLinkMap, updateDayOverview, updateMemoryIndex } =
-      await import('../lib/indexer.js');
+    const { writeAndSyncMemory } = await import('../lib/memory-core.js');
+    const { getConfig } = await import('../lib/storage.js');
+    const { getWrapperClient } = await import('../lib/wrapper-client.js');
+    const { resolveProjectId } = await import('../lib/project-resolver.js');
 
-    const projectId = 'cli';
+    const config = getConfig();
+    const client = getWrapperClient(config);
+    const projectId = await resolveProjectId(config);
+    const tenantId = config?.backend?.tenant_id || 'longray';
 
-    const result = await writeEntryToTimeline(
-      { abstract, overview, content },
-      { type, tags, project: projectId }
-    );
+    const result = await writeAndSyncMemory({
+      abstract,
+      overview,
+      content,
+      type,
+      tags,
+      pinned: false,
+      source_id: null, // CLI 不使用 source_id
+      project_id: projectId,
+      source: 'cli',
+      tenant_id: tenantId,
+      client,
+    });
 
-    await updateLinkMap(
-      {
-        id: result.localId,
-        abstract,
-        overview,
-        type,
-        tags,
-        synced: false,
-        memory_id: null,
-      },
-      result.filePath
-    );
-
-    const dayDir = require('path').dirname(result.filePath);
-    await updateDayOverview(dayDir, { abstract, type, fileName: result.fileName });
-    await updateMemoryIndex({ abstract, type }, result.localId);
+    if (!result.success) {
+      if (result.memoryId) {
+        // 重复错误
+        log(result.message.split('\n')[0], 'yellow'); // 第一行是错误类型
+        log(result.message.split('\n')[1], 'yellow'); // 后端 ID
+        return;
+      }
+      log(`❌ Failed to write: ${result.message}`, 'red');
+      process.exit(1);
+    }
 
     log('✅ Entry written successfully', 'green');
     log(`  ID: ${result.localId}`, 'blue');
     log(`  Abstract: ${abstract.substring(0, 50)}...`, 'blue');
     log(`  File: ${result.filePath}`, 'blue');
+    if (result.memoryId) {
+      log(`  Backend: ✅ Synced (${result.memoryId})`, 'green');
+      log(`  Memory ID: ${result.memoryId}`, 'blue');
+    }
   } catch (e) {
     log(`❌ Failed to write: ${e.message}`, 'red');
     console.error(e);
@@ -173,45 +184,44 @@ async function searchCommand(args) {
     process.exit(1);
   }
 
+  const mode = args.mode || 'hybrid';
+
   try {
-    const { getLinkMap } = await import('../lib/storage.js');
+    const { getConfig } = await import('../lib/storage.js');
+    const { getWrapperClient } = await import('../lib/wrapper-client.js');
 
-    const linkMap = getLinkMap();
-    const entries = Object.values(linkMap.entries || {});
+    const config = getConfig();
+    const backendEnabled = config?.backend?.enabled !== false;
+    const tenantId = config?.backend?.tenant_id || 'default';
 
-    if (entries.length === 0) {
-      log('❌ No memories found', 'yellow');
+    if (!backendEnabled) {
+      log('❌ Backend disabled', 'yellow');
       return;
     }
 
-    const queryLower = query.toLowerCase();
-    const scored = entries
-      .map(entry => {
-        const abstractLower = (entry.abstract || '').toLowerCase();
-        const overviewLower = (entry.overview || '').toLowerCase();
-        const tagsLower = (entry.tags || []).join(' ').toLowerCase();
+    const client = getWrapperClient(config);
+    const result = await client.search({
+      query,
+      mode,
+      limit: 10,
+      tenant_id: tenantId,
+    });
 
-        let score = 0;
-        if (abstractLower.includes(queryLower)) score += 10;
-        if (overviewLower.includes(queryLower)) score += 5;
-        if (tagsLower.includes(queryLower)) score += 3;
-
-        return { ...entry, score };
-      })
-      .filter(e => e.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-
-    if (scored.length === 0) {
+    if (!result.results || result.results.length === 0) {
       log(`❌ No results for: ${query}`, 'yellow');
       return;
     }
 
-    log(`Found ${scored.length} matches:`, 'green');
+    log(`Found ${result.results.length} matches:`, 'green');
     console.log('');
-    scored.forEach((e, i) => {
-      console.log(`${i + 1}. [${e.type}] ${e.abstract?.substring(0, 60) || ''}`);
-      console.log(`   ID: ${e.id}`);
+    result.results.forEach((e, i) => {
+      const type = e.type || 'general';
+      const abstract = e.abstract || e.content_abstract || 'N/A';
+      const id = e.id || e.local_id || 'N/A';
+
+      console.log(`${i + 1}. [${type}] ${abstract.substring(0, 60)}`);
+      console.log(`   ID: ${id}`);
+      console.log(`   Score: ${e.score || 'N/A'}`);
       console.log('');
     });
   } catch (e) {

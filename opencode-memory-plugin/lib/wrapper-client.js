@@ -5,8 +5,37 @@
  * 支持：健康检查、搜索、上传、图关系、图遍历
  * 特性：自动重试、错误分类、超时控制
  *
- * @version 1.0.0
+ * @version 1.0.1
  */
+
+import fs from 'fs';
+import path from 'path';
+
+const HOME = process.env.HOME || process.env.USERPROFILE;
+const LOG_FILE = path.join(HOME, '.opencode', 'memory', 'memory.log');
+
+/**
+ * 写入日志到 memory.log
+ */
+function writeLog(level, category, message, data = null) {
+  const timestamp = new Date().toISOString();
+  const logLine = `[${timestamp}] [${level}] [${category}] ${message}${data ? ' ' + JSON.stringify(data) : ''}\n`;
+  try {
+    fs.appendFileSync(LOG_FILE, logLine);
+  } catch {
+    // ignore log write errors
+  }
+}
+
+function logInfo(category, message, data) {
+  writeLog('INFO', category, message, data);
+}
+function logError(category, message, data) {
+  writeLog('ERROR', category, message, data);
+}
+function logDebug(category, message, data) {
+  writeLog('DEBUG', category, message, data);
+}
 
 /**
  * Wrapper API 错误分类
@@ -44,6 +73,8 @@ class HTTPClient {
    */
   async request(method, endpoint, body = null, headers = {}) {
     const url = `${this.baseUrl}${endpoint}`;
+    logInfo('HTTP', `>>> ${method} ${endpoint}`, { body: body ? 'present' : 'none' });
+
     const options = {
       method,
       headers: {
@@ -63,18 +94,22 @@ class HTTPClient {
       const response = await fetch(url, { ...options, signal: controller.signal });
       clearTimeout(timeoutId);
 
+      logInfo('HTTP', `<<< ${response.status} ${endpoint}`);
+
       if (!response.ok) {
         const errorText = await response.text();
         const retryable = response.status >= 500 || response.status === 429;
+        logError('HTTP', `Error ${response.status}: ${errorText}`);
         throw new WrapperError(`HTTP ${response.status}: ${errorText}`, response.status, retryable);
       }
 
-      // 204 No Content
       if (response.status === 204) {
         return null;
       }
 
-      return await response.json();
+      const json = await response.json();
+      logDebug('HTTP', `Response ${endpoint}`, { keys: Object.keys(json || {}) });
+      return json;
     } catch (error) {
       clearTimeout(timeoutId);
 
@@ -86,6 +121,7 @@ class HTTPClient {
         throw new WrapperError('Backend service unavailable', 503, true);
       }
 
+      logError('HTTP', `Exception: ${error.message}`);
       throw error;
     }
   }
@@ -192,6 +228,13 @@ export class WrapperClient {
     tenant_id,
     project_id,
   }) {
+    logInfo('SEARCH', 'search called', {
+      query,
+      mode,
+      limit,
+      tenant_id: tenant_id || this.tenantId,
+    });
+
     const requestBody = {
       query,
       mode,
@@ -205,10 +248,14 @@ export class WrapperClient {
       requestBody.project_id = project_id;
     }
 
-    return await withRetry(
+    const result = await withRetry(
       () => this.http.post('/api/v1/memories/search', requestBody),
       this.maxRetries
     );
+
+    logInfo('SEARCH', 'search completed', { result_count: result.results?.length || 0 });
+
+    return result;
   }
 
   /**
@@ -217,14 +264,21 @@ export class WrapperClient {
    * @returns {Promise<{id: string, success: boolean}>}
    */
   async uploadMemory(memory) {
+    logInfo('UPLOAD', 'uploadMemory called', {
+      type: memory.type,
+      abstract: memory.abstract?.substring(0, 50),
+    });
+
     const result = await this.uploadMemories([memory]);
 
     if (result.success === 1 && result.memory_ids.length === 1) {
+      logInfo('UPLOAD', 'uploadMemory success', { id: result.memory_ids[0] });
       return { id: result.memory_ids[0], success: true };
     }
 
     if (result.errors && result.errors.length > 0) {
       const error = result.errors[0];
+      logError('UPLOAD', 'uploadMemory error', { error });
 
       if (typeof error === 'object' && error.type === 'duplicate') {
         throw new DuplicateError(
@@ -239,6 +293,7 @@ export class WrapperClient {
       throw new WrapperError(errorMessage, 400, false);
     }
 
+    logError('UPLOAD', 'uploadMemory unexpected result', { result });
     throw new WrapperError('Upload failed', 500, true);
   }
 
@@ -248,6 +303,8 @@ export class WrapperClient {
    * @returns {Promise<{total: number, success: number, failed: number, memory_ids: string[], errors: string[]}>}
    */
   async uploadMemories(memories) {
+    logInfo('UPLOAD', 'Starting uploadMemories', { count: memories.length, tenant: this.tenantId });
+
     const requestBody = {
       memories: memories.map(m => ({
         content: m.content,
@@ -265,7 +322,26 @@ export class WrapperClient {
       tenant_id: this.tenantId,
     };
 
-    return await withRetry(() => this.http.post('/api/v1/memories', requestBody), this.maxRetries);
+    logDebug('UPLOAD', 'Request body prepared', {
+      memories: requestBody.memories.map(m => ({
+        type: m.type,
+        abstract: m.abstract?.substring(0, 30),
+      })),
+    });
+
+    const result = await withRetry(
+      () => this.http.post('/api/v1/memories', requestBody),
+      this.maxRetries
+    );
+
+    logInfo('UPLOAD', 'uploadMemories completed', {
+      total: result.total,
+      success: result.success,
+      failed: result.failed,
+      memory_ids: result.memory_ids,
+    });
+
+    return result;
   }
 
   async reportAccessLog({ entries, tenant_id }) {

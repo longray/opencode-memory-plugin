@@ -26,13 +26,14 @@ export const memory_search = tool({
     const level = args.level || 0;
 
     const backendEnabled = config?.backend?.enabled !== false;
+    const tenantId = config?.backend?.tenant_id || 'default';
 
-    if (backendEnabled && (mode === 'vector' || mode === 'hybrid')) {
+    if (backendEnabled) {
       try {
         const results = await client.searchMemories(args.query, {
           mode,
           limit,
-          tenant_id: config?.backend?.tenant_id,
+          tenant_id: tenantId,
         });
 
         if (results && results.length > 0) {
