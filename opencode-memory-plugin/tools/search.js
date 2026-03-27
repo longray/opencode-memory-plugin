@@ -30,14 +30,15 @@ export const memory_search = tool({
 
     if (backendEnabled) {
       try {
-        const results = await client.searchMemories(args.query, {
+        const result = await client.search({
+          query: args.query,
           mode,
           limit,
           tenant_id: tenantId,
         });
 
-        if (results && results.length > 0) {
-          return formatSearchResults(results, level);
+        if (result.results && result.results.length > 0) {
+          return formatSearchResults(result.results, level);
         }
       } catch (e) {
         console.error('[memory_search] Backend search failed:', e.message);
