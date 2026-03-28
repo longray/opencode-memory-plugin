@@ -86,19 +86,22 @@ export function parseEntryFromFile(filePath) {
 
   const frontmatter = {};
   frontmatterMatch[1].split('\n').forEach(line => {
-    const [key, ...valueParts] = line.split(':');
-    if (key && valueParts.length) {
-      const k = key.trim();
-      const v = valueParts.join(':').trim();
-      if (k === 'meta' && v.startsWith('[')) {
-        try {
-          frontmatter[k] = JSON.parse(v);
-        } catch {
-          frontmatter[k] = v;
-        }
-      } else {
+    const colonIndex = line.indexOf(':');
+    if (colonIndex === -1) return;
+
+    const k = line.substring(0, colonIndex).trim();
+    const v = line.substring(colonIndex + 1).trim();
+
+    if (!k) return;
+
+    if (k === 'meta' && v.startsWith('[')) {
+      try {
+        frontmatter[k] = JSON.parse(v);
+      } catch {
         frontmatter[k] = v;
       }
+    } else {
+      frontmatter[k] = v;
     }
   });
 

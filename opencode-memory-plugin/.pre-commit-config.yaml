@@ -21,18 +21,6 @@ repos:
         stages: [pre-commit]
 
   # ===========================================
-  # 📝 代码格式化 (P2)
-  # ===========================================
-  - repo: local
-    hooks:
-      - id: prettier
-        name: 💅 Prettier - Code Formatting
-        entry: npx prettier --write --ignore-unknown
-        language: system
-        files: '\.(js|mjs|cjs|ts|json|md|yaml|yml)$'
-        stages: [pre-commit]
-
-  # ===========================================
   # 🔍 代码检查 (P1)
   # ===========================================
   - repo: local
@@ -43,4 +31,16 @@ repos:
         language: system
         files: '\.(js|mjs|cjs)$'
         exclude: 'node_modules/'
+        stages: [pre-commit]
+
+  # ===========================================
+  # 📝 代码格式化 (P2)
+  # ===========================================
+  - repo: local
+    hooks:
+      - id: prettier
+        name: 💅 Prettier - Code Formatting
+        entry: npx prettier --write --ignore-unknown
+        language: system
+        files: '\.(js|mjs|cjs|ts|json|md|yaml|yml)$'
         stages: [pre-commit]

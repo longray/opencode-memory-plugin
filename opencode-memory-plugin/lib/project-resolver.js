@@ -23,6 +23,7 @@ const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
 const MAPPINGS_FILE = path.join(MEMORY_DIR, 'project-mappings.json');
 
 const gitRemoteCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 function normalizePath(p) {
   return path.resolve(p).toLowerCase().replace(/\\/g, '/');
@@ -95,7 +96,10 @@ function getGitRemote(cwd, retries = 2) {
 
   if (gitRemoteCache.has(normalizedCwd)) {
     const cached = gitRemoteCache.get(normalizedCwd);
-    return cached;
+    if (Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.value;
+    }
+    gitRemoteCache.delete(normalizedCwd);
   }
 
   for (let i = 0; i <= retries; i++) {
@@ -106,7 +110,7 @@ function getGitRemote(cwd, retries = 2) {
         timeout: 5000,
       });
       const trimmed = result.trim();
-      gitRemoteCache.set(normalizedCwd, trimmed);
+      gitRemoteCache.set(normalizedCwd, { value: trimmed, timestamp: Date.now() });
       return trimmed;
     } catch {
       if (i === retries) {

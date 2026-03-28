@@ -8,7 +8,7 @@
 
 [![OpenCode](https://img.shields.io/badge/OpenCode-native%20plugin-success.svg)](https://docs.opencode.ai)
 [![External Services](https://img.shields.io/badge/Embedding-External%20Services-blue.svg)](https://github.com/csuwl/opencode-memory-plugin#-external-embedding-service)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/opencode-memory-plugin/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/csuwl/opencode-memory-plugin/blob/main/LICENSE)
 
 ## 🔄 Architecture Update (v2.1.0+)
 
@@ -29,7 +29,7 @@
 ## 🎯 Features
 
 - ✅ **Native OpenCode Plugin** - Using @opencode-ai/plugin API for seamless integration
-- ✅ **16 Memory Tools** - All tools available immediately after installation
+- ✅ **15 Memory Tools** - All tools available immediately after installation
 - ✅ **v2.3: Dual-Mode Sync** - Incremental (fingerprint-based) + Full sync (with resume)
 - ✅ **v2.3: Conflict Resolution** - Detection, auto-resolve, merge, manual resolve
 - ✅ **v2.3: Memory Browsing** - Timeline browser and topic explorer
@@ -44,7 +44,7 @@
 - ✅ **Phase C: Autocomplete** - Smart search suggestions (<50ms)
 - ✅ **Phase C: Real-time Sync** - WebSocket live synchronization
 
-### Available Tools (16)
+### Available Tools (15)
 
 #### Core Tools (8)
 
@@ -85,33 +85,6 @@ npm install -g @csuwl/opencode-memory-plugin
 
 # That's it! 🎉
 # All tools are immediately available in OpenCode
-```
-
-## Troubleshooting
-
-**Recommendation:** Continue using the plugin - keyword search is fast and effective for most use cases. Semantic search will be available when Bun is updated.
-
-### Verify Installation
-
-```bash
-# Start OpenCode
-opencode
-
-# Try using a tool:
-# "Use memory_write to save: User prefers TypeScript for new projects"
-```
-
-All tools work out of the box - no configuration needed!
-
-### Alternative: Install from Source
-
-```bash
-# Clone repository
-git clone https://github.com/csuwl/opencode-memory-plugin.git
-cd opencode-memory-plugin
-
-# Install globally
-npm install -g .
 ```
 
 ## 🔍 Search Modes
@@ -158,6 +131,20 @@ If you prefer to run your own embedding service:
 
 The plugin creates a configuration file at `~/.opencode/memory/memory-config.json`:
 
+### Backend Authentication
+
+The backend service requires API key authentication. Set the `WRAPPER_MEILI_API_KEY` environment variable:
+
+```bash
+# Set API key (required for backend service)
+export WRAPPER_MEILI_API_KEY="your-api-key-here"
+
+# Or add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+echo 'export WRAPPER_MEILI_API_KEY="your-api-key-here"' >> ~/.bashrc
+```
+
+**Note**: The API key is required when using backend features (hybrid/vector search, sync, graph relations). Local-only features (bm25/hash search) work without it.
+
 ### Quick Configuration Examples
 
 **Default (ModelScope API)** - Works out of box:
@@ -195,7 +182,7 @@ The plugin creates a configuration file at `~/.opencode/memory/memory-config.jso
 }
 ```
 
-For complete configuration guide, see [CONFIGURATION.md](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md).
+For complete configuration guide, see [CONFIGURATION.md](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md).
 
 ## 📖 Usage
 
@@ -435,19 +422,19 @@ The plugin supports multiple external embedding services:
 
 ### Current Version (v2.5.0)
 
-- [Configuration Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
-- [Architecture Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/ARCHITECTURE.md) - System architecture and data flows
-- [Migration Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/MIGRATION_GUIDE.md) - Migrate from v2.2 to v2.3
-- [Quick Start Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/QUICK_START.md) - Getting started with external service
-- [Troubleshooting Guide](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/TROUBLESHOOTING.md) - Deployment and troubleshooting
+- [Configuration Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
+- [Architecture Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/ARCHITECTURE.md) - System architecture and data flows
+- [Migration Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/MIGRATION_GUIDE.md) - Migrate from v2.2 to v2.3
+- [Quick Start Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/QUICK_START.md) - Getting started with external service
+- [Troubleshooting Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/TROUBLESHOOTING.md) - Deployment and troubleshooting
 
 ### Future Development (v2.0 Design)
 
-- [Design Overview](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_OVERVIEW.md) - SurrealDB integration design overview
-- [Architecture Design](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_ARCHITECTURE.md) - Complete system architecture
-- [Component Specifications](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_COMPONENTS.md) - Core component details
-- [API Specifications](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_API.md) - Wrapper Service API
-- [Development Roadmap](https://github.com/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_ROADMAP.md) - Implementation plan
+- [Design Overview](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_OVERVIEW.md) - SurrealDB integration design overview
+- [Architecture Design](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_ARCHITECTURE.md) - Complete system architecture
+- [Component Specifications](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_COMPONENTS.md) - Core component details
+- [API Specifications](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_API.md) - Wrapper Service API
+- [Development Roadmap](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_ROADMAP.md) - Implementation plan
 
 ### External Resources
 
@@ -470,6 +457,33 @@ We welcome contributions! Here's how you can help:
 - Update documentation with new features
 - Respect the memory-first approach
 
+## Troubleshooting
+
+**Recommendation:** Continue using the plugin - keyword search is fast and effective for most use cases. Semantic search will be available when Bun is updated.
+
+### Verify Installation
+
+```bash
+# Start OpenCode
+opencode
+
+# Try using a tool:
+# "Use memory_write to save: User prefers TypeScript for new projects"
+```
+
+All tools work out of the box - no configuration needed!
+
+### Alternative: Install from Source
+
+```bash
+# Clone repository
+git clone https://github.com/csuwl/opencode-memory-plugin.git
+cd opencode-memory-plugin
+
+# Install globally
+npm install -g .
+```
+
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details
@@ -483,84 +497,18 @@ MIT License - see [LICENSE](LICENSE) for details
 
 **Current Version**: v2.5.0
 
-### Latest Release: v2.5.0 (2026-03-27)
+### Version History
 
-**v2.5.0 - Tool Cleanup**:
+For detailed release notes, see [CHANGELOG.md](CHANGELOG.md).
 
-- ✨ **Tool Count**: 19 → 16 tools
-- ✨ **Removed**: `list_daily`, `init_daily`, `sync_status`
-- ✨ **Added**: `sync_checkpoint` - View sync checkpoints
-- ✨ **Enhanced**: `index_status --detailed` - Pending entries
-- ✨ **Bug Fix**: `getStatus()` method added
+**Latest**: v2.5.0 (2026-03-27) - Tool Cleanup (19 → 15 tools)
 
-### Previous Release: v2.4.1 (2026-03-27)
+**Recent Highlights**:
 
-**v2.4.1 - Entry Format Upgrade**:
-
-- ✨ **New Delimiter Format**: `# ≡≡≡ {标题} ≡≡≡` (3x ≡)
-- ✨ **Code Block Wrapping**: Content areas wrapped with ```
-- ✨ **Meta Field**: Optional `meta` field for arbitrary key-value pairs
-- ✨ **CLI Meta Support**: `--meta` parameter for write command
-
-### Previous Release: v2.4.0 (2026-03-26)
-
-**v2.4.0 - L0/L1/L2 Layered Storage**:
-
-- ✨ **Unified ULID Storage**: `entry_{ulid}.md` filename format
-- ✨ **Required Layers**: abstract + overview now REQUIRED
-- ✨ **Frontmatter Fields**: Added id, memory_id, synced, synced_at
-- ✨ **Code Refactoring**: lib/, tools/, cli/ modular architecture
-
-### Previous Release: v2.3.0 (2026-03-20)
-
-**v2.3 Enhanced - Dual-Mode Sync & Conflict Resolution**:
-
-- ✨ **Dual-Mode Sync** - Incremental (fingerprint-based) + Full sync with resume support
-- ✨ **Checkpoint Management** - Track sync progress, history, and enable resume after failure
-- ✨ **Conflict Detection** - Automatic detection of content conflicts between local and backend
-- ✨ **Smart Auto-Resolve** - Automatic resolution for timestamp and simple content conflicts
-- ✨ **Manual Conflict Resolution** - Interactive resolve with accept/reject/merge options
-- ✨ **Batch Operations** - Batch resolve multiple conflicts efficiently
-- ✨ **Memory Browsing** - Timeline browser and topic explorer for historical views
-- ✨ **100% Test Pass Rate** - All 28 tests passing (18 Phase C + 10 v2.3)
-
-### Previous Release: v2.2.0 (2026-03-19)
-
-**Phase C Complete - Performance Optimization**:
-
-- ✨ **Trie Index** - 10x faster local search (<10ms)
-- ✨ **Autocomplete** - Smart suggestions (<50ms)
-- ✨ **Real-time Sync** - WebSocket live synchronization
-- ✨ **HNSW Dynamic Tuning** - Runtime parameter optimization
-- ✨ **Embedding Cache** - Query result caching (80% faster)
-- ✨ **Query Prefetch** - Proactive loading of related memories
-- ✨ **100% Test Pass Rate** - All 18 Phase C tests passing
-- ✨ **Backend Optimizations** - 8 new API endpoints for performance
-
-### Previous Release: v1.2.0 (2026-02-26)
-
-**New Features**:
-
-- ✨ External embedding services (ModelScope API + local service)
-- ✨ Primary: ModelScope Inference API (Qwen3-Embedding-0.6B, 1024 dimensions)
-- ✨ Fallback: Local embedding service at localhost:18000
-- ✨ BM25 Chinese tokenization optimization (Recall: 0-14% → 82.5%)
-- ✨ Dynamic result limits and BM25 thresholds
-- ✨ MRR improved by 12.9% (0.7033 → 0.7939)
-- ✨ Reduced resource usage (cloud-based embedding)
-- ✨ Vector, keyword, and hybrid search modes
-- ✨ sqlite-vec for vector storage and similarity search
-- ✨ Automatic fallback to BM25 when external services unavailable
-- ✨ Full `rebuild_index` implementation for indexing memory files
-- ✨ Enhanced `index_status` with vector index information
-- ✨ Real vector search with @huggingface/transformers embeddings
-- ✨ Vector, keyword, and hybrid search modes
-- ✨ sqlite-vec for vector storage and similarity search
-- ✨ Automatic fallback to keyword search when embedding model unavailable
-- ✨ Full `rebuild_index` implementation for indexing memory files
-- ✨ Enhanced `index_status` with vector index information
-
-### Previous Releases
+- v2.4.1: Entry Format Upgrade (`# ≡≡≡` delimiters)
+- v2.4.0: L0/L1/L2 Layered Storage (ULID naming)
+- v2.3.0: Dual-Mode Sync & Conflict Resolution
+- v2.2.0: Phase C - Trie Index & Performance Optimization
 
 **v1.1.3** (2026-02-26):
 

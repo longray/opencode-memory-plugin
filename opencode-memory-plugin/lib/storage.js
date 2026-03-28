@@ -32,18 +32,22 @@ export function getLinkMap() {
 }
 
 export function getEntryById(entryId) {
-  const linkMap = getLinkMap();
-  const entry = linkMap.entries[entryId];
-  if (!entry) return null;
+  try {
+    const linkMap = getLinkMap();
+    const entry = linkMap.entries[entryId];
+    if (!entry) return null;
 
-  const filePath = path.join(MEMORY_DIR, entry.path);
-  if (!fs.existsSync(filePath)) return null;
+    const filePath = path.join(MEMORY_DIR, entry.path);
+    if (!fs.existsSync(filePath)) return null;
 
-  return {
-    ...entry,
-    path: filePath,
-    content: fs.readFileSync(filePath, 'utf-8'),
-  };
+    return {
+      ...entry,
+      path: filePath,
+      content: fs.readFileSync(filePath, 'utf-8'),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function deleteEntryFile(filePath) {

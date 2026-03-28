@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
 /**
- * OpenCode Memory Plugin - CLI Tool
+ * OpenCode Memory Plugin - CLI Tool (DEPRECATED)
+ *
+ * ⚠️  DEPRECATED: This CLI tool is deprecated and will be removed in a future version.
+ *     Please use the OpenCode plugin tools instead (memory_write, memory_search, etc.)
  *
  * Provides command-line access to memory functions
  * Usage: opencode-memory <command> [options]
  */
+
+console.warn('⚠️  WARNING: bin/cli.cjs is deprecated. Use OpenCode plugin tools instead.');
 
 const fs = require('fs');
 const path = require('path');

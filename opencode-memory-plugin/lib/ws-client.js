@@ -6,7 +6,6 @@
 import WebSocket from 'ws';
 
 // WebSocket connection state
-const _wsClient = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 5000;

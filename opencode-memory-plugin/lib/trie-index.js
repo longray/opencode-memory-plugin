@@ -117,7 +117,6 @@ export async function buildTrieIndex(force = false) {
   const startTime = Date.now();
 
   trieIndex = new Trie();
-  const _entryCount = 0;
 
   // Scan timeline directory
   const timelineDir = path.join(MEMORY_DIR, 'timeline');

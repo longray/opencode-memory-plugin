@@ -58,7 +58,17 @@ export const memory_relate = tool({
           if (!args.from_id || !args.to_id) {
             return '❌ from_id and to_id are required for delete action';
           }
-          await client.deleteRelation(args.from_id, args.to_id);
+          // Query relations to find the relation_id
+          const relationsResult = await client.getRelations({ memory_id: args.from_id });
+          const relations = Array.isArray(relationsResult)
+            ? relationsResult
+            : relationsResult?.relations || [];
+          const targetRelation = relations.find(r => (r.to || r.to_id) === args.to_id);
+          if (!targetRelation) {
+            return `❌ No relation found from ${args.from_id} to ${args.to_id}`;
+          }
+          const relationId = targetRelation.id || targetRelation.relation_id;
+          await client.deleteRelation(relationId);
           return `✅ Relation deleted: ${args.from_id} → ${args.to_id}`;
 
         default:

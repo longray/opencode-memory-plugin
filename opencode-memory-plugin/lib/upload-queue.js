@@ -34,10 +34,14 @@ function readQueue() {
  * 写入队列
  */
 function writeQueue(queue) {
-  if (!fs.existsSync(MEMORY_DIR)) {
-    fs.mkdirSync(MEMORY_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(MEMORY_DIR)) {
+      fs.mkdirSync(MEMORY_DIR, { recursive: true });
+    }
+    fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue, null, 2));
+  } catch (e) {
+    console.error('Failed to write upload queue:', e.message);
   }
-  fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue, null, 2));
 }
 
 /**

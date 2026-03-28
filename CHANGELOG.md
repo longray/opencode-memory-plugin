@@ -6,13 +6,14 @@
 
 #### 🗂️ Core Changes
 
-- **Tool Cleanup**: Removed 3 redundant tools
-  - Removed: `list_daily`, `init_daily`, `sync_status`
-  - Tool count: 19 → 16
+- **Tool Cleanup**: Removed 4 redundant tools
+  - Removed: `list_daily`, `init_daily`, `sync_status`, `batch_resolve`
+  - Tool count: 19 → 15
 - **Enhanced index_status**: Added `--detailed` parameter for pending entries
 - **New sync_checkpoint**: View sync checkpoints and fingerprints
 - **Bug Fix**: Added `getStatus()` method to `wrapper-client.js`
 - **CLI Enhancements**: Added `checkpoint` command
+- **Test Coverage**: 103/113 tests passed (10 skipped), coverage 37.3%
 
 #### 🔧 Modified Files
 

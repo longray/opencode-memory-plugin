@@ -23,7 +23,8 @@ function writeLog(level, category, message, data = null) {
   try {
     fs.appendFileSync(LOG_FILE, logLine);
   } catch {
-    // ignore log write errors
+    // Fallback to console if file write fails
+    console.log(logLine.trim());
   }
 }
 
@@ -561,6 +562,8 @@ export class WrapperClient {
 
 /**
  * 单例模式获取 WrapperClient
+ * @param {Object} config - 配置对象（可选，仅在首次调用时使用）
+ * @returns {WrapperClient}
  */
 let wrapperClientInstance = null;
 
@@ -571,6 +574,9 @@ export function getWrapperClient(config) {
   return wrapperClientInstance;
 }
 
+/**
+ * 重置单例实例（用于测试或配置更新）
+ */
 export function resetWrapperClient() {
   wrapperClientInstance = null;
 }

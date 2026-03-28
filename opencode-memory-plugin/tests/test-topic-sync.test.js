@@ -5,7 +5,7 @@
  * These tests verify the sync tools exist and have correct signatures
  */
 
-import { describe, it, expect, beforeAll } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -34,38 +34,32 @@ describe('Topic Sync Tools', () => {
     }
   });
 
-  describe('topic_sync tool', () => {
+  afterAll(() => {
+    // Cleanup test directory
+    try {
+      if (fs.existsSync(TEST_MEMORY_DIR)) {
+        fs.rmSync(TEST_MEMORY_DIR, { recursive: true, force: true });
+      }
+    } catch {}
+  });
+
+  // Skip all tests if topic_sync/rebuild_topics not implemented
+  const describeOrSkip = topicSyncAvailable ? describe : describe.skip;
+  const describeOrSkipRebuild = rebuildTopicsAvailable ? describe : describe.skip;
+
+  describeOrSkip('topic_sync tool', () => {
     it('should be exported from plugin.js', () => {
-      if (!pluginModule) {
-        console.log('⚠️ Skipping - plugin.js not available');
-        return;
-      }
-
-      // Log availability for debugging
-      if (!topicSyncAvailable) {
-        console.log('⚠️ topic_sync not yet implemented in plugin.js');
-      }
-
       expect(pluginModule).toBeDefined();
+      expect(pluginModule.topic_sync).toBeDefined();
     });
 
     it('should have execute method if defined', () => {
-      if (!topicSyncAvailable) {
-        console.log('⚠️ Skipping - topic_sync not implemented yet');
-        return;
-      }
-
       expect(pluginModule.topic_sync).toBeDefined();
       expect(pluginModule.topic_sync.execute).toBeDefined();
       expect(typeof pluginModule.topic_sync.execute).toBe('function');
     });
 
     it('should accept dry_run parameter', async () => {
-      if (!topicSyncAvailable) {
-        console.log('⚠️ Skipping - topic_sync not implemented yet');
-        return;
-      }
-
       const result = await pluginModule.topic_sync.execute({ dry_run: true });
 
       expect(result).toHaveProperty('success');
@@ -73,11 +67,6 @@ describe('Topic Sync Tools', () => {
     });
 
     it('should accept topic parameter', async () => {
-      if (!topicSyncAvailable) {
-        console.log('⚠️ Skipping - topic_sync not implemented yet');
-        return;
-      }
-
       const result = await pluginModule.topic_sync.execute({
         topic: 'test-topic',
         dry_run: true,
@@ -87,11 +76,6 @@ describe('Topic Sync Tools', () => {
     });
 
     it('should return entry_count in dry_run mode', async () => {
-      if (!topicSyncAvailable) {
-        console.log('⚠️ Skipping - topic_sync not implemented yet');
-        return;
-      }
-
       const result = await pluginModule.topic_sync.execute({ dry_run: true });
 
       if (result.dry_run) {
@@ -101,11 +85,6 @@ describe('Topic Sync Tools', () => {
     });
 
     it('should return fingerprints_preview in dry_run mode', async () => {
-      if (!topicSyncAvailable) {
-        console.log('⚠️ Skipping - topic_sync not implemented yet');
-        return;
-      }
-
       const result = await pluginModule.topic_sync.execute({ dry_run: true });
 
       if (result.dry_run) {
@@ -114,37 +93,19 @@ describe('Topic Sync Tools', () => {
     });
   });
 
-  describe('rebuild_topics tool', () => {
+  describeOrSkipRebuild('rebuild_topics tool', () => {
     it('should be exported from plugin.js', () => {
-      if (!pluginModule) {
-        console.log('⚠️ Skipping - plugin.js not available');
-        return;
-      }
-
-      if (!rebuildTopicsAvailable) {
-        console.log('⚠️ rebuild_topics not yet implemented in plugin.js');
-      }
-
       expect(pluginModule).toBeDefined();
+      expect(pluginModule.rebuild_topics).toBeDefined();
     });
 
     it('should have execute method if defined', () => {
-      if (!rebuildTopicsAvailable) {
-        console.log('⚠️ Skipping - rebuild_topics not implemented yet');
-        return;
-      }
-
       expect(pluginModule.rebuild_topics).toBeDefined();
       expect(pluginModule.rebuild_topics.execute).toBeDefined();
       expect(typeof pluginModule.rebuild_topics.execute).toBe('function');
     });
 
     it('should accept dry_run parameter', async () => {
-      if (!rebuildTopicsAvailable) {
-        console.log('⚠️ Skipping - rebuild_topics not implemented yet');
-        return;
-      }
-
       const result = await pluginModule.rebuild_topics.execute({ dry_run: true });
 
       expect(result).toHaveProperty('success');
@@ -153,11 +114,6 @@ describe('Topic Sync Tools', () => {
     });
 
     it('should return total count', async () => {
-      if (!rebuildTopicsAvailable) {
-        console.log('⚠️ Skipping - rebuild_topics not implemented yet');
-        return;
-      }
-
       const result = await pluginModule.rebuild_topics.execute({ dry_run: true });
 
       expect(result).toHaveProperty('total');
