@@ -259,7 +259,7 @@ opencode-memory status
 
 ## 代码规范
 
-本项目使用 [Oxlint](https://oxc.rs/) + [Prettier](https://prettier.io/) 进行代码检查和格式化。
+本项目使用 [Oxlint](https://oxc.rs/) + [Prettier](https://prettier.io/) + [Markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) 进行代码检查和文档格式化。
 
 ```bash
 # 检查代码规范
@@ -273,12 +273,19 @@ npm run format
 
 # 检查格式是否正确
 npm run format:check
+
+# 检查 Markdown 文档
+npm run lint:md
+
+# 自动修复 Markdown 问题
+npm run lint:md:fix
 ```
 
 配置文件：
 
 - `.oxlintrc.json` - Oxlint 规则配置
 - `.prettierrc` - Prettier 格式配置
+- `.markdownlint-cli2.jsonc` - Markdownlint 规则配置
 - `.eslintignore` - 忽略文件列表
 
 ## 📂 Project Structure

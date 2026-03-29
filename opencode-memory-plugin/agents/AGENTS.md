@@ -33,7 +33,7 @@ agents/
 - 包含自动化记忆管理逻辑
 - 与OpenCode框架集成
 
-## 核心功能
+## 功能详情
 
 |- **memory-automation.md**: 自动保存代理配置，负责自动保存重要信息
 |- **memory-consolidate.md**: 自动合并代理配置，负责整理和归档记忆文件
@@ -41,7 +41,7 @@ agents/
 ## 重要技术参数 (CRITICAL - PROJECT MEMORY)
 
 |- **向量维度**: 1024 (Qwen3-Embedding-0.6B)
-|- **Embedding服务**: ModelScope API (https://api-inference.modelscope.cn/v1/embeddings)
+|- **Embedding服务**: ModelScope API (<https://api-inference.modelscope.cn/v1/embeddings>)
 |- **备用服务**: localhost:18000/v1/embeddings
 |- **向量表**: vec_embeddings (必须使用1024维度)
 |- **兼容性**: 旧索引使用384维度会导致维度不匹配错误

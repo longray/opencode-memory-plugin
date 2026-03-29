@@ -18,6 +18,7 @@ The plugin now supports **ModelScope Inference API** as the primary external emb
 1. Visit [ModelScope](https://modelscope.cn/)
 2. Sign up and get your API key
 3. Export as environment variable:
+
    ```bash
    export MODELSCOPE_API_KEY='your-api-key-here'
    # Windows PowerShell:

@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### v2.9.0 - Markdownlint 集成
+
+**Markdown 文档质量检查**
+
+- **Markdownlint-cli2**: 新增 Markdown 文档检查工具
+- **Pre-commit 集成**: 添加 markdownlint-cli2 hook（P3 优先级）
+- **文档修复**: 修复 103 个 Markdown 错误
+- **文档规范**: 新增 Markdown 编写规范（AGENTS.md）
+- **配置文件**: 新增 `.markdownlint-cli2.jsonc`
+- **npm scripts**: 新增 `lint:md` 和 `lint:md:fix` 命令
+
+---
+
 ### Changed
 
 - **ESLint → Oxlint 迁移**：使用 Oxlint（Rust 构建，10-50x 更快）替代 ESLint，与 Prettier 天然兼容

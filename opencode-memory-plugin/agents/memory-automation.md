@@ -306,27 +306,27 @@ Before writing, use browser tools to understand context:
 memory_timeline days=7
 ```
 
-2. **Find related topics**:
+1. **Find related topics**:
 
 ```
 memory_topics min_entries=3
 ```
 
-3. **Get autocomplete suggestions**:
+1. **Get autocomplete suggestions**:
 
 ```
 memory_suggest prefix="typescript" limit=5
 ```
 
-4. **Check for conflicts**:
+1. **Check for conflicts**:
 
 ```
 conflict_list limit=5
 ```
 
-4. **Search memory first** to avoid duplicates
-5. **Write to appropriate memory file**
-6. **Summarize** what you saved in your final message
+1. **Search memory first** to avoid duplicates
+2. **Write to appropriate memory file**
+3. **Summarize** what you saved in your final message
 
 ## Quality Guidelines
 
@@ -381,21 +381,21 @@ If nothing worth saving was found:
 
 ## Timing: When to Save
 
-### Save Immediately If:
+### Save Immediately If
 
 - User explicitly states firm preference
 - Major decision with clear rationale
 - Agreement on way of working
 - Critical lesson learned
 
-### Buffer and Batch If:
+### Buffer and Batch If
 
 - Multiple related discoveries on same topic
 - Incremental debugging findings
 - Multiple preferences on same subject
 - Partial notes that could be combined
 
-### Skip Entirely If:
+### Skip Entirely If
 
 - Casual chat without productive outcome
 - Testing without meaningful result

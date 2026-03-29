@@ -89,7 +89,7 @@ rebuild_index force=true
 **Problem**: "External embedding service not accessible" error
 **Solution**:
 
-- Confirm your embedding service is running and accessible at http://localhost:18000/embeddings
+- Confirm your embedding service is running and accessible at <http://localhost:18000/embeddings>
 - Verify the service accepts POST requests with JSON payload
 - Check Windows Firewall isn't blocking the connection
 

@@ -135,7 +135,7 @@ list_daily days=7
 - Faster indexing and search response times
 - Better error handling and user feedback
 
-## Configuration
+## Memory Configuration
 
 Memory files are located at `~/.opencode/memory/`:
 

@@ -24,7 +24,7 @@
 - **Scope**: all (searches everything), long-term, daily, preference
 - **Best practice**: Use semantic search to find patterns you forgot existed
 
-### memory_search
+### memory_search (Semantic)
 
 - **Use when**: Semantic search across memory when exact words don't match
 - **Returns**: Ranked results with similarity scores

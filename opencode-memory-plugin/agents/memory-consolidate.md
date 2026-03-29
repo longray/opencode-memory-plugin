@@ -102,13 +102,13 @@ memory_read file="MEMORY.md"
 
 Focus on the last 20 entries to understand ongoing projects and current focus.
 
-2. **Understand current workspace**:
+1. **Understand current workspace**:
 
 - Check project context from MEMORY.md
 - Identify active development areas
 - Note user's recent discussions
 
-3. **Assess consolidation intent**:
+1. **Assess consolidation intent**:
 
 - **Cleanup mode**: Focus on organization and deduplication
 - **Update mode**: Focus on recent changes and new learnings

@@ -222,20 +222,20 @@ curl -X POST http://localhost:18000/embeddings \
 
 ## Performance Expectations
 
-### With ModelScope API (Node.js/OpenCode):
+### With ModelScope API (Node.js/OpenCode)
 
 - Initial search: ~50-100ms (network call)
 - Subsequent searches: ~50-100ms per query
 - Memory usage: ~50MB RAM (minimal local resources)
 
-### With Bun Runtime:
+### With Bun Runtime
 
 - Initial search: <1ms (BM25 keyword search)
 - Subsequent searches: <1ms per query
 - Memory usage: ~50MB RAM (no external dependencies)
 - Quality: Good keyword matching (no semantic search)
 
-### Without Embedding Service (BM25-only):
+### Without Embedding Service (BM25-only)
 
 - Search time: <1ms
 - Memory usage: ~50MB RAM

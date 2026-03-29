@@ -186,8 +186,45 @@ meta: [{键:值}, ...]
 
 - `npm run lint` - 检查代码规范
 - `npm run lint:fix` - 自动修复可修复的问题
+- `npm run lint:md` - 检查 Markdown 规范
+- `npm run lint:md:fix` - 自动修复 Markdown 问题
 - `npm run format` - 格式化代码
 - `npm run format:check` - 检查格式是否正确
+
+### 文档规范
+
+**工具**: Markdownlint-cli2
+
+**选择原因**:
+
+- 支持命令行检查（marksman 不支持）
+- 官方 pre-commit 集成
+- 支持自动修复
+- 配置灵活
+
+**配置文件**: `.markdownlint-cli2.jsonc`
+
+**禁用规则**:
+
+- `MD013` - 行长度检查（允许长行）
+- `MD033` - 内联 HTML（允许特殊格式）
+- `MD036` - 强调代替标题（允许特殊格式）
+- `MD040` - 代码块语言指定（允许无语言代码块）
+- `MD041` - 首行 H1（允许特殊文档）
+- `MD051` - 链接片段（允许特殊链接）
+
+**编写规范**:
+
+- 标题层级: `#` → `##` → `###`，不跳级
+- 链接格式: 使用相对路径，避免绝对路径
+- 代码块: 使用三重反引号，指定语言
+- 表格: 使用对齐格式，保持一致性
+- 避免重复标题: 同一文件中不要有相同标题
+
+**npm scripts**:
+
+- `npm run lint:md` - 检查 Markdown 规范
+- `npm run lint:md:fix` - 自动修复 Markdown 问题
 
 ---
 
