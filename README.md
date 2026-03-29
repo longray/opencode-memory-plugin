@@ -29,7 +29,7 @@
 ## 🎯 Features
 
 - ✅ **Native OpenCode Plugin** - Using @opencode-ai/plugin API for seamless integration
-- ✅ **15 Memory Tools** - All tools available immediately after installation
+- ✅ **16 Memory Tools** - All tools available immediately after installation
 - ✅ **v2.3: Dual-Mode Sync** - Incremental (fingerprint-based) + Full sync (with resume)
 - ✅ **v2.3: Conflict Resolution** - Detection, auto-resolve, merge, manual resolve
 - ✅ **v2.3: Memory Browsing** - Timeline browser and topic explorer
@@ -44,9 +44,9 @@
 - ✅ **Phase C: Autocomplete** - Smart search suggestions (<50ms)
 - ✅ **Phase C: Real-time Sync** - WebSocket live synchronization
 
-### Available Tools (15)
+### Available Tools (16)
 
-#### Core Tools (8)
+#### Core Tools (9)
 
 | Tool              | Description                              | Backend Required   |
 | ----------------- | ---------------------------------------- | ------------------ |
@@ -54,6 +54,7 @@
 | `memory_read`     | Read from memory files                   | Local only         |
 | `memory_search`   | All search modes (vector/keyword/hybrid) | Backend + fallback |
 | `memory_suggest`  | Autocomplete suggestions                 | Local only         |
+| `memory_pin`      | Pin/unpin important memory entries       | Local only         |
 | `memory_relate`   | Create/query graph relations             | ✅ Yes             |
 | `memory_graph`    | Graph traversal                          | ✅ Yes             |
 | `memory_timeline` | Browse memories by date range            | Local only         |
@@ -259,12 +260,35 @@ rebuild_index force=true
 - Network access required to connect to backend service endpoint
 
 ```bash
-# Auto-save important information
+# Auto-save important information (with confirmation)
 @memory-automation review conversation and save important information
 
-# Organize daily logs
+# Organize and consolidate recent memories
 @memory-consolidate review and consolidate recent memories
 ```
+
+### Built-in Agents
+
+Two automation agents are included and registered automatically on installation:
+
+**The Observer** (`@memory-automation`) — captures knowledge from conversations:
+
+1. Analyzes the conversation for decisions, preferences, and solutions worth saving
+2. Groups candidates by category and presents a confirmation list
+3. Waits for your selection (**Human-in-the-loop**)
+4. Saves confirmed entries with full L0/L1/L2 structure (`abstract` / `overview` / `content`)
+5. Runs `memory_search` deduplication before writing
+
+**The Librarian** (`@memory-consolidate`) — consolidates fragmented memories:
+
+1. Scans recent entries via `memory_timeline(days=7)` + `memory_topics`
+2. Synthesizes related fragments into a single high-value knowledge node
+3. Links the new node to source fragments via `memory_relate(relation_type="summarizes")`
+4. Pins critical conventions via `memory_pin`
+5. Silently syncs via `incremental_sync`
+
+> **Agent Rules**: Agents never use `bash` to move or delete memory files. All memory
+> operations go through MCP tools only.
 
 ### CLI Tool (Bonus Feature)
 

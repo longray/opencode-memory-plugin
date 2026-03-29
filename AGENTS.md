@@ -168,6 +168,54 @@ meta: [{键:值}, ...]
 - 不在没有 fallback 的情况下移除关键功能
 - 不修改 memory/ 下的模板文件
 
+---
+
+## 内置代理
+
+项目在 `opencode-memory-plugin/agents/` 中内置了两个自动化代理，安装时自动注册到 OpenCode。
+
+### 代理一览
+
+| 代理文件                | 别名          | 职责                                 |
+| ----------------------- | ------------- | ------------------------------------ |
+| `memory-automation.md`  | The Observer  | 对话后萃取重要信息，向用户确认后保存 |
+| `memory-consolidate.md` | The Librarian | 定期聚合碎片记忆，建立图谱关联和置顶 |
+
+### memory-automation（The Observer）
+
+**触发方式**：`@memory-automation`
+
+**工作流**：
+
+1. 分析对话，识别值得保存的信息（决策、偏好、解决方案）
+2. 按类别归类，输出候选条目清单
+3. 等待用户确认选择（Human-in-the-loop）
+4. 对确认条目调用 `memory_write`（含 abstract/overview/content 三层）
+5. 调用 `memory_search` 查重，避免重复保存
+
+**工具白名单**：`memory_write`, `memory_read`, `memory_search`, `memory_suggest`, `memory_pin`, `incremental_sync`
+
+### memory-consolidate（The Librarian）
+
+**触发方式**：`@memory-consolidate`
+
+**工作流**（S.O.P.）：
+
+1. `memory_timeline(days=7, level=1)` + `memory_topics` 发现碎片
+2. `memory_write` 聚合提炼为单条高价值节点
+3. `memory_relate(relation_type="summarizes")` 织网，保留知识溯源
+4. `memory_pin` 置顶关键约定
+5. `incremental_sync` 静默同步
+
+**工具白名单**：`memory_write`, `memory_read`, `memory_search`, `memory_suggest`, `memory_timeline`, `memory_topics`, `memory_relate`, `memory_graph`, `memory_pin`, `incremental_sync`, `conflict_list`, `conflict_resolve`
+
+### 代理红线（禁止行为）
+
+- **禁止** 代理使用 `bash` 对记忆目录进行物理文件操作（移动、删除、重命名）
+- **禁止** 代理绕过 Human-in-the-loop 直接批量写入（memory-automation）
+- **禁止** 代理使用已废弃工具（`list_daily`、`batch_resolve`、`full_sync` 等）
+- **禁止** `memory_write` 省略 `abstract` 或 `overview` 字段
+
 ### 依赖
 
 - `@opencode-ai/plugin` - OpenCode 插件框架
