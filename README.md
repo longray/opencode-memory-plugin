@@ -260,24 +260,23 @@ rebuild_index force=true
 - Network access required to connect to backend service endpoint
 
 ```bash
-# Auto-save important information (with confirmation)
-@memory-automation review conversation and save important information
-
-# Organize and consolidate recent memories
-@memory-consolidate review and consolidate recent memories
+# Switch to The Observer via Tab key to review and confirm memory saves
+# Switch to The Librarian via @memory-consolidate to consolidate memories
 ```
 
 ### Built-in Agents
 
 Two automation agents are included and registered automatically on installation:
 
-**The Observer** (`@memory-automation`) — captures knowledge from conversations:
+**The Observer** (press **Tab** to switch) — captures knowledge from conversations:
 
 1. Analyzes the conversation for decisions, preferences, and solutions worth saving
-2. Groups candidates by category and presents a confirmation list
-3. Waits for your selection (**Human-in-the-loop**)
+2. Runs `memory_search` deduplication to filter out existing entries
+3. Presents a candidate list and waits for your confirmation (**Human-in-the-loop**)
 4. Saves confirmed entries with full L0/L1/L2 structure (`abstract` / `overview` / `content`)
-5. Runs `memory_search` deduplication before writing
+
+> The Observer is a `primary` agent — you switch to it via Tab, review candidates,
+> confirm saves, then switch back. It cannot be auto-triggered or run in background.
 
 **The Librarian** (`@memory-consolidate`) — consolidates fragmented memories:
 

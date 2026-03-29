@@ -183,17 +183,21 @@ meta: [{键:值}, ...]
 
 ### memory-automation（The Observer）
 
-**触发方式**：`@memory-automation`
+**模式**：`primary`（用户通过 Tab 键切换到该代理）
+
+**为什么是 primary 而非 subagent**：subagent 无法与用户多轮交互，Human-in-the-loop 确认流程在 subagent 模式下不可能实现。改为 primary 后，用户 Tab 切换到 The Observer → 审阅候选清单 → 确认保存 → Tab 切回主代理。
 
 **工作流**：
 
-1. 分析对话，识别值得保存的信息（决策、偏好、解决方案）
-2. 按类别归类，输出候选条目清单
-3. 等待用户确认选择（Human-in-the-loop）
-4. 对确认条目调用 `memory_write`（含 abstract/overview/content 三层）
-5. 调用 `memory_search` 查重，避免重复保存
+1. 用户 Tab 切换到 The Observer
+2. 分析当前对话，识别值得保存的信息（最多 5 条候选）
+3. 对每条候选调用 `memory_search` 查重
+4. 展示候选清单，等待用户选择（Save all / Save N / Edit / Discard）
+5. 对确认条目调用 `memory_write`（含 abstract/overview/content 三层）
 
-**工具白名单**：`memory_write`, `memory_read`, `memory_search`, `memory_suggest`, `memory_timeline`, `memory_topics`
+**模型**：`claude-sonnet-4`（指令遵循更强，避免跳过确认步骤）
+
+**工具白名单**：`memory_write`, `memory_read`, `memory_search`, `memory_suggest`, `memory_timeline`, `memory_topics`, `memory_pin`
 
 ### memory-consolidate（The Librarian）
 
