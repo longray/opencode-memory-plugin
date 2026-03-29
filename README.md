@@ -69,13 +69,12 @@
 | `full_sync`        | Full sync with resume support      | Batch + resume   |
 | `sync_checkpoint`  | View sync checkpoints              | History control  |
 
-#### Conflict Tools (3)
+#### Conflict Tools (2)
 
 | Tool               | Description                            | Use Case          |
 | ------------------ | -------------------------------------- | ----------------- |
 | `conflict_list`    | List detected conflicts                | Review pending    |
 | `conflict_resolve` | Resolve conflict (accept/reject/merge) | Manual resolution |
-| `batch_resolve`    | Batch resolve conflicts                | Bulk operations   |
 
 ### One-Command Installation (Recommended)
 
@@ -427,7 +426,7 @@ The plugin supports multiple external embedding services:
 
 ## 📚 Documentation
 
-### Current Version (v2.5.0)
+### Current Version (v2.9.0)
 
 - [Configuration Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
 - [Architecture Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/ARCHITECTURE.md) - System architecture and data flows
@@ -502,20 +501,22 @@ MIT License - see [LICENSE](LICENSE) for details
 - Hugging Face for Transformers.js and the all-MiniLM-L6-v2 model
 - All contributors and users
 
-**Current Version**: v2.5.0
+**Current Version**: v2.9.0
 
 ### Version History
 
 For detailed release notes, see [CHANGELOG.md](CHANGELOG.md).
 
-**Latest**: v2.5.0 (2026-03-27) - Tool Cleanup (19 → 15 tools)
+**Latest**: v2.9.0 (2026-03-29) - Markdownlint 集成与文档质量提升
 
 **Recent Highlights**:
 
+- v2.9.0: Markdownlint 集成与文档质量提升
+- v2.6.0: Oxlint + Prettier 代码规范迁移
+- v2.5.2: 后端 v2.4.0 API 对齐（syncPreview, auto_clean）
+- v2.5.0: Tool Cleanup (19 → 15 tools)
 - v2.4.1: Entry Format Upgrade (`# ≡≡≡` delimiters)
 - v2.4.0: L0/L1/L2 Layered Storage (ULID naming)
-- v2.3.0: Dual-Mode Sync & Conflict Resolution
-- v2.2.0: Phase C - Trie Index & Performance Optimization
 
 **v1.1.3** (2026-02-26):
 

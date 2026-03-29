@@ -3,8 +3,11 @@
  * Tests for buildEntryContent and writeEntryToTimeline functions
  */
 
-import { describe, it, expect } from '@jest/globals';
-import { buildEntryContent, writeEntryToTimeline } from '../lib/entry.js';
+import { describe, it, expect, afterAll } from '@jest/globals';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { buildEntryContent, writeEntryToTimeline, parseEntryFromFile } from '../lib/entry.js';
 
 describe('Entry Module', () => {
   describe('buildEntryContent', () => {
@@ -106,6 +109,138 @@ describe('Entry Module', () => {
       );
 
       expect(result).toBeInstanceOf(Promise);
+    });
+  });
+
+  describe('parseEntryFromFile', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'entry-test-'));
+
+    afterAll(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should return null for null filePath', () => {
+      expect(parseEntryFromFile(null)).toBeNull();
+    });
+
+    it('should return null for non-existent file', () => {
+      expect(parseEntryFromFile('/non/existent/path.md')).toBeNull();
+    });
+
+    it('should return null for empty file', () => {
+      const emptyFile = path.join(tmpDir, 'empty.md');
+      fs.writeFileSync(emptyFile, '');
+      expect(parseEntryFromFile(emptyFile)).toBeNull();
+    });
+
+    it('should return null for file without frontmatter', () => {
+      const noFmFile = path.join(tmpDir, 'no-frontmatter.md');
+      fs.writeFileSync(noFmFile, 'Just some text without frontmatter');
+      expect(parseEntryFromFile(noFmFile)).toBeNull();
+    });
+
+    it('should parse a valid entry file', () => {
+      const validFile = path.join(tmpDir, 'valid.md');
+      fs.writeFileSync(
+        validFile,
+        `---
+id: entry-test-001
+date: 2026-03-29T00:00:00.000Z
+type: general
+tags: [test]
+project: test-project
+memory_id: mem-001
+source_id: 
+synced: false
+synced_at: null
+meta: [{"source":"test"}]
+---
+
+# ≡≡≡ Abstract ≡≡≡
+\`\`\`
+Test abstract content
+\`\`\`
+
+# ≡≡≡ Overview ≡≡≡
+\`\`\`
+Test overview content
+\`\`\`
+
+# ≡≡≡ Contents ≡≡≡
+\`\`\`
+Test full content
+\`\`\`
+
+---
+`
+      );
+      const result = parseEntryFromFile(validFile);
+
+      expect(result).not.toBeNull();
+      expect(result.frontmatter.id).toBe('entry-test-001');
+      expect(result.frontmatter.type).toBe('general');
+      expect(result.frontmatter.tags).toBe('[test]');
+      expect(result.abstract).toBe('Test abstract content');
+      expect(result.overview).toBe('Test overview content');
+      expect(result.content).toBe('Test full content');
+    });
+
+    it('should handle meta field as JSON array', () => {
+      const metaFile = path.join(tmpDir, 'meta.md');
+      fs.writeFileSync(
+        metaFile,
+        `---
+id: entry-test-002
+date: 2026-03-29T00:00:00.000Z
+type: general
+tags: []
+meta: [{"key":"value"}]
+---
+
+# ≡≡≡ Abstract ≡≡≡
+\`\`\`
+Abstract
+\`\`\`
+
+# ≡≡≡ Overview ≡≡≡
+\`\`\`
+Overview
+\`\`\`
+
+# ≡≡≡ Contents ≡≡≡
+\`\`\`
+Content
+\`\`\`
+
+---
+`
+      );
+      const result = parseEntryFromFile(metaFile);
+
+      expect(result).not.toBeNull();
+      expect(result.frontmatter.meta).toEqual([{ key: 'value' }]);
+    });
+
+    it('should return empty strings for missing sections', () => {
+      const partialFile = path.join(tmpDir, 'partial.md');
+      fs.writeFileSync(
+        partialFile,
+        `---
+id: entry-test-003
+date: 2026-03-29T00:00:00.000Z
+type: general
+tags: []
+---
+
+No sections here
+`
+      );
+      const result = parseEntryFromFile(partialFile);
+
+      expect(result).not.toBeNull();
+      expect(result.abstract).toBe('');
+      expect(result.overview).toBe('');
+      expect(result.content).toBe('');
     });
   });
 });

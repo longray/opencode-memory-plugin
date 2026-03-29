@@ -79,7 +79,17 @@ export async function writeEntryToTimeline(layers, metadata) {
 }
 
 export function parseEntryFromFile(filePath) {
-  const content = fs.readFileSync(filePath, 'utf-8');
+  if (!filePath || typeof filePath !== 'string') return null;
+
+  let content;
+  try {
+    content = fs.readFileSync(filePath, 'utf-8');
+  } catch {
+    return null;
+  }
+
+  if (!content || !content.trim()) return null;
+
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 
   if (!frontmatterMatch) return null;

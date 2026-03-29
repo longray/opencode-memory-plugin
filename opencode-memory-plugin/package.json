@@ -1,6 +1,6 @@
 {
   "name": "@csuwl/opencode-memory-plugin",
-  "version": "2.5.0",
+  "version": "2.9.0",
   "description": "OpenClaw-style memory system with L0/L1/L2 layered storage, ULID naming, and automatic sync",
   "license": "MIT",
   "type": "module",
