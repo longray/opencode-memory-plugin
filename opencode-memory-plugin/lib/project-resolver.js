@@ -108,6 +108,7 @@ function getGitRemote(cwd, retries = 2) {
         cwd,
         encoding: 'utf-8',
         timeout: 5000,
+        stdio: ['pipe', 'pipe', 'pipe'],
       });
       const trimmed = result.trim();
       gitRemoteCache.set(normalizedCwd, { value: trimmed, timestamp: Date.now() });
