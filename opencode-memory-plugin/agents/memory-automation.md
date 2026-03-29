@@ -48,6 +48,20 @@ Save only when the conversation contains:
 - Testing without meaningful result
 - Information already in memory
 
+## What to NEVER Save (Hard Filter)
+
+**The following content types are ALWAYS rejected, no exceptions. Do NOT include them in the candidate list:**
+
+- **Generic tutorials**: How to git init, how to npm install, basic troubleshooting anyone can Google
+- **Common knowledge**: Standard tool usage, basic language syntax, well-known error messages
+- **Context-free facts**: Information without project-specific context or user-specific rationale
+- **Verbose reproductions**: Copy-pasting large chunks of documentation or error logs
+- **Trivial observations**: "The user likes coding", "TypeScript is good", "Tests are important"
+
+**The acid test**: Ask yourself — "If I search for this topic on Google or in official docs, would I find an equally good or better answer in 30 seconds?" If yes, **discard it**.
+
+Good memory entries are **project-specific, user-specific, or context-specific**. They capture things that NO search engine can tell you.
+
 ## S.O.P. (Strict — Follow Exactly)
 
 ### Step 1: Analyze the Conversation
@@ -67,6 +81,32 @@ memory_search query="[core concept]" level=0
 ```
 
 If a highly similar entry exists, **drop it from the candidate list**.
+
+### Step 2.5: Trash Filter (Mandatory)
+
+Before presenting candidates, apply this **reject-first** filter. Discard any candidate that matches:
+
+- ❌ **Generic tutorials**: "How to fix git error", "What is Docker", "How to use X" — answers you can Google in 10 seconds
+- ❌ **Common errors with common fixes**: `cd` to the right directory, `git init`. `npm install`
+- ❌ **Rephrased conversation**: Just repeating what was said without提炼 or升华
+- ❌ **Vague observations**: "The user likes clean code" without specific actionable rules
+- ❌ **Context-free facts**: Standalone facts with no connection to the user's actual work/projects
+
+**Test**: Would searching this exact text on Google return the same answer in the first result? If yes → **trash it**.
+
+**Keep**: Only entries that are **specific, contextual, and non-obvious**. Good examples:
+
+- ✅ "This project uses Oxlint instead of ESLint because rule X conflicts with Y"
+- ✅ "User's Bun runtime crashes with better-sqlite3, so we use external embedding"
+- ✅ "Memory write flow: buildEntryContent → writeEntryToTimeline → syncMemoryToBackend"
+
+After filtering, if zero candidates remain:
+
+```markdown
+✓ Memory Scan Complete: No new unique memories detected.
+```
+
+**Do NOT proceed to Step 3.** Return the above message and stop.
 
 ### Step 3: Present Candidates (DO NOT SAVE)
 
