@@ -79,3 +79,37 @@ export const memory_write = tool({
 ${result.memoryId ? `- Memory ID: ${result.memoryId}` : ''}`;
   },
 });
+
+export const memory_pin = tool({
+  description: 'Pin or unpin a memory entry.',
+  args: {
+    entry_id: tool.schema.string().describe('The ID of the memory entry to pin/unpin (required)'),
+    action: tool.schema.string().describe("Action to perform: 'pin' or 'unpin' (required)"),
+  },
+  async execute(args) {
+    const { entry_id, action } = args;
+
+    if (!entry_id) {
+      return '❌ Error: entry_id is REQUIRED.';
+    }
+
+    if (action !== 'pin' && action !== 'unpin') {
+      return "❌ Error: action must be either 'pin' or 'unpin'.";
+    }
+
+    const linkMap = getLinkMap();
+    if (!linkMap.entries || !linkMap.entries[entry_id]) {
+      return `❌ Error: Memory entry with ID '${entry_id}' not found.`;
+    }
+
+    const isPinned = action === 'pin';
+    linkMap.entries[entry_id].pinned = isPinned;
+
+    try {
+      fs.writeFileSync(LINK_MAP_FILE, JSON.stringify(linkMap, null, 2));
+      return `✅ Successfully ${isPinned ? 'pinned' : 'unpinned'} memory entry '${entry_id}'.`;
+    } catch (e) {
+      return `❌ Error: Failed to update memory entry '${entry_id}': ${e.message}`;
+    }
+  },
+});
