@@ -153,7 +153,7 @@ export const Tools = {
     for (const file of result.files) {
       if (file.features) {
         await syncManager.uploadImmediate({
-          type: 'code',
+          type: "code",
           path: file.path,
           features: file.features,
         });
@@ -163,7 +163,7 @@ export const Tools = {
     return {
       success: true,
       filesProcessed: result.files.length,
-      uploaded: result.files.filter(f => f.features).length,
+      uploaded: result.files.filter((f) => f.features).length,
     };
   },
 
@@ -186,23 +186,23 @@ export const Tools = {
         // 2. 后端搜索 (优先)
         const results = await backendClient.search({
           query,
-          mode: options.mode || 'hybrid',
+          mode: options.mode || "hybrid",
           limit: options.limit || 10,
-          tenantId: options.tenantId || 'default',
+          tenantId: options.tenantId || "default",
         });
 
         if (results.length > 0) {
           return {
             results,
-            source: 'backend',
+            source: "backend",
             offline: false,
           };
         }
 
         // 后端无结果，降级到本地补充
-        console.log('[Search] Backend empty, fallback to local');
+        console.log("[Search] Backend empty, fallback to local");
       } catch (error) {
-        console.error('[Search] Backend failed:', error.message);
+        console.error("[Search] Backend failed:", error.message);
       }
     }
 
@@ -213,7 +213,7 @@ export const Tools = {
 
     return {
       results,
-      source: 'local',
+      source: "local",
       offline: !isOnline,
     };
   },
@@ -221,11 +221,14 @@ export const Tools = {
   /**
    * 写入记忆 (普通记忆/时间线)
    */
-  async memory_write({ content, type = 'general', tags = [], metadata = {} }, context) {
+  async memory_write(
+    { content, type = "general", tags = [], metadata = {} },
+    context,
+  ) {
     const { syncManager } = context;
 
     const memory = {
-      type: 'memory',
+      type: "memory",
       content,
       memoryType: type,
       tags,
@@ -244,12 +247,15 @@ export const Tools = {
   /**
    * 创建关系
    */
-  async relate({ fromId, toId, relationshipType, weight = 0.5, description }, context) {
+  async relate(
+    { fromId, toId, relationshipType, weight = 0.5, description },
+    context,
+  ) {
     const { syncManager } = context;
 
     // 关系必须同步到后端
     await syncManager.uploadImmediate({
-      type: 'relation',
+      type: "relation",
       fromId,
       toId,
       relationshipType,
@@ -301,14 +307,18 @@ export const Tools = {
 ```javascript
 // src/core/file-indexer.js
 
-import fs from 'fs/promises';
-import path from 'path';
-import { createHash } from 'crypto';
-import { FeatureExtractor } from './feature-extractor.js';
+import fs from "fs/promises";
+import path from "path";
+import { createHash } from "crypto";
+import { FeatureExtractor } from "./feature-extractor.js";
 
-const MEMORY_DIR = path.join(process.env.HOME || process.env.USERPROFILE, '.opencode', 'memory');
-const CODE_INDEX_DIR = path.join(MEMORY_DIR, 'code', 'index');
-const CODE_FEATURES_DIR = path.join(MEMORY_DIR, 'code', 'features');
+const MEMORY_DIR = path.join(
+  process.env.HOME || process.env.USERPROFILE,
+  ".opencode",
+  "memory",
+);
+const CODE_INDEX_DIR = path.join(MEMORY_DIR, "code", "index");
+const CODE_FEATURES_DIR = path.join(MEMORY_DIR, "code", "features");
 
 export class FileIndexer {
   constructor() {
@@ -348,8 +358,8 @@ export class FileIndexer {
     return {
       path: dirPath,
       files: results,
-      indexed: results.filter(r => r.indexed).length,
-      unchanged: results.filter(r => r.unchanged).length,
+      indexed: results.filter((r) => r.indexed).length,
+      unchanged: results.filter((r) => r.unchanged).length,
     };
   }
 
@@ -363,10 +373,10 @@ export class FileIndexer {
    * 4. 保存索引和特征到本地
    */
   async _indexFile(filePath, options) {
-    const content = await fs.readFile(filePath, 'utf-8');
+    const content = await fs.readFile(filePath, "utf-8");
     const stats = await fs.stat(filePath);
 
-    const fingerprint = createHash('md5').update(content).digest('hex');
+    const fingerprint = createHash("md5").update(content).digest("hex");
 
     // 检查是否已索引
     const existing = await this._loadIndex(filePath);
@@ -408,7 +418,10 @@ export class FileIndexer {
   /**
    * 收集文件（递归遍历）
    */
-  async _collectFiles(dirPath, ignorePatterns = ['node_modules', '.git', 'dist', 'build']) {
+  async _collectFiles(
+    dirPath,
+    ignorePatterns = ["node_modules", ".git", "dist", "build"],
+  ) {
     const files = [];
 
     async function traverse(currentPath) {
@@ -434,22 +447,22 @@ export class FileIndexer {
   _isCodeFile(filename) {
     const ext = path.extname(filename).toLowerCase();
     const codeExts = [
-      '.js',
-      '.ts',
-      '.jsx',
-      '.tsx',
-      '.py',
-      '.java',
-      '.go',
-      '.rs',
-      '.cpp',
-      '.c',
-      '.cs',
-      '.php',
-      '.rb',
-      '.swift',
-      '.sql',
-      '.md',
+      ".js",
+      ".ts",
+      ".jsx",
+      ".tsx",
+      ".py",
+      ".java",
+      ".go",
+      ".rs",
+      ".cpp",
+      ".c",
+      ".cs",
+      ".php",
+      ".rb",
+      ".swift",
+      ".sql",
+      ".md",
     ];
     return codeExts.includes(ext);
   }
@@ -480,22 +493,22 @@ export class FileIndexer {
 ```javascript
 // src/core/feature-extractor.js
 
-import Parser from 'tree-sitter';
+import Parser from "tree-sitter";
 
 // 语言解析器映射（延迟加载）
 const LANGUAGE_PARSERS = {
-  javascript: () => import('tree-sitter-javascript'),
-  typescript: () => import('tree-sitter-typescript'),
-  python: () => import('tree-sitter-python'),
-  java: () => import('tree-sitter-java'),
-  go: () => import('tree-sitter-go'),
-  rust: () => import('tree-sitter-rust'),
-  cpp: () => import('tree-sitter-cpp'),
-  c: () => import('tree-sitter-c'),
-  csharp: () => import('tree-sitter-c-sharp'),
-  php: () => import('tree-sitter-php'),
-  ruby: () => import('tree-sitter-ruby'),
-  swift: () => import('tree-sitter-swift'),
+  javascript: () => import("tree-sitter-javascript"),
+  typescript: () => import("tree-sitter-typescript"),
+  python: () => import("tree-sitter-python"),
+  java: () => import("tree-sitter-java"),
+  go: () => import("tree-sitter-go"),
+  rust: () => import("tree-sitter-rust"),
+  cpp: () => import("tree-sitter-cpp"),
+  c: () => import("tree-sitter-c"),
+  csharp: () => import("tree-sitter-c-sharp"),
+  php: () => import("tree-sitter-php"),
+  ruby: () => import("tree-sitter-ruby"),
+  swift: () => import("tree-sitter-swift"),
 };
 
 export class FeatureExtractor {
@@ -550,7 +563,7 @@ export class FeatureExtractor {
         keywords: this._extractKeywords(ast, content),
       },
       metrics: {
-        lines: content.split('\n').length,
+        lines: content.split("\n").length,
         code_lines: this._countCodeLines(content),
         comment_lines: this._countCommentLines(content, language),
         function_count: ast.functions.length,
@@ -587,16 +600,16 @@ export class FeatureExtractor {
   _extractFunctions(node, content) {
     const functions = [];
     const funcTypes = [
-      'function_declaration',
-      'function_definition',
-      'method_definition',
-      'arrow_function',
+      "function_declaration",
+      "function_definition",
+      "method_definition",
+      "arrow_function",
     ];
 
-    const traverse = n => {
+    const traverse = (n) => {
       if (funcTypes.includes(n.type)) {
         functions.push({
-          name: this._getNodeText(n, content, 'identifier'),
+          name: this._getNodeText(n, content, "identifier"),
           params: this._extractParams(n, content),
           line: n.startPosition.row,
           async: this._isAsync(n, content),
@@ -614,10 +627,10 @@ export class FeatureExtractor {
    */
   _detectEntryPoints(ast, language) {
     const patterns = {
-      javascript: ['main', 'app.listen', 'server.listen', 'export default'],
-      python: ['main', 'app.run', 'if __name__'],
-      go: ['main', 'http.ListenAndServe'],
-      java: ['public static void main', 'SpringApplication.run'],
+      javascript: ["main", "app.listen", "server.listen", "export default"],
+      python: ["main", "app.run", "if __name__"],
+      go: ["main", "http.ListenAndServe"],
+      java: ["public static void main", "SpringApplication.run"],
     };
 
     const langPatterns = patterns[language] || [];
@@ -629,7 +642,7 @@ export class FeatureExtractor {
           entryPoints.push({
             name: func.name,
             line: func.line,
-            type: 'function',
+            type: "function",
           });
         }
       }
@@ -646,19 +659,21 @@ export class FeatureExtractor {
 
     for (const func of ast.functions) {
       if (func.name) {
-        symbols.push({ name: func.name, type: 'function' });
+        symbols.push({ name: func.name, type: "function" });
         // 驼峰分割
         const parts = func.name.split(/(?=[A-Z])|_/);
-        parts.forEach(p => symbols.push({ name: p.toLowerCase(), type: 'keyword' }));
+        parts.forEach((p) =>
+          symbols.push({ name: p.toLowerCase(), type: "keyword" }),
+        );
       }
     }
 
     for (const cls of ast.classes) {
-      if (cls.name) symbols.push({ name: cls.name, type: 'class' });
+      if (cls.name) symbols.push({ name: cls.name, type: "class" });
     }
 
     for (const imp of ast.imports) {
-      symbols.push({ name: imp.module, type: 'import' });
+      symbols.push({ name: imp.module, type: "import" });
     }
 
     return symbols;
@@ -764,8 +779,17 @@ export class FeatureExtractor {
   "language": "javascript",
   "content_hash": "md5-hash",
   "ast": {
-    "functions": [{ "name": "validateToken", "params": ["token"], "line": 15, "async": false }],
-    "classes": [{ "name": "AuthService", "methods": ["login", "logout"], "line": 60 }],
+    "functions": [
+      {
+        "name": "validateToken",
+        "params": ["token"],
+        "line": 15,
+        "async": false
+      }
+    ],
+    "classes": [
+      { "name": "AuthService", "methods": ["login", "logout"], "line": 60 }
+    ],
     "imports": [{ "module": "jsonwebtoken", "names": ["sign", "verify"] }],
     "exports": [{ "name": "AuthService", "type": "class" }]
   },
@@ -774,7 +798,9 @@ export class FeatureExtractor {
       { "name": "validateToken", "type": "function" },
       { "name": "auth", "type": "keyword" }
     ],
-    "entry_points": [{ "name": "validateToken", "line": 15, "type": "function" }],
+    "entry_points": [
+      { "name": "validateToken", "line": 15, "type": "function" }
+    ],
     "keywords": ["auth", "token", "jwt", "security"]
   },
   "metrics": {
@@ -875,20 +901,20 @@ export class ImmediateSyncManager {
    */
   async _uploadToBackend(item) {
     switch (item.type) {
-      case 'code':
+      case "code":
         return await this.backend.uploadCode({
-          content: item.features.content || '',
-          type: 'code',
+          content: item.features.content || "",
+          type: "code",
           language: item.features.language,
           filePath: item.path,
-          tags: item.features.search.symbols.map(s => s.name),
+          tags: item.features.search.symbols.map((s) => s.name),
           metadata: {
             fingerprint: item.features.content_hash,
             metrics: item.features.metrics,
           },
         });
 
-      case 'memory':
+      case "memory":
         return await this.backend.uploadMemories([
           {
             content: item.content,
@@ -898,7 +924,7 @@ export class ImmediateSyncManager {
           },
         ]);
 
-      case 'relation':
+      case "relation":
         return await this.backend.createRelation({
           fromId: item.fromId,
           toId: item.toId,
@@ -958,10 +984,16 @@ export class ImmediateSyncManager {
 ```javascript
 // src/core/retry-queue.js
 
-import fs from 'fs/promises';
-import path from 'path';
+import fs from "fs/promises";
+import path from "path";
 
-const QUEUE_FILE = path.join(process.env.HOME, '.opencode', 'memory', 'queue', 'retry.json');
+const QUEUE_FILE = path.join(
+  process.env.HOME,
+  ".opencode",
+  "memory",
+  "queue",
+  "retry.json",
+);
 
 export class RetryQueue {
   async add(item) {
@@ -972,18 +1004,18 @@ export class RetryQueue {
 
   async remove(id) {
     const queue = await this._load();
-    queue.items = queue.items.filter(i => i.id !== id);
+    queue.items = queue.items.filter((i) => i.id !== id);
     await this._save(queue);
   }
 
   async getPending() {
     const queue = await this._load();
-    return queue.items.filter(i => i.retryCount < 3);
+    return queue.items.filter((i) => i.retryCount < 3);
   }
 
   async _load() {
     try {
-      const content = await fs.readFile(QUEUE_FILE, 'utf-8');
+      const content = await fs.readFile(QUEUE_FILE, "utf-8");
       return JSON.parse(content);
     } catch {
       return { items: [] };
@@ -1023,7 +1055,7 @@ export class OfflineSearch {
     const fileMatches = await this._searchByFilename(query);
     for (const match of fileMatches) {
       if (!seen.has(match.path)) {
-        results.push({ ...match, matchType: 'filename', priority: 1 });
+        results.push({ ...match, matchType: "filename", priority: 1 });
         seen.add(match.path);
         if (results.length >= limit) return results;
       }
@@ -1033,7 +1065,7 @@ export class OfflineSearch {
     const symbolMatches = await this._searchBySymbols(query);
     for (const match of symbolMatches) {
       if (!seen.has(match.path)) {
-        results.push({ ...match, matchType: 'symbol', priority: 2 });
+        results.push({ ...match, matchType: "symbol", priority: 2 });
         seen.add(match.path);
         if (results.length >= limit) return results;
       }
@@ -1043,7 +1075,7 @@ export class OfflineSearch {
     const bm25Matches = await this._bm25Search(query);
     for (const match of bm25Matches) {
       if (!seen.has(match.path)) {
-        results.push({ ...match, matchType: 'content', priority: 3 });
+        results.push({ ...match, matchType: "content", priority: 3 });
         seen.add(match.path);
         if (results.length >= limit) return results;
       }
@@ -1061,7 +1093,7 @@ export class OfflineSearch {
     const indexFiles = await this._listIndexFiles();
 
     for (const file of indexFiles) {
-      const content = await fs.readFile(file, 'utf-8');
+      const content = await fs.readFile(file, "utf-8");
       const entry = JSON.parse(content);
 
       const filename = path.basename(entry.path).toLowerCase();
@@ -1086,7 +1118,7 @@ export class OfflineSearch {
     const indexFiles = await this._listIndexFiles();
 
     for (const file of indexFiles) {
-      const content = await fs.readFile(file, 'utf-8');
+      const content = await fs.readFile(file, "utf-8");
       const entry = JSON.parse(content);
 
       if (!entry.hasFeatures) continue;
@@ -1116,16 +1148,16 @@ export class OfflineSearch {
     const indexFiles = await this._listIndexFiles();
 
     for (const file of indexFiles) {
-      const indexContent = await fs.readFile(file, 'utf-8');
+      const indexContent = await fs.readFile(file, "utf-8");
       const entry = JSON.parse(indexContent);
 
       try {
-        const fileContent = await fs.readFile(entry.path, 'utf-8');
+        const fileContent = await fs.readFile(entry.path, "utf-8");
         const fileLower = fileContent.toLowerCase();
 
         let score = 0;
         for (const term of queryTerms) {
-          const regex = new RegExp(term, 'g');
+          const regex = new RegExp(term, "g");
           const matches = fileLower.match(regex);
           if (matches) score += matches.length;
         }
@@ -1185,37 +1217,40 @@ opencode-memory daemon --status
 
 ```javascript
 // src/cli/cli.js
-import { Command } from 'commander';
-import { Tools } from '../core/tools/index.js';
-import { createContext } from './context.js';
+import { Command } from "commander";
+import { Tools } from "../core/tools/index.js";
+import { createContext } from "./context.js";
 
 const program = new Command();
 
-program.name('opencode-memory').version('2.3.0');
+program.name("opencode-memory").version("2.3.0");
 
 // index 命令
 program
-  .command('index <path>')
-  .option('-r, --recursive', '递归索引', true)
-  .option('--no-sync', '不同步到后端')
+  .command("index <path>")
+  .option("-r, --recursive", "递归索引", true)
+  .option("--no-sync", "不同步到后端")
   .action(async (filePath, options) => {
     const context = await createContext();
     const result = await Tools.index(
       {
         filePath,
-        options: { recursive: options.recursive, syncImmediately: options.sync },
+        options: {
+          recursive: options.recursive,
+          syncImmediately: options.sync,
+        },
       },
-      context
+      context,
     );
     console.log(`✓ Indexed ${result.filesProcessed} files`);
   });
 
 // search 命令
 program
-  .command('search <query>')
-  .option('-m, --mode <mode>', '模式', 'hybrid')
-  .option('-l, --limit <n>', '结果数量', '10')
-  .option('--local', '强制本地搜索')
+  .command("search <query>")
+  .option("-m, --mode <mode>", "模式", "hybrid")
+  .option("-l, --limit <n>", "结果数量", "10")
+  .option("--local", "强制本地搜索")
   .action(async (query, options) => {
     const context = await createContext();
     const result = await Tools.search(
@@ -1227,10 +1262,12 @@ program
           forceLocal: options.local,
         },
       },
-      context
+      context,
     );
 
-    console.log(`\nFound ${result.results.length} results [${result.source}]:\n`);
+    console.log(
+      `\nFound ${result.results.length} results [${result.source}]:\n`,
+    );
     result.results.forEach((r, i) => {
       console.log(`${i + 1}. [${r.matchType}] ${r.path}`);
     });
@@ -1255,30 +1292,30 @@ export class BackendClient {
   }
 
   async uploadCode(memory) {
-    return this._post('/api/v1/memories', { memories: [memory] });
+    return this._post("/api/v1/memories", { memories: [memory] });
   }
 
   async uploadMemories(memories) {
-    return this._post('/api/v1/memories', { memories });
+    return this._post("/api/v1/memories", { memories });
   }
 
   async search(params) {
-    return this._post('/api/v1/memories/search', params);
+    return this._post("/api/v1/memories/search", params);
   }
 
   async createRelation(params) {
-    return this._post('/api/v1/memories/relations', params);
+    return this._post("/api/v1/memories/relations", params);
   }
 
   async getRelatedMemories(params) {
-    return this._post('/api/v1/memories/graph', params);
+    return this._post("/api/v1/memories/graph", params);
   }
 
   async _post(endpoint, body) {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify(body),

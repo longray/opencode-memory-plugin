@@ -82,9 +82,40 @@
 # Install globally
 npm install -g @csuwl/opencode-memory-plugin
 
-# That's it! 🎉
+# That's in! 🎉
 # All tools are immediately available in OpenCode
 ```
+
+### Alternative: Install from Source
+
+```bash
+git clone https://github.com/csuwl/opencode-memory-plugin.git
+cd opencode-memory-plugin
+npm install -g .
+```
+
+### Verify Installation
+
+```bash
+# Check memory files exist
+ls ~/.opencode/memory/
+
+# Test in OpenCode — try any tool:
+# memory_write content="Test" type="general"
+# memory_search query="test"
+```
+
+### Troubleshooting
+
+**Permission Errors**: `chmod +x scripts/init.sh`
+**Config Not Found**: `mkdir -p ~/.config/opencode` then re-run
+install
+**Bun Runtime**: Plugin works with automatic fallback. All tools work normally.
+BM25 keyword search is fully functional. Vector search falls back to BM25 if Bun.
+
+For details, see [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290).
+
+)
 
 ## 🔍 Search Modes
 

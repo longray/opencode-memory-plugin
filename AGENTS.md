@@ -1,8 +1,8 @@
 # AGENTS.md - OpenCode Memory Plugin 开发指南
 
-**版本**: v2.5.0  
+**版本**: v2.9.0  
 **分支**: main  
-**更新时间**: 2026-03-27
+**更新时间**: 2026-03-29
 
 ---
 
@@ -30,7 +30,7 @@ D:/github/opencode-memory-plugin/
 │   │   ├── graph.js          # memory_relate, memory_graph
 │   │   ├── browse.js         # memory_timeline, memory_topics
 │   │   └── sync.js           # index_status, rebuild_index, incremental_sync, full_sync,
-│   │                          #   sync_checkpoint, conflict_list, conflict_resolve, batch_resolve
+│   │                          #   sync_checkpoint, conflict_list, conflict_resolve
 │   ├── cli/                  # CLI 工具
 │   │   └── index.cjs         # 命令行界面
 │   ├── bin/                  # 安装脚本
@@ -38,14 +38,19 @@ D:/github/opencode-memory-plugin/
 │   ├── memory/               # 记忆文件模板（安装时复制到 ~/.opencode/memory/）
 │   ├── agents/               # 自定义 OpenCode 代理
 │   ├── scripts/              # 实用脚本
+│   ├── docs/                 # 产品文档（面向用户）
 │   ├── plugin.js             # OpenCode 插件入口
 │   └── package.json
 ├── docs/                     # 开发文档
-│   └── API-CONTRACT.md       # 工具↔后端 API 映射
-├── README.md                 # 产品文档
-├── CHANGELOG.md              # 版本记录
-├── BACKLOG.md                # 任务追踪
-└── AGENTS.md                 # 本文件
+│   ├── API-CONTRACT.md       # 工具↔后端 API 映射
+│   ├── CODE-ANALYSIS-DESIGN.md # 远期功能设计
+│   ├── BACKLOG.md            # 旧归档（详细开发日志）
+│   └── archive/              # 已归档的过时设计文档
+├── README.md                 # [产品] GitHub 首页
+├── CHANGELOG.md              # [产品] 版本发布记录
+├── BACKLOG.md                # [backlog] 未完成任务
+├── backlog_archive.md        # [backlog] 已完成任务归档
+└── AGENTS.md                 # [开发] 本文件
 ```
 
 ---
@@ -65,13 +70,13 @@ D:/github/opencode-memory-plugin/
 
 ### tools/ 工具
 
-| 文件      | 工具                                                                                                                      | 后端依赖       |
-| --------- | ------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| core.js   | memory_write                                                                                                              | 同步           |
-| search.js | memory_search, memory_suggest                                                                                             | 搜索时后端优先 |
-| graph.js  | memory_relate, memory_graph                                                                                               | 必须           |
-| browse.js | memory_timeline, memory_topics                                                                                            | 无             |
-| sync.js   | index_status, rebuild_index, incremental_sync, full_sync, sync_checkpoint, conflict_list, conflict_resolve, batch_resolve | 必须           |
+| 文件      | 工具                                                                                                       | 后端依赖       |
+| --------- | ---------------------------------------------------------------------------------------------------------- | -------------- |
+| core.js   | memory_write                                                                                               | 同步           |
+| search.js | memory_search, memory_suggest                                                                              | 搜索时后端优先 |
+| graph.js  | memory_relate, memory_graph                                                                                | 必须           |
+| browse.js | memory_timeline, memory_topics                                                                             | 无             |
+| sync.js   | index_status, rebuild_index, incremental_sync, full_sync, sync_checkpoint, conflict_list, conflict_resolve | 必须           |
 
 ---
 
@@ -230,10 +235,28 @@ meta: [{键:值}, ...]
 
 ## 文档分工
 
-| 文档                   | 受众          | 内容                         |
-| ---------------------- | ------------- | ---------------------------- |
-| `README.md`            | 用户/AI Agent | 产品介绍、安装、使用         |
-| `docs/API-CONTRACT.md` | 开发者        | 工具↔后端 API 映射           |
-| `BACKLOG.md`           | 项目管理      | 任务追踪、Bug 列表           |
-| `CHANGELOG.md`         | 所有人        | 版本发布记录                 |
-| `AGENTS.md`            | 开发者        | 项目结构、代码规范（本文件） |
+### 三类文档
+
+| 类别        | 文档                                           | 受众          | 内容                         |
+| ----------- | ---------------------------------------------- | ------------- | ---------------------------- |
+| **产品**    | `README.md`                                    | 用户/AI Agent | GitHub 首页、安装、使用      |
+| **产品**    | `README.npm.md`                                | npm 用户      | npm 包首页                   |
+| **产品**    | `CHANGELOG.md`                                 | 所有人        | 版本发布记录                 |
+| **产品**    | `opencode-memory-plugin/CONFIGURATION.md`      | 用户          | 配置指南                     |
+| **产品**    | `opencode-memory-plugin/QUICK_START.md`        | 新用户        | 快速入门                     |
+| **产品**    | `opencode-memory-plugin/TROUBLESHOOTING.md`    | 用户          | 故障排除                     |
+| **产品**    | `opencode-memory-plugin/EXTERNAL_EMBEDDING.md` | 用户          | 嵌入服务配置                 |
+| **产品**    | `opencode-memory-plugin/WINDOWS_SETUP.md`      | Windows 用户  | 安装说明                     |
+| **开发**    | `AGENTS.md`                                    | 开发者        | 项目结构、代码规范（本文件） |
+| **开发**    | `docs/API-CONTRACT.md`                         | 开发者        | 工具↔后端 API 映射           |
+| **开发**    | `docs/CODE-ANALYSIS-DESIGN.md`                 | 开发者        | 远期功能设计                 |
+| **backlog** | `BACKLOG.md`                                   | 项目管理      | 未完成任务                   |
+| **backlog** | `backlog_archive.md`                           | 项目管理      | 已完成任务归档               |
+
+### Backlog 编号规则
+
+- **格式**: `BL-{N}` 主任务 / `BL-{N}.{SS}` 步骤（SS 两位数字，01 补零）
+- **最多两层**: 主任务 + 步骤，不嵌套
+- **编号递增**: 从 BL-1 起，永不复用、永不跳号
+- **归档规则**: `[x]` 超过 5 条时剪切到 `backlog_archive.md`
+- **旧编号**: `BL-001`~`BL-610` 已归档，保留在 archive 中作为历史记录

@@ -13,6 +13,7 @@
   "ignores": [
     "node_modules",
     "CHANGELOG.md",
-    "opencode-memory-plugin/CHANGELOG.md"
+    "opencode-memory-plugin/CHANGELOG.md",
+    "docs/archive"
   ]
 }

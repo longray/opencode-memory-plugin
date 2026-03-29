@@ -430,17 +430,17 @@ Conflict detected during sync
 function detectConflict(local, backend) {
   // Check content hash
   if (local.content_hash !== backend.content_hash) {
-    return { type: 'content_diff' };
+    return { type: "content_diff" };
   }
 
   // Check timestamp
   if (local.updated_at !== backend.updated_at) {
-    return { type: 'timestamp_diff' };
+    return { type: "timestamp_diff" };
   }
 
   // Check metadata
   if (JSON.stringify(local.metadata) !== JSON.stringify(backend.metadata)) {
-    return { type: 'metadata_diff' };
+    return { type: "metadata_diff" };
   }
 
   return null; // No conflict
@@ -633,7 +633,7 @@ Backend Available
 ```javascript
 const retryConfig = {
   maxAttempts: 3,
-  backoff: 'exponential',
+  backoff: "exponential",
   initialDelay: 1000,
   maxDelay: 10000,
 };
