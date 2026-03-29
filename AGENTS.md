@@ -193,7 +193,7 @@ meta: [{键:值}, ...]
 4. 对确认条目调用 `memory_write`（含 abstract/overview/content 三层）
 5. 调用 `memory_search` 查重，避免重复保存
 
-**工具白名单**：`memory_write`, `memory_read`, `memory_search`, `memory_suggest`, `memory_pin`, `incremental_sync`
+**工具白名单**：`memory_write`, `memory_read`, `memory_search`, `memory_suggest`, `memory_timeline`, `memory_topics`
 
 ### memory-consolidate（The Librarian）
 
