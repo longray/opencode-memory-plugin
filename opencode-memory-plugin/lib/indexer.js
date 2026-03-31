@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { LINK_MAP_FILE, MEMORY_FILE, MEMORY_DIR } from './constants.js';
+import { LINK_MAP_FILE, MEMORY_FILE, MEMORY_DIR, CONFIG_FILE } from './constants.js';
 
 export async function updateDayOverview(dayDir, entry) {
   const overviewPath = path.join(dayDir, '.overview.md');
@@ -74,6 +74,44 @@ export async function removeFromLinkMap(localId) {
   }
 }
 
+/**
+ * 格式化最近条目列表 (BL-101.1)
+ *
+ * @param {Array} entries - 所有条目
+ * @param {number} limit - 最大条目数
+ * @returns {{ section: string, count: number }}
+ */
+export function formatRecentEntries(entries, limit = 20) {
+  const entriesWithDate = entries
+    .map(e => {
+      const pathMatch = e.path.match(/timeline\/(\d{4})\/(\d{2})\/(\d{2})/);
+      if (!pathMatch) return null;
+      const [, year, month, day] = pathMatch;
+      return {
+        ...e,
+        dateStr: `${year}-${month}-${day}`,
+      };
+    })
+    .filter(Boolean);
+
+  entriesWithDate.sort((a, b) => {
+    if (a.dateStr !== b.dateStr) return b.dateStr.localeCompare(a.dateStr);
+    return b.id.localeCompare(a.id);
+  });
+
+  const recentEntries = entriesWithDate
+    .slice(0, limit)
+    .map(e => `- ${e.dateStr} \`${e.id}\` [**${e.type}**] ${e.abstract || '[无摘要]'}`)
+    .join('\n');
+
+  if (!recentEntries) {
+    return { section: '', count: 0 };
+  }
+
+  const section = `\n## 最近条目 (最近 ${Math.min(limit, entriesWithDate.length)} 条)\n\n${recentEntries}\n`;
+  return { section, count: Math.min(limit, entriesWithDate.length) };
+}
+
 export async function updateMemoryIndex() {
   try {
     let linkMap = { entries: {} };
@@ -106,6 +144,22 @@ export async function updateMemoryIndex() {
     const sortedDates = Object.keys(dateDistribution).sort().reverse().slice(0, 7);
     const dateDistStr = sortedDates.map(d => `| ${d} | ${dateDistribution[d]} |`).join('\n');
 
+    // --- 最近条目生成 (BL-101.1) ---
+    // Read limit from config (BL-101.2)
+    let limit = 20;
+    try {
+      if (fs.existsSync(CONFIG_FILE)) {
+        const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+        const cfgLimit = config?.memory_index?.recent_entries_limit;
+        if (typeof cfgLimit === 'number' && cfgLimit > 0) {
+          limit = cfgLimit;
+        }
+      }
+    } catch {
+      // use default
+    }
+    const { section: recentEntriesSection } = formatRecentEntries(entries, limit);
+
     const updateTime = new Date().toISOString();
 
     const indexContent = `# Memory Index
@@ -129,7 +183,7 @@ ${Object.entries(typeCount)
 | 日期 | 条目数 |
 |------|--------|
 ${dateDistStr || '| - | 0 |'}
-
+${recentEntriesSection}
 ---
 
 *此文件由 memory_write 工具自动更新*
