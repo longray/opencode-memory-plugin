@@ -21,6 +21,7 @@ npm install -g @csuwl/opencode-memory-plugin
 - **Graph Relations** - Connect memories with semantic relationships
 - **Memory Browsing** - Timeline browser and topic explorer
 - **Project Isolation** - Multi-tenant support with tenant_id and project_id
+- **Code Analysis** - Automatic AST analysis on file save (JavaScript, TypeScript, Python, Go, Rust, Java)
 - **Zero Configuration** - Just install and use
 
 ## Available Tools (15)

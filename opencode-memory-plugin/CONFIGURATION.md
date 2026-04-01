@@ -233,6 +233,87 @@ memory_search query="test search"
 
 **Recommendation**: Use ModelScope API for best quality-performance ratio.
 
+---
+
+## Code Analysis Configuration
+
+The code analysis feature automatically analyzes code files on save and stores the structure in memory.
+
+### Enable/Disable
+
+```json
+{
+  "code_analysis": {
+    "enabled": true
+  }
+}
+```
+
+**Options**:
+
+- `enabled`: Enable or disable code analysis (default: `true`)
+
+### Exclude Patterns
+
+```json
+{
+  "code_analysis": {
+    "exclude_patterns": ["node_modules", ".git", "dist", "build", "coverage", ".min.js"]
+  }
+}
+```
+
+**Options**:
+
+- `exclude_patterns`: Directory and file patterns to exclude (default: common directories)
+- Supports glob patterns
+
+### Batch Settings
+
+```json
+{
+  "code_analysis": {
+    "batch_max_size": 10,
+    "batch_delay_ms": 2000,
+    "debounce_ms": 300
+  }
+}
+```
+
+**Options**:
+
+- `batch_max_size`: Maximum files per batch upload (default: `10`)
+- `batch_delay_ms`: Delay before batch upload in milliseconds (default: `2000`)
+- `debounce_ms`: Debounce time after file save in milliseconds (default: `300`)
+
+### Complete Example
+
+```json
+{
+  "version": "3.0",
+  "code_analysis": {
+    "enabled": true,
+    "exclude_patterns": ["node_modules", ".git", "dist", "build"],
+    "batch_max_size": 10,
+    "batch_delay_ms": 2000,
+    "debounce_ms": 300
+  }
+}
+```
+
+### Supported Languages
+
+| Language   | Extensions                    | Analyzed Content                      |
+| ---------- | ----------------------------- | ------------------------------------- |
+| JavaScript | `.js`, `.mjs`, `.cjs`         | Functions, Classes, Imports, Exports  |
+| TypeScript | `.ts`, `.mts`, `.cts`, `.tsx` | Functions, Classes, Interfaces, Types |
+| Python     | `.py`                         | Functions, Classes, Imports           |
+| Go         | `.go`                         | Functions, Types, Imports             |
+| Rust       | `.rs`                         | Functions, Structs, Traits, Modules   |
+| Java       | `.java`                       | Classes, Methods, Fields, Imports     |
+
+**See [`CODE-ANALYSIS.md`](./CODE-ANALYSIS.md) for detailed documentation.**
+
 ## Troubleshooting
 
 ### ModelScope API Issues

@@ -12,6 +12,7 @@ import {
   conflict_resolve,
   sync_checkpoint,
 } from './tools/sync.js';
+import { onFileSaved } from './lib/code-analysis-service.js';
 
 const memory_read = tool({
   description: 'Read from a memory file with level support',
@@ -35,7 +36,16 @@ const memory_read = tool({
   },
 });
 
-export const MemoryPlugin = async _ctx => {
+export const MemoryPlugin = async ctx => {
+  // 注册文件保存事件监听器，自动触发代码分析
+  if (ctx?.on) {
+    ctx.on('file.saved', filePath => {
+      const projectRoot = process.cwd();
+      onFileSaved(filePath, projectRoot);
+    });
+    console.log('[MemoryPlugin] Code analysis file watcher enabled');
+  }
+
   return {
     tool: {
       memory_write,
