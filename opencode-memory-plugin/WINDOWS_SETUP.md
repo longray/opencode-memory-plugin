@@ -1,11 +1,11 @@
-# Windows 11 + External Embedding Service Setup Guide
+# Windows 11 Setup Guide
 
-This document provides instructions for setting up the OpenCode Memory Plugin on Windows 11 with your external embedding service running on port 18000.
+This document provides instructions for setting up the OpenCode Memory Plugin on Windows 11 with ModelScope API or local embedding service.
 
 ## Prerequisites
 
-1. **Node.js** installed on your Windows 11 machine
-2. Your embedding service running at `http://localhost:18000/embeddings`
+1. **Node.js** (v16 or higher) installed on your Windows 11 machine
+2. **ModelScope API Key** (recommended) or local embedding service running
 3. Administrator privileges to install global packages (if installing globally)
 
 ## Installation Steps
@@ -22,7 +22,7 @@ The installation will create a default configuration at `%USERPROFILE%/.opencode
 
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "search": {
     "mode": "hybrid"
   },
@@ -36,9 +36,23 @@ The installation will create a default configuration at `%USERPROFILE%/.opencode
 }
 ```
 
-### 3. Ensure Your Embedding Service is Running
+### 3. Configure ModelScope API (Recommended)
 
-Before using the plugin, start your embedding service on port 18000.
+Set the environment variable in PowerShell:
+
+```powershell
+$env:MODELSCOPE_API_KEY='your-api-key-here'
+```
+
+Or in CMD:
+
+```cmd
+set MODELSCOPE_API_KEY=your-api-key-here
+```
+
+### 4. Alternative: Local Embedding Service
+
+If using a local embedding service instead of ModelScope API, ensure it's running on the configured endpoint (default: `http://localhost:18000/embeddings`).
 
 ## Windows-Specific Considerations
 

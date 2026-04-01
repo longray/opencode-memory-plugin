@@ -71,15 +71,14 @@ Try these commands:
 
 ---
 
-## Step 7: Configure Git Backup (Optional but Recommended)
+## Step 7: Configure Backend Service (Optional but Recommended)
 
 ```bash
-cd ~/.opencode/memory
-git init
-git add .
-git commit -m "Initial memory setup"
-# Add remote: git remote add origin <your-repo-url>
-# Push: git push -u origin main
+# Set ModelScope API key for semantic search
+export MODELSCOPE_API_KEY='your-api-key-here'
+
+# Or use local embedding service
+# See EXTERNAL_EMBEDDING.md for setup instructions
 ```
 
 ---
@@ -91,7 +90,7 @@ Your AI assistant now has:
 - ✅ Persistent memory that survives sessions
 - ✅ Semantic search to find relevant past context
 - ✅ Automatic memory saving (fully automated)
-- ✅ Daily logs for running context
+- ✅ Timeline entries for running context
 - ✅ Long-term memory for lasting knowledge
 
 ---
@@ -101,7 +100,7 @@ Your AI assistant now has:
 - **Privacy**: Memory files contain personal preferences. Keep them private or use a private Git repo.
 - **Automation**: The system will automatically save important information. You can also manually save with `memory_write`.
 - **Search**: Use semantic search (`memory_search`) when you don't remember exact words.
-- **Backup**: Set up Git backup if you want to preserve memory across machines.
+- **Sync**: Configure backend sync if you want to preserve memory across machines.
 
 ---
 

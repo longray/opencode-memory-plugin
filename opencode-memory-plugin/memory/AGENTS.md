@@ -33,7 +33,7 @@
 - Important decisions and their rationale
 - Lessons learned from mistakes
 
-**Daily (memory/YYYY-MM-DD.md)**:
+**Timeline (timeline/YYYY/MM/DD/)**:
 
 - Running context for current work
 - Temporary notes that might become long-term

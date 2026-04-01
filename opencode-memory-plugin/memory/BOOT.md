@@ -6,9 +6,9 @@ Execute when gateway/agent starts:
 
 - [ ] Verify memory directory structure exists
 - [ ] Check all core memory files are present
-- [ ] Initialize vector index if needed
-- [ ] Load today's daily memory file
-- [ ] Sync with Git remote if configured
+- [ ] Verify backend connection if configured
+- [ ] Load today's timeline directory
+- [ ] Sync with backend if configured
 
 ## Context Loading
 
@@ -24,14 +24,14 @@ Execute when gateway/agent starts:
 
 - [ ] Verify OpenCode is accessible
 - [ ] Check all tools are loaded
-- [ ] Verify vector search is functional
+- [ ] Verify memory search is functional
 - [ ] Test memory tools (read/write/search)
-- [ ] Check Git connection if configured
+- [ ] Check backend connection if configured
 
 ## Readiness
 
 - [ ] All memory files injected into context
-- [ ] Vector search operational
+- [ ] Memory search operational
 - [ ] Memory tools available
 - [ ] Ready to assist!
 

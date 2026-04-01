@@ -4,15 +4,15 @@ Quick checks during periodic heartbeat runs:
 
 ## Memory Health
 
-- [ ] Vector index is up to date
+- [ ] Backend sync is operational
 - [ ] No duplicate entries in MEMORY.md
-- [ ] Daily logs are being created
-- [ ] Old daily logs are archived (keep last 30 days)
+- [ ] Timeline entries are being created
+- [ ] Old timeline entries are archived (keep last 30 days)
 
 ## System Health
 
 - [ ] All memory files are accessible
-- [ ] SQLite database is healthy
+- [ ] Memory files are healthy
 - [ ] No corrupted memory entries
 - [ ] Memory tools are functioning
 

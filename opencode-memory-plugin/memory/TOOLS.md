@@ -8,7 +8,7 @@
 - **Always save**: User preferences, project conventions, working patterns
 - **Types**:
   - `long-term`: Persistent memories (MEMORY.md)
-  - `daily`: Running context (memory/YYYY-MM-DD.md)
+  - `daily`: Timeline entries (timeline/YYYY/MM/DD/)
   - `preference`: User preferences (PREFERENCES.md - use `preference` type)
 - **Best practice**: Save immediately after important information is shared
 

@@ -31,7 +31,7 @@ The plugin detects Bun and configures itself:
 
 ### Limitations
 
-⚠️ **No Vector Search**: Semantic search not available (Bun doesn't support `better-sqlite3`)
+⚠️ **Backend-first Architecture**: All vector search is handled by the backend service (localhost:17999). The plugin works seamlessly in all runtimes including Bun.
 ⚠️ **Manual Indexing**: Index rebuild uses BM25 instead of embeddings
 
 **Recommendation**: Continue using the plugin - keyword search is fast and effective. Vector search will be automatically restored when Bun adds V8 C++ API support (see [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290)).
@@ -96,7 +96,7 @@ Check your configuration at `~/.opencode/memory/memory-config.json`:
 
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "embedding": {
     "enabled": true,
     "provider": "external",
@@ -107,16 +107,16 @@ Check your configuration at `~/.opencode/memory/memory-config.json`:
 }
 ```
 
-**Local Service:**
+**Local Service (Fallback):**
 
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "embedding": {
     "enabled": true,
     "provider": "external",
     "endpoint": "http://localhost:18000/embeddings",
-    "model": "local-embedding-model",
+    "model": "Qwen/Qwen3-Embedding-0.6B",
     "fallbackMode": "bm25"
   }
 }
@@ -133,8 +133,8 @@ memory_write content="This is a test for memory integration" type="test" tags=["
 # Perform a search (supports semantic and keyword search via backend)
 memory_search query="memory integration functionality"
 
-# List daily logs
-list_daily days=7
+# Browse memory timeline
+memory_timeline days=7 level=1
 
 # Check system status
 index_status
@@ -178,11 +178,8 @@ memory_write content="User prefers TypeScript for all new features" type="long-t
 # Read memory files
 memory_read file="MEMORY.md"
 
-# List daily logs
-list_daily days=30
-
-# Initialize today's log
-init_daily
+# Browse memory timeline
+memory_timeline days=30 level=1
 ```
 
 ## Troubleshooting Quick Fixes

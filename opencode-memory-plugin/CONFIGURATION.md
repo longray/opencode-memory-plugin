@@ -1,4 +1,4 @@
-# Configuration Guide (v2.3.0)
+# Configuration Guide (v2.9.0)
 
 OpenCode Memory Plugin supports flexible configuration for embedding models, search modes, sync settings, and timeline structure.
 
@@ -168,7 +168,7 @@ Controls how text is chunked for indexing.
   },
   "embedding": {
     "enabled": true,
-    "model": "Xenova/bge-small-en-v1.5"
+    "model": "Qwen/Qwen3-Embedding-0.6B"
   }
 }
 ```
@@ -183,7 +183,7 @@ Controls how text is chunked for indexing.
   },
   "embedding": {
     "enabled": true,
-    "model": "Xenova/all-MiniLM-L6-v2"
+    "model": "Qwen/Qwen3-Embedding-0.6B"
   }
 }
 ```
@@ -198,7 +198,7 @@ Controls how text is chunked for indexing.
   },
   "embedding": {
     "enabled": true,
-    "model": "Xenova/bge-base-en-v1.5"
+    "model": "Qwen/Qwen3-Embedding-0.6B"
   }
 }
 ```
@@ -357,26 +357,31 @@ npm install @csuwl/opencode-memory-plugin@latest -g
 nano ~/.opencode/memory/memory-config.json
 ```
 
-## Advanced: Custom Models
+## Advanced: Custom Embedding Models
 
-You can use any Xenova model from HuggingFace:
+You can use any custom embedding model via external API:
 
 ```json
 {
   "embedding": {
-    "model": "Xenova/YOUR_MODEL_NAME"
-  },
-  "models": {
-    "available": {
-      "Xenova/YOUR_MODEL_NAME": {
-        "dimensions": 384,
-        "size": "100MB",
-        "language": "en",
-        "useCase": "custom",
-        "quality": "good",
-        "speed": "medium"
-      }
-    }
+    "provider": "custom",
+    "endpoint": "https://your-api-endpoint/v1/embeddings",
+    "model": "your-custom-model-name",
+    "apiKey": "your-api-key"
+  }
+}
+```
+
+**Example: Using a custom API service**
+
+```json
+{
+  "embedding": {
+    "enabled": true,
+    "provider": "custom",
+    "endpoint": "https://api.yourcompany.com/embeddings",
+    "model": "custom-embedding-v1",
+    "fallbackMode": "bm25"
   }
 }
 ```
@@ -793,9 +798,6 @@ conflict_list limit=10
 ```bash
 # Resolve specific conflict
 conflict_resolve conflict_id="xxx" resolution="USE_LOCAL"
-
-# Batch resolve
-batch_resolve strategy="ACCEPT_ALL"
 ```
 
 ### Timeline Migration Issues
@@ -871,4 +873,4 @@ export EMBEDDING_ENDPOINT='http://localhost:18000/embeddings'
 ---
 
 **Last Updated**: 2026-03-23  
-**Version**: v2.3.0
+**Version**: v2.9.0
