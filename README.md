@@ -8,7 +8,6 @@
 
 [![OpenCode](https://img.shields.io/badge/OpenCode-native%20plugin-success.svg)](https://docs.opencode.ai)
 [![External Services](https://img.shields.io/badge/Embedding-External%20Services-blue.svg)](https://github.com/csuwl/opencode-memory-plugin#-external-embedding-service)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/csuwl/opencode-memory-plugin/blob/main/LICENSE)
 
 ## 🔄 Architecture Update (v2.1.0+)
 
@@ -29,7 +28,7 @@
 ## 🎯 Features
 
 - ✅ **Native OpenCode Plugin** - Using @opencode-ai/plugin API for seamless integration
-- ✅ **16 Memory Tools** - All tools available immediately after installation
+- ✅ **15 Memory Tools** - All tools available immediately after installation
 - ✅ **v2.3: Dual-Mode Sync** - Incremental (fingerprint-based) + Full sync (with resume)
 - ✅ **v2.3: Conflict Resolution** - Detection, auto-resolve, merge, manual resolve
 - ✅ **v2.3: Memory Browsing** - Timeline browser and topic explorer
@@ -44,7 +43,7 @@
 - ✅ **Phase C: Autocomplete** - Smart search suggestions (<50ms)
 - ✅ **Phase C: Real-time Sync** - WebSocket live synchronization
 
-### Available Tools (16)
+### Available Tools (15)
 
 #### Core Tools (9)
 
@@ -115,8 +114,6 @@ install
 BM25 keyword search is fully functional. Vector search falls back to BM25 if Bun.
 
 For details, see [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290).
-
-)
 
 ## 🔍 Search Modes
 
@@ -365,14 +362,20 @@ opencode-memory-plugin/
 │   └── cleanup-memory.mjs      # Memory cleanup utilities
 ├── lib/                 # Core library files
 │   ├── bm25.js            # BM25 keyword search algorithm
-│   ├── trie.js            # Trie index for fast search
+│   ├── trie.js            # Trie data structure
 │   ├── trie-index.js      # Trie index manager
 │   ├── wrapper-client.js  # Backend API client
 │   ├── project-resolver.js # Project ID detection
-│   └── ws-client.js       # WebSocket client
-├── bin/                 # CLI and install scripts
-│   ├── cli.cjs            # Command-line interface
+│   ├── ws-client.js       # WebSocket client
+│   ├── code-analyzer.js   # Code AST analysis (Oxc)
+│   ├── code-analysis-service.js # Batch analysis queue
+│   ├── code-fingerprint.js # Change detection
+│   └── privacy-filter.js  # Sensitive content filter
+├── bin/                 # Install scripts
 │   └── install.cjs        # NPM install hook
+├── cli/                 # CLI tools
+│   ├── index.cjs          # Main CLI interface
+│   └── code-analyzer.cjs  # Code analysis CLI
 ├── plugin.js            # OpenCode plugin entry
 ├── index.js             # Plugin metadata
 └── package.json         # NPM package config
@@ -483,18 +486,10 @@ The plugin supports multiple external embedding services:
 ### Current Version (v2.9.0)
 
 - [Configuration Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
-- [Architecture Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/ARCHITECTURE.md) - System architecture and data flows
-- [Migration Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/MIGRATION_GUIDE.md) - Migrate from v2.2 to v2.3
-- [Quick Start Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/QUICK_START.md) - Getting started with external service
-- [Troubleshooting Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/TROUBLESHOOTING.md) - Deployment and troubleshooting
-
-### Future Development (v2.0 Design)
-
-- [Design Overview](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_OVERVIEW.md) - SurrealDB integration design overview
-- [Architecture Design](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_ARCHITECTURE.md) - Complete system architecture
-- [Component Specifications](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_COMPONENTS.md) - Core component details
-- [API Specifications](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_API.md) - Wrapper Service API
-- [Development Roadmap](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/DESIGN_ROADMAP.md) - Implementation plan
+- [Quick Start Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/QUICK_START.md) - Getting started
+- [Troubleshooting Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/TROUBLESHOOTING.md) - Common issues and solutions
+- [Windows Setup](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/WINDOWS_SETUP.md) - Windows installation guide
+- [External Embedding](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/EXTERNAL_EMBEDDING.md) - Embedding service configuration
 
 ### External Resources
 
@@ -512,7 +507,7 @@ We welcome contributions! Here's how you can help:
 ### Development Guidelines
 
 - Follow OpenCode plugin conventions
-- Use TypeScript for tools
+- Use JavaScript (ES Modules) for tools
 - Test changes thoroughly
 - Update documentation with new features
 - Respect the memory-first approach

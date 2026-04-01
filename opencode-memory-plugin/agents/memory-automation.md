@@ -1,6 +1,6 @@
 ---
 description: 'Memory Observer — analyzes conversations and extracts valuable insights. Returns ONLY high-confidence candidates. Never saves; only proposes.'
-mode: subagent
+mode: primary
 model: anthropic/claude-sonnet-4-20250514
 tools:
   memory_search: true

@@ -25,12 +25,13 @@ npm install -g @csuwl/opencode-memory-plugin
 
 ## Available Tools (15)
 
-### Core Tools (8)
+### Core Tools (9)
 
 | Tool              | Description                          |
 | ----------------- | ------------------------------------ |
 | `memory_write`    | Write entries to long-term memory    |
 | `memory_read`     | Read from memory files (level 0/1/2) |
+| `memory_pin`      | Pin/unpin important entries          |
 | `memory_search`   | Search (vector/keyword/hybrid)       |
 | `memory_suggest`  | Autocomplete suggestions             |
 | `memory_relate`   | Create/query graph relations         |
