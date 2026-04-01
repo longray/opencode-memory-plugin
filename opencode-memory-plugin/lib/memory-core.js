@@ -6,6 +6,28 @@
  * @version 1.0.0
  */
 
+/**
+ * @typedef {Object} WriteMemoryParams
+ * @property {string} abstract - L0 摘要（必填）
+ * @property {string} overview - L1 概览（必填）
+ * @property {string} content - L2 完整内容（必填）
+ * @property {string} [type='general'] - 条目类型
+ * @property {string[]} [tags=[]] - 标签列表
+ * @property {boolean} [pinned=false] - 是否置顶
+ * @property {string} [source_id] - 来源 ID
+ * @property {string} [project_id] - 项目 ID
+ * @property {string} [source='cli'] - 来源标识
+ */
+
+/**
+ * @typedef {Object} WriteMemoryResult
+ * @property {boolean} success - 是否成功
+ * @property {string} localId - 本地 ID
+ * @property {string} filePath - 文件路径
+ * @property {string|null} memoryId - 后端记忆 ID
+ * @property {string} message - 消息
+ */
+
 import fs from 'fs';
 import path from 'path';
 import { writeEntryToTimeline } from './entry.js';
@@ -23,17 +45,8 @@ import { extractByLevel } from './extractor.js';
 /**
  * 写入记忆到本地和后端
  *
- * @param {Object} params - 写入参数
- * @param {string} params.abstract - L0 摘要（必填）
- * @param {string} params.overview - L1 概览（必填）
- * @param {string} params.content - L2 完整内容（必填）
- * @param {string} params.type - 条目类型（默认 'general'）
- * @param {string[]} params.tags - 标签列表（默认 []）
- * @param {boolean} params.pinned - 是否置顶（默认 false）
- * @param {string} params.source_id - 来源 ID（可选）
- * @param {string} params.project_id - 项目 ID（可选）
- * @param {string} params.source - 来源标识（默认 'cli'）
- * @returns {Promise<{success: boolean, localId: string, filePath: string, memoryId: string | null, message: string}>}
+ * @param {WriteMemoryParams} params - 写入参数
+ * @returns {Promise<WriteMemoryResult>} 写入结果
  */
 export async function writeMemory({
   abstract,

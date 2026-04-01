@@ -2,6 +2,37 @@ import { parseSync } from 'oxc-parser';
 import { readFileSync } from 'fs';
 import { extname } from 'path';
 
+/**
+ * @typedef {Object} AnalysisResult
+ * @property {string} file_path - 文件路径
+ * @property {string} language - 编程语言
+ * @property {string} analyzer - 使用的分析器 ('oxc' | 'tree-sitter' | 'fallback')
+ * @property {Array<{name: string, start?: number, end?: number}>} functions - 函数列表
+ * @property {Array<{name: string}>} classes - 类列表
+ * @property {Array<{name: string}>} interfaces - 接口列表
+ * @property {Array<{name: string, source: string}>} imports - 导入列表
+ * @property {Array<{name: string, type: 'function'|'class'|'const'|'let'|'var'}>} exports - 导出列表
+ * @property {Object} [metrics] - 代码指标
+ * @property {number} metrics.lines - 总行数
+ * @property {number} metrics.functions - 函数数量
+ * @property {number} metrics.classes - 类数量
+ * @property {number} metrics.complexity - 复杂度
+ * @property {Array<{type: string, reason: string}>} [warnings] - 警告列表
+ */
+
+/**
+ * @typedef {Object} AnalyzerConfig
+ * @property {number} [debounceMs=300] - 防抖时间（毫秒）
+ * @property {number} [maxConcurrent=2] - 最大并发数
+ * @property {number} [maxQueueSize=10] - 最大队列大小
+ * @property {number} [queueTimeoutMs=5000] - 队列超时时间（毫秒）
+ * @property {number} [fileTimeoutMs=500] - 文件分析超时时间（毫秒）
+ * @property {number} [largeFileThreshold=5000] - 大文件行数阈值
+ * @property {number} [skipFileThreshold=10000] - 跳过文件行数阈值
+ * @property {number} [batchDelayMs=2000] - 批量延迟时间（毫秒）
+ * @property {number} [batchMaxSize=10] - 批量最大大小
+ */
+
 export const DEFAULT_CONFIG = {
   debounceMs: 300,
   maxConcurrent: 2,
@@ -28,11 +59,24 @@ const EXTENSION_TO_LANGUAGE = {
   '.java': 'java',
 };
 
+/**
+ * 代码分析器类
+ * 使用 Oxc 进行 AST 分析，支持 Tree-sitter WASM 降级策略
+ */
 export class CodeAnalyzer {
+  /**
+   * @param {AnalyzerConfig} [config] - 分析器配置
+   */
   constructor(config = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
+  /**
+   * 分析代码文件
+   * @param {string} filePath - 文件路径
+   * @param {string} [content] - 文件内容（可选，不传则从文件读取）
+   * @returns {Promise<AnalysisResult>} 分析结果
+   */
   async analyze(filePath, content) {
     const startTime = performance.now();
     const warnings = [];

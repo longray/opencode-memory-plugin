@@ -8,6 +8,44 @@
  * @version 1.0.1
  */
 
+/**
+ * @typedef {Object} HealthStatus
+ * @property {string} status - 'healthy' | 'unavailable' | 'degraded'
+ * @property {Object} embedding_service - Embedding 服务状态
+ * @property {Object} surrealdb - SurrealDB 服务状态
+ * @property {Object} cache_stats - 缓存统计
+ */
+
+/**
+ * @typedef {Object} SearchParams
+ * @property {string} query - 搜索查询
+ * @property {'vector'|'keyword'|'hybrid'} [mode='hybrid'] - 搜索模式
+ * @property {number} [limit=10] - 结果数量限制
+ * @property {number} [threshold=0.3] - 相似度阈值
+ * @property {number} [level=2] - 返回内容级别 (0=abstract, 1=overview, 2=full)
+ * @property {string} [tenant_id] - 租户 ID
+ * @property {string} [project_id] - 项目 ID
+ */
+
+/**
+ * @typedef {Object} SearchResult
+ * @property {Array} results - 搜索结果数组
+ * @property {number} total - 结果总数
+ * @property {string} mode - 使用的搜索模式
+ */
+
+/**
+ * @typedef {Object} MemoryEntry
+ * @property {string} abstract - L0 摘要（≤100 字符）
+ * @property {string} overview - L1 概览（≤500 字符）
+ * @property {string} content - L2 完整内容
+ * @property {string} type - 条目类型
+ * @property {string[]} tags - 标签列表
+ * @property {boolean} pinned - 是否置顶
+ * @property {string} [source_id] - 来源 ID
+ * @property {string} [project_id] - 项目 ID
+ */
+
 import fs from 'fs';
 import path from 'path';
 
@@ -186,7 +224,7 @@ export class WrapperClient {
 
   /**
    * 健康检查
-   * @returns {Promise<{status: string, embedding_service: object, surrealdb: object, cache_stats: object}>}
+   * @returns {Promise<HealthStatus>} 后端服务健康状态
    */
   async health() {
     try {
@@ -232,14 +270,8 @@ export class WrapperClient {
 
   /**
    * 搜索记忆
-   * @param {Object} params - 搜索参数
-   * @param {string} params.query - 搜索查询
-   * @param {string} params.mode - 搜索模式: 'vector' | 'keyword' | 'hybrid'
-   * @param {number} params.limit - 结果数量限制 (默认10)
-   * @param {number} params.threshold - 相似度阈值 (默认0.3)
-   * @param {string} params.tenant_id - 租户ID (可选)
-   * @param {string} params.project_id - 项目ID (可选)
-   * @returns {Promise<{results: Array, total: number, mode: string}>}
+   * @param {SearchParams} params - 搜索参数
+   * @returns {Promise<SearchResult>} 搜索结果
    */
   async search({
     query,
@@ -282,8 +314,8 @@ export class WrapperClient {
 
   /**
    * 上传单条记忆
-   * @param {Object} memory - 记忆数据
-   * @returns {Promise<{id: string, success: boolean}>}
+   * @param {MemoryEntry} memory - 记忆数据
+   * @returns {Promise<{id: string, success: boolean}>} 上传结果
    */
   async uploadMemory(memory) {
     logInfo('UPLOAD', 'uploadMemory called', {
