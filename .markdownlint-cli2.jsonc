@@ -14,6 +14,8 @@
     "node_modules",
     "CHANGELOG.md",
     "opencode-memory-plugin/CHANGELOG.md",
-    "docs/archive"
+    "docs/archive",
+    "handoffs/",
+    "opencode-memory-plugin/code-analyzer/"
   ]
 }
