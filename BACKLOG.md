@@ -3,9 +3,9 @@
 > 未完成任务。已完成任务归档至 [`backlog_archive.md`](./backlog_archive.md)。
 > 已发布版本详见 [`CHANGELOG.md`](./CHANGELOG.md)。
 
-**更新时间**: 2026-04-02 00:10  
+**更新时间**: 2026-04-02 00:35  
 **版本**: v2.9.0  
-**当前阶段**: 阶段 3 — 代码分析功能（✅ 已完成）
+**当前阶段**: 阶段 4 — JSDoc 类型注释（✅ 已完成）
 
 ---
 
@@ -83,14 +83,14 @@
 
 ### BL-5 [P2] 开发文档重组
 
-| 项目         | 内容                                                                                                                                                                                                                                                                                                                                                       |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **目标**     | 明确开发文档位置，新增缺失模块指南，建立开发文档导航页                                                                                                                                                                                                                                                                                                     |
-| **涉及范围** | 1. `AGENTS.md`（根目录）→ 移至 `docs/AGENTS.md`<br>2. 新增 `docs/README.md`（开发文档导航页）<br>3. 新增 `docs/tools/AGENTS.md`（工具模块指南）<br>4. 更新 `docs/lib/AGENTS.md`（移除已删除文件引用）<br>5. 新增 `docs/ARCHITECTURE.md`（系统架构说明）                                                                                                    |
-| **前置依赖** | BL-2 完成（文档归档后结构才清晰）                                                                                                                                                                                                                                                                                                                          |
-| **完成标准** | 1. AGENTS.md 移至 `docs/AGENTS.md`<br>2. 根目录保留 README.md（产品）、CHANGELOG.md（产品）、BACKLOG.md（Backlog）<br>3. `docs/README.md` 包含开发文档索引（按模块分类）<br>4. `docs/tools/AGENTS.md` 包含 5 个工具文件说明<br>5. `docs/lib/AGENTS.md` 移除 `vector-store.js`、`service-validator.js` 引用<br>6. `docs/ARCHITECTURE.md` 包含后端优先架构图 |
-| **验证方式** | 1. `ls *.md` 根目录仅保留 3 类文档<br>2. `ls docs/` 包含 AGENTS.md、README.md、ARCHITECTURE.md<br>3. `grep "vector-store.js" docs/lib/AGENTS.md` 无结果                                                                                                                                                                                                    |
-| **状态**     | ✅ 已完成                                                                                                                                                                                                                                                                                                                                                  |
+| 项目         | 内容                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 明确开发文档位置，新增缺失模块指南，建立开发文档导航页                                                                                                                                                                                                                                                                                                                                                                                        |
+| **涉及范围** | 1. ~~`AGENTS.md`（根目录）→ 移至 `docs/AGENTS.md`~~ ❌ **已恢复**<br>2. 新增 `docs/README.md`（开发文档导航页） ✅<br>3. 新增 `docs/tools/AGENTS.md`（工具模块指南） ⏳ 可选<br>4. 更新 `docs/lib/AGENTS.md`（移除已删除文件引用） ⏳ 可选<br>5. 新增 `docs/ARCHITECTURE.md`（系统架构说明） ⏳ 可选                                                                                                                                          |
+| **前置依赖** | BL-2 完成（文档归档后结构才清晰）                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **完成标准** | 1. ~~AGENTS.md 移至 `docs/AGENTS.md`~~ ❌ **用户偏好：保留在根目录**<br>2. 根目录保留 README.md（产品）、CHANGELOG.md（产品）、BACKLOG.md（Backlog）、AGENTS.md（开发） ✅<br>3. `docs/README.md` 包含开发文档索引（按模块分类） ✅<br>4. `docs/tools/AGENTS.md` 包含 5 个工具文件说明 ⏳ 可选<br>5. `docs/lib/AGENTS.md` 移除 `vector-store.js`、`service-validator.js` 引用 ⏳ 可选<br>6. `docs/ARCHITECTURE.md` 包含后端优先架构图 ⏳ 可选 |
+| **验证方式** | 1. `ls *.md` 根目录保留 4 类文档（产品 + 开发+Backlog）<br>2. `ls docs/` 包含 README.md（开发导航页）<br>3. `grep "vector-store.js" docs/lib/AGENTS.md` 无结果（如创建）                                                                                                                                                                                                                                                                      |
+| **状态**     | ✅ 已完成（部分）— AGENTS.md 保留在根目录（用户偏好）                                                                                                                                                                                                                                                                                                                                                                                         |
 
 ---
 
@@ -376,12 +376,15 @@ BL-11 (测试语法修复) ────────────┘    │
 - ✅ `code-analyzer.js` — 2 个 typedef + 类和方法注释
 - ✅ 语法检查全部通过
 - ✅ 无编译步骤，保持纯 JavaScript
+- ✅ AGENTS.md 保留在根目录（用户偏好）
 
 **提交内容**:
 
 - `lib/wrapper-client.js` — HealthStatus, SearchParams, SearchResult, MemoryEntry
 - `lib/memory-core.js` — WriteMemoryParams, WriteMemoryResult
 - `lib/code-analyzer.js` — AnalysisResult, AnalyzerConfig, CodeAnalyzer class
+- `BACKLOG.md` — 更新 BL-11.1 状态
+- `AGENTS.md` — 恢复到根目录（用户偏好）
 
 ---
 
