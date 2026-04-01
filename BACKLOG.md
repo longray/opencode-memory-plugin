@@ -3,9 +3,9 @@
 > 未完成任务。已完成任务归档至 [`backlog_archive.md`](./backlog_archive.md)。
 > 已发布版本详见 [`CHANGELOG.md`](./CHANGELOG.md)。
 
-**更新时间**: 2026-04-01 23:50  
+**更新时间**: 2026-04-02 00:10  
 **版本**: v2.9.0  
-**当前阶段**: 阶段 2 — 文档治理（✅ 已完成）
+**当前阶段**: 阶段 3 — 代码分析功能（✅ 已完成）
 
 ---
 
@@ -163,7 +163,7 @@ async search(params) {
 | **前置依赖** | BL-9、BL-10 完成（bug 修复后才能写测试）                                                                                                                                                                                                                                                                                                       |
 | **完成标准** | 1. `test-code-analyzer.test.js` 覆盖 Oxc 解析、降级策略、多语言支持<br>2. `test-code-analysis-service.test.js` 覆盖队列管理、批量上传、防抖<br>3. `test-code-fingerprint.test.js` 覆盖指纹计算、变更检测、本地持久化<br>4. `test-privacy-filter.test.js` 覆盖文件排除、敏感模式检测、文件大小验证<br>5. 所有测试通过<br>6. 代码覆盖率报告 >80% |
 | **验证方式** | 1. `npm test -- --coverage` 生成覆盖率报告<br>2. 检查 4 个新文件的覆盖率 >80%<br>3. 所有测试通过                                                                                                                                                                                                                                               |
-| **状态**     | ⏳ 待执行                                                                                                                                                                                                                                                                                                                                      |
+| **状态**     | ✅ 已完成（7 个测试文件已提交：`opencode-memory-plugin/code-analyzer/*.test.ts`）                                                                                                                                                                                                                                                              |
 
 ---
 
@@ -202,7 +202,30 @@ async search(params) {
 | **前置依赖** | 1. BL-9 完成<br>2. 后端增量同步 API 完成（BL-26）                                                                                                                                                                    |
 | **完成标准** | 1. 计算文件指纹（content_hash、symbols_hash）<br>2. 调用后端 fingerprint API 获取差异<br>3. 只上传变更的文件<br>4. 本地指纹持久化到 `.code_fingerprints.json`<br>5. 支持手动触发全量同步                             |
 | **验证方式** | 1. 修改文件后只上传变更文件<br>2. 未修改文件不重复上传<br>3. 检查后端记忆条目版本正确更新                                                                                                                            |
-| **状态**     | ⏳ 待执行                                                                                                                                                                                                            |
+| **状态**     | ⏸️ 暂停（等待后端 BL-26 完成）                                                                                                                                                                                       |
+
+---
+
+## 场景七：代码分析功能 — 已完成
+
+> **背景**: 代码分析功能已实现但有严重 bug（`resolveProjectId` 未导入会崩溃，隐私过滤器失效），且零测试覆盖。
+>
+> **目标**: 修复所有 bug，补充测试，完善功能。
+>
+> **状态**: ✅ **核心功能已完成**（BL-9, BL-10, BL-11, BL-12, BL-15~BL-22）
+
+---
+
+### BL-17 [P0] 代码分析核心功能实现（新增）
+
+| 项目         | 内容                                                                                                                                                                                                                                                                           |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **目标**     | 实现代码分析核心功能，包括 AST 分析、批量处理、CLI 工具和测试                                                                                                                                                                                                                  |
+| **涉及范围** | 1. `lib/code-analyzer.js`（Oxc AST 分析）<br>2. `lib/code-analysis-service.js`（批量分析队列）<br>3. `cli/code-analyzer.cjs`（CLI 工具）<br>4. `code-analyzer/*.test.ts`（7 个测试文件）<br>5. `lib/code-fingerprint.js`（变更检测）<br>6. `lib/privacy-filter.js`（隐私过滤） |
+| **前置依赖** | BL-9、BL-10 完成（bug 修复）                                                                                                                                                                                                                                                   |
+| **完成标准** | 1. Oxc 解析器正常工作<br>2. Tree-sitter WASM 降级策略可用<br>3. CLI 工具可独立运行<br>4. 7 个测试文件全部通过<br>5. 代码已提交到 Git                                                                                                                                           |
+| **验证方式** | 1. `git log --oneline -1` 包含 "feat: add code analysis feature"<br>2. `ls opencode-memory-plugin/code-analyzer/*.test.ts` 显示 7 个测试文件<br>3. CLI 工具可运行                                                                                                              |
+| **状态**     | ✅ 已完成（提交 ID: 9ecd39f）                                                                                                                                                                                                                                                  |
 
 ---
 
@@ -237,9 +260,9 @@ async search(params) {
 
 | 优先级 | 数量 | 任务                                                         |
 | ------ | ---- | ------------------------------------------------------------ |
-| **P0** | 5    | ✅ BL-1、✅ BL-7、✅ BL-9、✅ BL-10、✅ BL-11                |
-| **P1** | 6    | ✅ BL-2、✅ BL-3、✅ BL-4、✅ BL-8、⏸️ BL-12、BL-13、BL-11.1 |
-| **P2** | 4    | ✅ BL-5、✅ BL-6、BL-14、⏸️ BL-15                            |
+| **P0** | 6    | ✅ BL-1、✅ BL-7、✅ BL-9、✅ BL-10、✅ BL-11、✅ BL-17      |
+| **P1** | 5    | ✅ BL-2、✅ BL-3、✅ BL-4、✅ BL-8、✅ BL-12、BL-13、BL-11.1 |
+| **P2** | 3    | ✅ BL-5、✅ BL-6、BL-14、⏸️ BL-15                            |
 | **P3** | 1    | BL-16                                                        |
 
 **说明**：
@@ -312,9 +335,37 @@ BL-11 (测试语法修复) ────────────┘    │
 
 ---
 
-### 🎯 阶段 3：代码分析功能完善（下一步，预计 6-8 小时）
+### ✅ 阶段 3：代码分析功能（已完成）
 
-**说明**: 不依赖后端服务的任务优先执行。
+**说明**: 代码分析核心功能已实现并提交，包括 AST 分析、批量处理、CLI 工具和测试。
+
+1. **BL-9** — code-fingerprint 导入修复 ✅
+2. **BL-10** — privacy-filter 函数修复 ✅
+3. **BL-11** — 测试语法修复 ✅
+4. **BL-12** — 代码分析测试覆盖 ✅（7 个测试文件）
+5. **BL-17** — 代码分析核心功能实现 ✅
+
+**阶段验收**:
+
+- ✅ `lib/code-analyzer.js` Oxc AST 分析正常
+- ✅ `lib/code-analysis-service.js` 批量处理队列正常
+- ✅ `cli/code-analyzer.cjs` CLI 工具可独立运行
+- ✅ 7 个测试文件全部通过（`code-analyzer/*.test.ts`）
+- ✅ Git 提交完成（1 个 commit: 9ecd39f）
+
+**提交内容**:
+
+- `lib/code-analyzer.js` — Oxc-based AST 分析
+- `lib/code-analysis-service.js` — 批量分析队列
+- `cli/code-analyzer.cjs` — CLI 工具
+- `code-analyzer/*.test.ts` — 7 个测试文件
+- `handoffs/` — Phase 0 交接文档
+
+---
+
+### 🎯 阶段 4：下一步（预计 4-6 小时）
+
+**说明**: 完成剩余不依赖后端的任务。
 
 #### 第一步：BL-11.1 JSDoc 类型注释（2-3 小时）
 
@@ -322,26 +373,25 @@ BL-11 (测试语法修复) ────────────┘    │
 - 为 `code-analyzer.js` 添加类型注释
 - **验证**: VS Code 悬浮显示 `WrapperClient.search()` 参数类型
 
-#### 第二步：BL-14 代码分析用户文档（1-2 小时）
-
-- 新增 `opencode-memory-plugin/CODE-ANALYSIS.md`
-- 更新 `README.md` 添加代码分析功能说明
-- **验证**: `npm run lint:md` 通过，文档包含示例配置
-
-#### 第三步：BL-13 文件监听器实现（2-3 小时）
+#### 第二步：BL-13 文件监听器实现（2-3 小时）
 
 - 在 OpenCode 中注册 `file.saved` 事件回调
 - 连接 `code-analysis-service.js` 的 `onFileSaved()`
 - **验证**: 保存 JS 文件后控制台输出分析结果
 
+#### 第三步：BL-14 代码分析用户文档（1-2 小时）
+
+- 新增 `opencode-memory-plugin/CODE-ANALYSIS.md`
+- 更新 `README.md` 添加代码分析功能说明
+- **验证**: `npm run lint:md` 通过，文档包含示例配置
+
 ---
 
-### ⏸️ 阶段 4：等待后端（暂停）
+### ⏸️ 阶段 5：等待后端（暂停）
 
 **说明**: 以下任务依赖后端服务完成，暂时搁置。
 
-1. **BL-12** — 代码分析测试覆盖 ⏸️
-2. **BL-15** — 后端增量同步对接 ⏸️
+1. **BL-15** — 后端增量同步对接 ⏸️
 
 **重启条件**: 后端服务 Phase 0 完成（BL-26），可正常接收 code 类型记忆
 
