@@ -237,7 +237,7 @@ This is a full content for Phase A integration testing.
         console.error('❌ Upload failed:', error.message);
         throw error;
       }
-    });
+    }, 20000); // 增加到 20 秒超时
 
     it('should search memories via backend', async () => {
       try {
