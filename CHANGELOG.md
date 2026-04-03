@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.9.1] - 2026-04-03
+
+### Bug Fixes (BL-35)
+
+- **修复集成测试 422 错误**: 后端 API 要求 `abstract` 和 `overview` 字段，测试代码未提供导致 422 Unprocessable Entity
+  - 添加 `normalizeMemory()` 辅助函数，自动从 `content` 字段提取前 100 字符作为 `abstract`，前 500 字符作为 `overview`
+  - 更新 6 处 `memories[]` 调用点，统一包裹 `normalizeMemory()` 调用
+  - 所有 12 个集成测试现在通过，无 422 错误
+
+#### 🔧 Modified Files
+
+- `opencode-memory-plugin/tests/phase-a-integration.test.js`: 添加 `normalizeMemory()` 函数，修改 6 处调用点
+- `BACKLOG.md`: 新增 BL-35，更新阶段 6 状态为已完成
+- `AGENTS.md`, `WINDOWS_SETUP.md`: Prettier 格式化修复
+
 ## [2.9.0] - 2026-04-02
 
 ### Code Analysis Feature (BL-13, BL-14)
