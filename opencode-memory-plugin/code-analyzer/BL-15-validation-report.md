@@ -145,6 +145,6 @@ const ast = parseSync('test.js', sourceCode);
 
 ## 参考
 
-- Tree-sitter WASM 文档: https://tree-sitter.github.io/tree-sitter/7-playground.html
-- web-tree-sitter npm: https://www.npmjs.com/package/web-tree-sitter
-- Oxc 解析器: https://github.com/oxc-project/oxc
+- Tree-sitter WASM 文档: <https://tree-sitter.github.io/tree-sitter/7-playground.html>
+- web-tree-sitter npm: <https://www.npmjs.com/package/web-tree-sitter>
+- Oxc 解析器: <https://github.com/oxc-project/oxc>

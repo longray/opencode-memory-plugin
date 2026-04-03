@@ -50,7 +50,51 @@ Or in CMD:
 set MODELSCOPE_API_KEY=your-api-key-here
 ```
 
-### 4. Alternative: Local Embedding Service
+### 4. Configure Code Analysis (Optional)
+
+The plugin can automatically analyze your code files and save them to memory:
+
+**How it works**:
+
+1. You save a code file in OpenCode
+2. After 300ms debounce, the plugin analyzes the file
+3. Functions, classes, and interfaces are extracted
+4. Results are saved to memory automatically
+
+**Supported Languages**:
+
+- JavaScript (.js, .mjs, .cjs)
+- TypeScript (.ts, .mts, .cts, .tsx)
+- Python (.py)
+- Go (.go)
+- Rust (.rs)
+- Java (.java)
+
+**Configuration**:
+Code analysis is enabled by default. To customize or disable it, edit %USERPROFILE%/.opencode/memory/memory-config.json:
+
+`json
+{
+  "code_analysis": {
+    "enabled": true,
+    "exclude_patterns": ["node_modules", ".git", "dist", "build"],
+    "batch_max_size": 10,
+    "batch_delay_ms": 2000,
+    "debounce_ms": 300
+  }
+}
+`
+
+**Performance Tips for Windows**:
+
+- Exclude large directories (
+  ode_modules, dist, uild) to reduce analysis time
+- Adjust atch_max_size based on your system resources (default: 10)
+- Increase debounce_ms if you experience performance issues during rapid file saves
+
+**See [CODE-ANALYSIS.md](./CODE-ANALYSIS.md) for complete documentation**.
+
+### 5. Alternative: Local Embedding Service
 
 If using a local embedding service instead of ModelScope API, ensure it's running on the configured endpoint (default: `http://localhost:18000/embeddings`).
 

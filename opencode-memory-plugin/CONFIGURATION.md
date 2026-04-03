@@ -24,7 +24,7 @@ The plugin works out of the box with sensible defaults. You only need to customi
 }
 ```
 
-**Note**: Version 3.0 is for v2.3+ with timeline structure and dual-mode sync.
+**Note**: Version 3.0 is for v3.0+ with timeline structure and dual-mode sync.
 
 ## Configuration Options
 
@@ -142,7 +142,7 @@ Controls how text is chunked for indexing.
 
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "search": {
     "mode": "bm25"
   },
@@ -156,7 +156,7 @@ Controls how text is chunked for indexing.
 
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "search": {
     "mode": "hybrid",
     "options": {
@@ -177,7 +177,7 @@ Controls how text is chunked for indexing.
 
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "search": {
     "mode": "vector"
   },
@@ -192,7 +192,7 @@ Controls how text is chunked for indexing.
 
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "search": {
     "mode": "vector"
   },
@@ -380,7 +380,7 @@ The plugin will automatically detect Bun and configure itself accordingly:
 
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "search": {
     "mode": "bm25" // Automatically set in Bun
   },
@@ -425,13 +425,13 @@ The plugin will automatically detect Bun and configure itself accordingly:
 
 ## Migration from v1.0
 
-The plugin automatically supports v1.0 configs. To upgrade to v2.0:
+The plugin automatically supports v1.0 configs. To upgrade to v3.0:
 
 ```bash
 # Backup current config
 cp ~/.opencode/memory/memory-config.json ~/.opencode/memory/memory-config.json.backup
 
-# Reinstall plugin to get v2.0 defaults
+# Reinstall plugin to get v3.0 defaults
 npm install @csuwl/opencode-memory-plugin@latest -g
 
 # Customize as needed
@@ -508,7 +508,7 @@ Auto-trigger activates when ALL conditions are met:
 
 ---
 
-## v2.3 Configuration Options
+## v3.0 Configuration Options
 
 ### Backend Configuration (NEW)
 
@@ -681,7 +681,7 @@ Controls local fast search index.
 
 ---
 
-## v2.3 Example Configurations
+## v3.0 Example Configurations
 
 ### Default Configuration (Recommended)
 
@@ -805,13 +805,13 @@ This will:
 
 ## Configuration Migration
 
-### From v2.2 to v2.3
+### From v2.2 to v3.0
 
 v2.2 config:
 
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "search": { "mode": "hybrid" },
   "backend": {
     "url": "http://localhost:17999"
@@ -819,7 +819,7 @@ v2.2 config:
 }
 ```
 
-v2.3 config (add new sections):
+v3.0 config (add new sections):
 
 ```json
 {
@@ -846,7 +846,7 @@ v2.3 config (add new sections):
 
 ---
 
-## Troubleshooting v2.3
+## Troubleshooting v3.0
 
 ### Backend Connection Issues
 
@@ -924,7 +924,7 @@ Plugin will use HTTP polling instead.
 
 ---
 
-## Environment Variables (v2.3)
+## Environment Variables (v3.0)
 
 ### Backend Configuration
 

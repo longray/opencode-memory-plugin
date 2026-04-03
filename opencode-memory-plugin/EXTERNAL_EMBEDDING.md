@@ -239,3 +239,68 @@ To use a different external service, update the `endpoint` in your config:
 ```
 
 The plugin will use this endpoint while maintaining the fallback to BM25.
+
+---
+
+## Advanced: Code Analysis Integration
+
+The plugin can automatically analyze code files and store them in memory using the embedding service:
+
+### How It Works
+
+1. **File Save**: You save a code file in OpenCode
+2. **Debounce**: After 300ms, the plugin triggers analysis
+3. **AST Analysis**: Functions, classes, and interfaces are extracted
+4. **Embedding**: Code snippets are sent to embedding service
+5. **Memory Storage**: Results are saved as memory entries
+
+### Supported Languages
+
+- **JavaScript** (`.js`, `.mjs`, `.cjs`)
+- **TypeScript** (`.ts`, `.mts`, `.cts`, `.tsx`)
+- **Python** (`.py`)
+- **Go** (`.go`)
+- **Rust** (`.rs`)
+- **Java** (`.java`)
+
+### Configuration
+
+Code analysis is enabled by default. To customize:
+
+```json
+{
+  "code_analysis": {
+    "enabled": true,
+    "exclude_patterns": ["node_modules", ".git", "dist", "build"],
+    "batch_max_size": 10,
+    "batch_delay_ms": 2000,
+    "debounce_ms": 300
+  },
+  "embedding": {
+    "enabled": true,
+    "provider": "external",
+    "endpoint": "https://api-inference.modelscope.cn/v1/embeddings",
+    "model": "Qwen/Qwen3-Embedding-0.6B",
+    "fallbackMode": "bm25"
+  }
+}
+```
+
+### Benefits
+
+- **Automatic Context**: Code structure is automatically saved
+- **Semantic Search**: Find code by functionality, not just keywords
+- **Project Understanding**: Build a searchable knowledge base of your codebase
+- **Cross-Reference**: Link related code snippets across files
+
+### Example Workflow
+
+```bash
+# Save a TypeScript file
+# → Automatically analyzed
+# → Functions extracted: UserService, authenticate(), validateToken()
+# → Saved to memory with embeddings
+# → Later searchable via: memory_search query="user authentication"
+```
+
+**See [CODE-ANALYSIS.md](./CODE-ANALYSIS.md) for complete documentation.**

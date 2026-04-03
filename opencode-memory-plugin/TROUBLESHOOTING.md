@@ -8,8 +8,9 @@ This guide provides instructions for deploying the OpenCode Memory Plugin with a
 
 1. **Node.js** (version 16 or higher)
 2. **OpenCode** installed and configured
-3. An embedding service running at `http://localhost:18000/embeddings`
-4. Network access to the embedding service endpoint
+3. **Backend service** running at `http://localhost:17999` (required for semantic search)
+4. **OR** use BM25 keyword-only mode (no backend required)
+5. Network access to the backend service endpoint
 
 ### Deployment Steps
 
@@ -23,46 +24,97 @@ npm install -g @csuwl/opencode-memory-plugin
 npm install @csuwl/opencode-memory-plugin
 ```
 
-#### 2. Configure the Embedding Service
+#### 2. Configure the Backend Service
 
-By default, the plugin expects an external embedding service at `http://localhost:18000/embeddings`. You can customize this in the configuration file:
+By default, the plugin uses a backend-first architecture with the backend service at `http://localhost:17999`. You can customize this in the configuration file:
 
 ```json
 {
+  "backend": {
+    "enabled": true,
+    "endpoint": "http://localhost:17999"
+  },
   "embedding": {
     "provider": "external",
-    "endpoint": "http://your-custom-endpoint/embeddings",
-    "model": "your-model-name"
+    "endpoint": "http://localhost:18000/embeddings",
+    "model": "your-model-name",
+    "fallbackMode": "bm25"
   }
 }
 ```
+
+**Note**: The backend service handles all vector search operations. The embedding service is optional (BM25 keyword search works without it).
 
 #### 3. Verify Installation
 
 After installation, you can verify that everything is working correctly:
 
-1. Start your embedding service on the configured endpoint
-2. Launch OpenCode
-3. Test the vector search functionality:
+1. **Start the backend service** (if using semantic search):
 
-```
-memory_search query="hello world"
-```
+   ```bash
+   # Backend service should be running at http://localhost:17999
+   curl http://localhost:17999/health
+   ```
 
-If successful, you should see search results returned by the semantic search engine.
+2. **Launch OpenCode**
+
+3. **Test the search functionality**:
+
+   ```
+   memory_search query="hello world"
+   ```
+
+**Expected Results**:
+
+- ✅ **With backend**: Semantic search returns results
+- ✅ **Without backend**: BM25 keyword search returns results
+- ✅ **With embedding service**: Better semantic understanding
+- ✅ **Without embedding service**: Falls back to BM25
 
 ## Common Issues and Solutions
+
+### Issue: "Backend service not accessible"
+
+**Symptoms:**
+
+- Semantic search not working
+- Error messages indicating backend unavailability
+- Fallback to BM25 keyword search
+
+**Causes and Solutions:**
+
+1. **Backend Service Not Running**: Verify the backend service is running at `http://localhost:17999`.
+
+   ```bash
+   curl http://localhost:17999/health
+   ```
+
+   If not running, start the backend service first.
+
+2. **Wrong Endpoint**: Check your `~/.opencode/memory/memory-config.json` file and ensure the backend endpoint is correct.
+
+3. **Firewall/Security Software**: On Windows, ensure Windows Defender Firewall is not blocking Node.js from making outbound connections.
+
+4. **Use BM25 Mode**: If backend is unavailable, you can use BM25 keyword-only mode:
+
+   ```json
+   {
+     "search": {
+       "mode": "bm25"
+     }
+   }
+   ```
 
 ### Issue: "External embedding service not accessible"
 
 **Symptoms:**
 
-- Vector search is slow or not returning results
-- Error messages indicating service unavailability
+- Semantic search falls back to BM25
+- Warning messages about embedding service
 
 **Causes and Solutions:**
 
-1. **Service Not Running**: Verify your embedding service is running and accessible at the configured endpoint.
+1. **Embedding Service Not Running**: This is optional. The plugin will fall back to BM25 keyword search.
 
    ```bash
    curl -X POST http://localhost:18000/embeddings \
@@ -70,9 +122,9 @@ If successful, you should see search results returned by the semantic search eng
      -d '{"input": "test"}'
    ```
 
-2. **Wrong Endpoint**: Check your `~/.opencode/memory/memory-config.json` file and ensure the endpoint matches your service.
+2. **Wrong Endpoint**: Check your configuration file and ensure the endpoint matches your service.
 
-3. **Firewall/Security Software**: On Windows, ensure Windows Defender Firewall is not blocking Node.js from making outbound connections.
+3. **Use BM25 Fallback**: The plugin automatically falls back to BM25 if embedding service is unavailable (configured via `fallbackMode: "bm25"`).
 
 ### Issue: Dimension Mismatch Error
 

@@ -201,3 +201,19 @@
 | `SyncFullResponse` 新增 `skipped` 列表              | `skipped: [{local_id, existing_id, reason, similarity}]`，`errors` 仅保留真正异常 |
 | `SyncFullResponse` 新增 `updated` 字段              | 返回被更新的条目数                                                                |
 | conflict resolution 大小写兼容                      | `USE_LOCAL` / `use_local` 均可                                                    |
+
+---
+
+## 代码分析 API（新增）
+
+### uploadCodeAnalysis
+
+| 项目        | 值                                                          |
+| ----------- | ----------------------------------------------------------- |
+| 工具文件    | lib/code-analysis-service.js                                |
+| Client 方法 | client.uploadCodeAnalysis() / client.uploadMemories()       |
+| HTTP        | POST /api/v1/memories                                       |
+| 参数        | {type: 'code', content, abstract, overview, tags, metadata} |
+| 返回        | {success, id, source_id}                                    |
+| 说明        | 代码分析结果通过标准 memory 接口上传，type 标记为 'code'    |
+| 状态        | ✅ 正常                                                     |

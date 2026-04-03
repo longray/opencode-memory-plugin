@@ -18,6 +18,21 @@ const TIMELINE_DIR = path.join(MEMORY_DIR, 'timeline');
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:17999';
 const EMBEDDING_URL = process.env.EMBEDDING_URL || 'http://localhost:18000';
 
+/**
+ * Normalize memory object to ensure required fields are present
+ * Backend API requires abstract (max 100 chars) and overview (max 500 chars)
+ * @param {Object} memory - Raw memory object
+ * @returns {Object} Normalized memory with abstract/overview
+ */
+function normalizeMemory(memory) {
+  const content = memory.content || '';
+  return {
+    ...memory,
+    abstract: memory.abstract ?? content.slice(0, 100),
+    overview: memory.overview ?? content.slice(0, 500),
+  };
+}
+
 describe('Phase A - Integration Tests (A-INT)', () => {
   beforeAll(async () => {
     // Setup test environment
@@ -193,7 +208,7 @@ This is a full content for Phase A integration testing.
         const response = await fetch(`${BACKEND_URL}/api/v1/memories`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memories: [testMemory] }),
+          body: JSON.stringify({ memories: [normalizeMemory(testMemory)] }),
         });
 
         expect(response.status).toBe(200);
@@ -232,12 +247,12 @@ This is a full content for Phase A integration testing.
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             memories: [
-              {
+              normalizeMemory({
                 content: uniqueContent,
                 type: 'test',
                 tags: ['search-test'],
                 tenant_id: 'default',
-              },
+              }),
             ],
           }),
         });
@@ -358,13 +373,13 @@ ${entryData.content}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           memories: [
-            {
+            normalizeMemory({
               content: entryData.content,
               type: entryData.type,
               tags: entryData.tags,
               project_id: entryData.project_id,
               tenant_id: entryData.tenant_id,
-            },
+            }),
           ],
         }),
       });
@@ -475,12 +490,12 @@ ${entryData.content}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           memories: [
-            {
+            normalizeMemory({
               content: duplicateContent,
               type: 'test',
               tags: ['duplicate-test'],
               tenant_id: 'default',
-            },
+            }),
           ],
         }),
       });
@@ -505,11 +520,11 @@ ${entryData.content}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           memories: [
-            {
+            normalizeMemory({
               content: 'Performance test',
               type: 'test',
               tenant_id: 'default',
-            },
+            }),
           ],
         }),
       });

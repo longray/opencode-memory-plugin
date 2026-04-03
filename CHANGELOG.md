@@ -1,5 +1,59 @@
 # Changelog
 
+## [2.9.0] - 2026-04-02
+
+### Code Analysis Feature (BL-13, BL-14)
+
+- **File Watcher**: Automatic code analysis on file save (`plugin.js` event listener)
+- **300ms Debounce**: Smart batching to reduce unnecessary analysis
+- **Privacy Filter**: Automatically skips sensitive files (.env, node_modules, .git)
+- **Batch Upload**: Up to 10 files or 2-second delay before upload
+- **User Documentation**: Complete `CODE-ANALYSIS.md` guide (6.9KB)
+- **Configuration**: Added `code_analysis` configuration section to `CONFIGURATION.md`
+- **Supported Languages**: JavaScript, TypeScript, Python, Go, Rust, Java
+
+#### 🔧 Modified Files
+
+- `plugin.js`: Added file watcher event listener
+- `CODE-ANALYSIS.md`: New user documentation
+- `README.npm.md`: Added Code Analysis feature
+- `CONFIGURATION.md`: Added code_analysis configuration section
+
+### JSDoc Type Annotations (BL-11.1)
+
+- **WrapperClient**: HealthStatus, SearchParams, SearchResult, MemoryEntry types
+- **MemoryCore**: WriteMemoryParams, WriteMemoryResult types
+- **CodeAnalyzer**: AnalysisResult, AnalyzerConfig types
+- **IDE IntelliSense**: VS Code now shows type hints without TypeScript compilation
+
+#### 🔧 Modified Files
+
+- `lib/wrapper-client.js`: Added 4 typedefs + 3 method JSDoc comments
+- `lib/memory-core.js`: Added 2 typedefs + 1 function JSDoc comment
+- `lib/code-analyzer.js`: Added 2 typedefs + class/method JSDoc comments
+
+### Documentation Governance (BL-2 ~ BL-6)
+
+- **Archive Outdated Docs**: Moved old design docs to `docs/archive/`
+- **Version Sync**: Updated all product docs to v2.9.0
+- **Memory Templates**: Updated 9 OpenClaw templates (SOUL, AGENTS, etc.)
+- **Dev Docs Reorganization**: Moved AGENTS.md to `docs/`, created `docs/README.md`
+- **Dependency Cleanup**: Removed better-sqlite3, sqlite-vec from package.json
+
+### Bug Fixes (BL-1, BL-7, BL-9, BL-10, BL-11)
+
+- **README.md**: Fixed tool count 16→15, removed dead links, fixed orphaned parenthesis
+- **Observer Mode**: Changed `mode: subagent` → `mode: primary` for Human-in-the-loop
+- **Code Fingerprint**: Fixed missing `resolveProjectId` import
+- **Privacy Filter**: Fixed `validateFileSize()` hardcoded size=0 bug
+- **Test Syntax**: Fixed phase-a-integration.test.js syntax error
+
+### Removed Features
+
+- **BL-16 memory_list**: Decided NOT to implement (feature overlap with existing tools)
+
+---
+
 ## [2.9.0] - 2026-03-29
 
 ### Markdownlint 集成与文档质量提升

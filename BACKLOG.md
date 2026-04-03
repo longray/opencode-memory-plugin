@@ -1,11 +1,18 @@
 # Backlog
 
+> ⚠️ **创建新任务前必读**：
+>
+> 1. 检查当前最大编号：`grep "### BL-" BACKLOG.md | tail -1` → **当前最大：BL-35**
+> 2. 下一个可用编号：**BL-36**
+> 3. 规则：**永不复用、永不跳号**（详见 [`AGENTS.md#backlog-编号规则`](./AGENTS.md)）
+> 4. 如编号冲突，使用下一个可用编号（BL-36, BL-37, BL-38...)
+>
 > 未完成任务。已完成任务归档至 [`backlog_archive.md`](./backlog_archive.md)。
 > 已发布版本详见 [`CHANGELOG.md`](./CHANGELOG.md)。
 
-**更新时间**: 2026-04-02 00:35  
+**更新时间**: 2026-04-02 02:00  
 **版本**: v2.9.0  
-**当前阶段**: 阶段 4 — JSDoc 类型注释（✅ 已完成）
+**当前阶段**: 阶段 5 — 文档质量改进（已完成）+ 集成测试修复（进行中）
 
 ---
 
@@ -176,7 +183,7 @@ async search(params) {
 | **前置依赖** | BL-9、BL-10 完成（bug 修复后才能连接监听器）                                                                                                                                                          |
 | **完成标准** | 1. 在 OpenCode 中注册 `file.saved` 事件回调<br>2. 文件保存后 300ms 防抖触发分析<br>3. 支持配置排除目录（node_modules、.git 等）<br>4. 分析结果输出到控制台（调试用）<br>5. 支持配置开关（默认开启）   |
 | **验证方式** | 1. 在 OpenCode 中编辑一个 JS 文件并保存<br>2. 观察控制台输出分析结果<br>3. 快速连续保存 3 次，观察防抖生效（只触发 1 次）<br>4. 保存 `.env` 文件，观察被隐私过滤器跳过                                |
-| **状态**     | ⏳ 待执行                                                                                                                                                                                             |
+| **状态**     | ✅ 已完成                                                                                                                                                                                             |
 
 ---
 
@@ -189,7 +196,7 @@ async search(params) {
 | **前置依赖** | BL-12、BL-13 完成（功能完善后才能写文档）                                                                                                                                                         |
 | **完成标准** | 1. `CODE-ANALYSIS.md` 包含功能介绍、支持语言、配置项、使用场景<br>2. `README.md` 功能列表中添加代码分析<br>3. `CONFIGURATION.md` 添加 `code_analysis` 配置章节<br>4. 文档中包含示例配置和输出示例 |
 | **验证方式** | 1. `npm run lint:md` 通过<br>2. 新用户能根据文档配置代码分析功能<br>3. 文档中无技术实现细节（属于产品文档）                                                                                       |
-| **状态**     | ⏳ 待执行                                                                                                                                                                                         |
+| **状态**     | ✅ 已完成                                                                                                                                                                                         |
 
 ---
 
@@ -258,182 +265,143 @@ async search(params) {
 
 ---
 
-## Backlog 编号规则
+## 场景八：文档质量改进（基于审核报告）
 
-| 规则         | 说明                                                         |
-| ------------ | ------------------------------------------------------------ |
-| **格式**     | `BL-{N}` 主任务 / `BL-{N}.{SS}` 步骤（SS 两位数字，01 补零） |
-| **最多两层** | 主任务 + 步骤，不嵌套                                        |
-| **编号递增** | 从 BL-1 起，永不复用、永不跳号                               |
-| **归档规则** | `[x]` 超过 5 项时剪切到 `backlog_archive.md`                 |
-| **优先级**   | P0（紧急）、P1（高）、P2（中）、P3（低）                     |
+> **背景**: 代码审核和文档审核专家完成全面评估，发现 11 个文档问题需要修复。
+>
+> **目标**: 修复所有 P0/P1 文档问题，提升文档质量评分从 88→95。
+>
+> **审核评分**: 代码质量 72/100，文档质量 88/100，综合 80/100
 
 ---
 
-## 任务优先级分布
+### BL-26 [P0] TROUBLESHOOTING.md 架构更新
 
-| 优先级 | 数量 | 任务                                                               |
-| ------ | ---- | ------------------------------------------------------------------ |
-| **P0** | 6    | ✅ BL-1、✅ BL-7、✅ BL-9、✅ BL-10、✅ BL-11、✅ BL-17            |
-| **P1** | 5    | ✅ BL-2、✅ BL-3、✅ BL-4、✅ BL-8、✅ BL-12、✅ BL-11.1、✅ BL-13 |
-| **P2** | 2    | ✅ BL-5、✅ BL-6、✅ BL-14、⏸️ BL-15                               |
-| **P3** | 0    | （BL-16 已移除）                                                   |
-
-**说明**：
-
-- ✅ 已完成
-- ⏸️ 暂停（依赖后端）
+| 项目         | 内容                                                                                                                                                                                      |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 更新 TROUBLESHOOTING.md 的架构描述，从"直接连接 embedding 服务"改为"后端优先架构"                                                                                                         |
+| **涉及范围** | `opencode-memory-plugin/TROUBLESHOOTING.md`（第 12 行先决条件部分）                                                                                                                       |
+| **前置依赖** | 无                                                                                                                                                                                        |
+| **完成标准** | 1. 先决条件更新为"Backend service running at localhost:17999"<br>2. 添加 BM25 fallback 说明<br>3. 移除"embedding service at localhost:18000"描述<br>4. 添加后端连接问题排查章节           |
+| **验证方式** | 1. `grep "localhost:18000" TROUBLESHOOTING.md` 无结果<br>2. `grep "localhost:17999" TROUBLESHOOTING.md` 有结果<br>3. `grep "BM25" TROUBLESHOOTING.md` 有结果<br>4. `npm run lint:md` 通过 |
+| **状态**     | ✅ 已完成（2026-04-02）                                                                                                                                                                   |
 
 ---
 
-## 依赖关系图
+### BL-27 [P0] README.npm.md 功能补全
 
-```
-BL-1 (README 修复)
-  │
-  └─> BL-2 (文档归档)
-       │
-       ├─> BL-3 (产品文档版本同步)
-       ├─> BL-4 (memory/模板更新)
-       └─> BL-5 (开发文档重组)
-            │
-            └─> BL-6 (package.json 清理)
-
-BL-7 (Observer 模式修复)
-  │
-  └─> BL-8 (端到端验证)
-
-BL-9 (code-fingerprint 导入修复) ─┐
-BL-10 (privacy-filter 函数修复) ──┼─> BL-12 (测试覆盖)
-BL-11 (测试语法修复) ────────────┘    │
-                                      ├─> BL-13 (文件监听器)
-                                      │    │
-                                      │    └─> BL-14 (用户文档)
-                                      │
-                                      └─> BL-15 (后端增量同步)
-                                           (依赖后端 BL-26)
-```
+| 项目         | 内容                                                                                                                                                                                               |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 在 README.npm.md 中添加 v2.9 新功能（Code Analysis）和缺失的工具（memory_pin）                                                                                                                     |
+| **涉及范围** | `opencode-memory-plugin/README.npm.md`（Features 列表和工具表）                                                                                                                                    |
+| **前置依赖** | 无                                                                                                                                                                                                 |
+| **完成标准** | 1. Features 列表添加"Code Analysis - Automatic AST analysis on file save"<br>2. 核心工具表添加 `memory_pin` 工具<br>3. 支持语言列表包含 6 种语言（JavaScript, TypeScript, Python, Go, Rust, Java） |
+| **验证方式** | 1. `grep "Code Analysis" README.npm.md` 有结果<br>2. `grep "memory_pin" README.npm.md` 有结果<br>3. `npm run lint:md` 通过                                                                         |
+| **状态**     | ✅ 已完成（2026-04-02）                                                                                                                                                                            |
 
 ---
 
-## 推荐执行顺序
+### BL-28 [P0] CHANGELOG.md 代码分析条目完善
 
-### ✅ 阶段 1：紧急修复（已完成）
-
-1. **BL-1** — README 修复 ✅
-2. **BL-7** — Observer 模式修复 ✅
-3. **BL-9** — code-fingerprint 导入修复 ✅
-4. **BL-10** — privacy-filter 函数修复 ✅
-5. **BL-11** — 测试语法修复 ✅
-
-**验收**: 所有 P0 任务完成，语法检查全部通过
-
----
-
-### ✅ 阶段 2：文档治理（已完成）
-
-**说明**: 后端服务未完成前，优先完成文档治理。所有 6 个任务已完成并提交。
-
-1. **BL-2** — 过时文档归档 ✅
-2. **BL-3** — 产品文档版本同步 ✅
-3. **BL-4** — memory/模板更新 ✅
-4. **BL-5** — 开发文档重组 ✅
-5. **BL-6** — package.json 依赖清理 ✅
-6. **BL-8** — Observer 端到端验证 ✅（配置修复完成，等待实际使用验证）
-
-**阶段验收**:
-
-- ✅ `npm run lint:md` 通过
-- ✅ 文档结构清晰（产品/开发/Backlog 分离）
-- ✅ Git 提交完成（2 个 commit）
+| 项目         | 内容                                                                                                                                                                               |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 在 CHANGELOG.md v2.9.0 中添加清晰的 Code Analysis 功能条目，与 README 和 BACKLOG 保持一致                                                                                          |
+| **涉及范围** | `CHANGELOG.md`（v2.9.0 章节）                                                                                                                                                      |
+| **前置依赖** | 无                                                                                                                                                                                 |
+| **完成标准** | 1. 新增"✨ Code Analysis Feature"章节<br>2. 列出所有子功能（File Watcher, AST Analysis, Privacy Filter, Batch Upload）<br>3. 列出支持语言<br>4. 列出修改文件清单                   |
+| **验证方式** | 1. `grep "Code Analysis Feature" CHANGELOG.md` 有结果<br>2. `grep "File Watcher" CHANGELOG.md` 有结果<br>3. `grep "AST Analysis" CHANGELOG.md` 有结果<br>4. `npm run lint:md` 通过 |
+| **状态**     | ✅ 已完成                                                                                                                                                                          |
 
 ---
 
-### ✅ 阶段 3：代码分析功能（已完成）
+### BL-29 [P1] CONFIGURATION.md 版本号统一
 
-**说明**: 代码分析核心功能已实现并提交，包括 AST 分析、批量处理、CLI 工具和测试。
-
-1. **BL-9** — code-fingerprint 导入修复 ✅
-2. **BL-10** — privacy-filter 函数修复 ✅
-3. **BL-11** — 测试语法修复 ✅
-4. **BL-12** — 代码分析测试覆盖 ✅（7 个测试文件）
-5. **BL-17** — 代码分析核心功能实现 ✅
-
-**阶段验收**:
-
-- ✅ `lib/code-analyzer.js` Oxc AST 分析正常
-- ✅ `lib/code-analysis-service.js` 批量处理队列正常
-- ✅ `cli/code-analyzer.cjs` CLI 工具可独立运行
-- ✅ 7 个测试文件全部通过（`code-analyzer/*.test.ts`）
-- ✅ Git 提交完成（1 个 commit: 9ecd39f）
-
-**提交内容**:
-
-- `lib/code-analyzer.js` — Oxc-based AST 分析
-- `lib/code-analysis-service.js` — 批量分析队列
-- `cli/code-analyzer.cjs` — CLI 工具
-- `code-analyzer/*.test.ts` — 7 个测试文件
-- `handoffs/` — Phase 0 交接文档
+| 项目         | 内容                                                                                                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 统一 CONFIGURATION.md 中所有版本号为 v3.0，移除旧的 v2.0/v2.3 引用                                                                                                                          |
+| **涉及范围** | `opencode-memory-plugin/CONFIGURATION.md`（全文）                                                                                                                                           |
+| **前置依赖** | 无                                                                                                                                                                                          |
+| **完成标准** | 1. 所有 `"version": "2.0"` → `"version": "3.0"`<br>2. 所有 `v2.0` → `v3.0`<br>3. 迁移指南更新为"v1.0 → v2.9.0 → v3.0"<br>4. 无 v2.0/v2.3 残留引用                                           |
+| **验证方式** | 1. `grep '"version": "2.0"' CONFIGURATION.md` 无结果<br>2. `grep '"version": "3.0"' CONFIGURATION.md` 有结果<br>3. `grep "v2.0\|v2.3" CONFIGURATION.md` 无结果<br>4. `npm run lint:md` 通过 |
+| **状态**     | ✅ 已完成                                                                                                                                                                                   |
 
 ---
 
-### ✅ 阶段 4：JSDoc 类型注释（已完成）
+### BL-30 [P1] QUICK_START.md 代码分析入门
 
-**说明**: 为核心库模块添加 JSDoc 类型注释，提供 IDE 智能提示。
-
-1. **BL-11.1** — JSDoc 类型注释 ✅
-
-**阶段验收**:
-
-- ✅ `wrapper-client.js` — 4 个 typedef + 3 个方法注释
-- ✅ `memory-core.js` — 2 个 typedef + 1 个函数注释
-- ✅ `code-analyzer.js` — 2 个 typedef + 类和方法注释
-- ✅ 语法检查全部通过
-- ✅ 无编译步骤，保持纯 JavaScript
-- ✅ AGENTS.md 保留在根目录（用户偏好）
-
-**提交内容**:
-
-- `lib/wrapper-client.js` — HealthStatus, SearchParams, SearchResult, MemoryEntry
-- `lib/memory-core.js` — WriteMemoryParams, WriteMemoryResult
-- `lib/code-analyzer.js` — AnalysisResult, AnalyzerConfig, CodeAnalyzer class
-- `BACKLOG.md` — 更新 BL-11.1 状态
-- `AGENTS.md` — 恢复到根目录（用户偏好）
+| 项目         | 内容                                                                                                                                                                           |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **目标**     | 在 QUICK_START.md 中添加 Code Analysis 功能的快速入门说明                                                                                                                      |
+| **涉及范围** | `opencode-memory-plugin/QUICK_START.md`（新增 Step 6）                                                                                                                         |
+| **前置依赖** | 无                                                                                                                                                                             |
+| **完成标准** | 1. 新增"Step 6: Explore Code Analysis (Optional)"章节<br>2. 说明自动分析工作原理<br>3. 列出支持的 6 种语言<br>4. 链接到 CODE-ANALYSIS.md                                       |
+| **验证方式** | 1. `grep "Step 6" QUICK_START.md` 有结果<br>2. `grep "Code Analysis" QUICK_START.md` 有结果<br>3. `grep "CODE-ANALYSIS.md" QUICK_START.md` 有结果<br>4. `npm run lint:md` 通过 |
+| **状态**     | ✅ 已完成                                                                                                                                                                      |
 
 ---
 
-### ✅ 阶段 5：文件监听器和用户文档（已完成）
+### BL-31 [P1] EXTERNAL_EMBEDDING.md 代码分析引用
 
-**说明**: 完成代码分析功能的最后环节 — 自动触发和用户文档。
-
-1. **BL-13** — 文件监听器实现 ✅
-2. **BL-14** — 代码分析用户文档 ✅
-
-**阶段验收**:
-
-- ✅ plugin.js 注册 file.saved 事件监听器
-- ✅ 连接 onFileSaved() 和分析队列
-- ✅ 300ms 防抖、批量上传、隐私过滤正常工作
-- ✅ CODE-ANALYSIS.md 用户文档创建（6.9KB）
-- ✅ README.npm.md 添加 Code Analysis 特性
-- ✅ CONFIGURATION.md 添加 code_analysis 配置章节
-
-**提交内容**:
-
-- `plugin.js` — 添加文件保存事件监听器
-- `CODE-ANALYSIS.md` — 代码分析用户文档
-- `README.npm.md` — 添加 Code Analysis 特性
-- `CONFIGURATION.md` — 添加 code_analysis 配置章节
+| 项目         | 内容                                                                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **目标**     | 在 EXTERNAL_EMBEDDING.md 中添加 Code Analysis 功能的引用和说明                                                                                               |
+| **涉及范围** | `opencode-memory-plugin/EXTERNAL_EMBEDDING.md`（文档末尾新增章节）                                                                                           |
+| **前置依赖** | 无                                                                                                                                                           |
+| **完成标准** | 1. 新增"Advanced: Code Analysis Integration"章节<br>2. 说明工作原理（文件保存→分析→保存）<br>3. 列出配置示例<br>4. 链接到 CODE-ANALYSIS.md                   |
+| **验证方式** | 1. `grep "Code Analysis Integration" EXTERNAL_EMBEDDING.md` 有结果<br>2. `grep "CODE-ANALYSIS.md" EXTERNAL_EMBEDDING.md` 有结果<br>3. `npm run lint:md` 通过 |
+| **状态**     | ✅ 已完成                                                                                                                                                    |
 
 ---
 
-### ⏸️ 阶段 6：等待后端（暂停）
+### BL-32 [P2] docs/README.md 模块映射更新
 
-**说明**: 以下任务依赖后端服务完成，暂时搁置。
+| 项目         | 内容                                                                                                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **目标**     | 在 docs/README.md 的 lib/核心库模块映射表中添加代码分析相关模块                                                                                                                                        |
+| **涉及范围** | `docs/README.md`（lib/核心库表格）                                                                                                                                                                     |
+| **前置依赖** | 无                                                                                                                                                                                                     |
+| **完成标准** | 1. 添加 `code-analyzer.js` → CodeAnalyzer<br>2. 添加 `code-analysis-service.js` → AnalysisQueue<br>3. 添加 `code-fingerprint.js` → CodeFingerprint<br>4. 添加 `privacy-filter.js` → 敏感内容过滤       |
+| **验证方式** | 1. `grep "code-analyzer.js" docs/README.md` 有结果<br>2. `grep "code-analysis-service.js" docs/README.md` 有结果<br>3. `grep "code-fingerprint.js" docs/README.md` 有结果<br>4. `npm run lint:md` 通过 |
+| **状态**     | ✅ 已完成                                                                                                                                                                                              |
 
-1. **BL-15** — 后端增量同步对接 ⏸️
+---
 
-**重启条件**: 后端服务 Phase 0 完成（BL-26），可正常接收 code 类型记忆
+### BL-33 [P2] docs/API-CONTRACT.md 代码分析 API
+
+| 项目         | 内容                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 在 docs/API-CONTRACT.md 中添加代码分析相关的 API 映射                                                                                             |
+| **涉及范围** | `docs/API-CONTRACT.md`（新增 API 条目）                                                                                                           |
+| **前置依赖** | 无                                                                                                                                                |
+| **完成标准** | 1. 添加 `uploadCodeAnalysis()` 方法映射<br>2. 说明 HTTP 端点（POST /api/v1/memories/code-analysis）<br>3. 列出参数和返回值<br>4. 标注状态为✅正常 |
+| **验证方式** | 1. `grep "uploadCodeAnalysis" docs/API-CONTRACT.md` 有结果<br>2. `grep "code-analysis" docs/API-CONTRACT.md` 有结果<br>3. `npm run lint:md` 通过  |
+| **状态**     | ✅ 已完成                                                                                                                                         |
+
+---
+
+### BL-34 [P2] WINDOWS_SETUP.md 内容扩展
+
+| 项目         | 内容                                                                                                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **目标**     | 扩展 WINDOWS_SETUP.md，添加 Code Analysis 配置说明和性能优化建议                                                                                                                     |
+| **涉及范围** | `opencode-memory-plugin/WINDOWS_SETUP.md`（新增 Step 4 和性能优化章节）                                                                                                              |
+| **前置依赖** | 无                                                                                                                                                                                   |
+| **完成标准** | 1. 新增"Step 4: Configure Code Analysis (Optional)"<br>2. 列出配置示例（JSON 格式）<br>3. 添加性能优化建议<br>4. 链接到 CODE-ANALYSIS.md                                             |
+| **验证方式** | 1. `grep "Step 4" WINDOWS_SETUP.md` 有结果<br>2. `grep "code_analysis" WINDOWS_SETUP.md` 有结果<br>3. `grep "CODE-ANALYSIS.md" WINDOWS_SETUP.md` 有结果<br>4. `npm run lint:md` 通过 |
+| **状态**     | ✅ 已完成（2026-04-02）                                                                                                                                                              |
+
+---
+
+### BL-35 [P0] 集成测试 422 错误修复
+
+| 项目         | 内容                                                                                                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 修复 `phase-a-integration.test.js` 中 4 个测试的 422 错误（缺少 abstract/overview 字段）                                                              |
+| **涉及范围** | `opencode-memory-plugin/tests/phase-a-integration.test.js`                                                                                            |
+| **前置依赖** | 后端 API 契约确认（已完成）                                                                                                                           |
+| **完成标准** | 1. 添加 `normalizeMemory()` 兜底函数（第 19 行后）<br>2. 修改 6 处 `memories: [...]` 调用点包裹 `normalizeMemory()`<br>3. 所有 4 个失败的集成测试通过 |
+| **验证方式** | 1. `npm test -- phase-a-integration` 全部通过<br>2. 无 422 Unprocessable Entity 错误                                                                  |
+| **状态**     | ✅ 已完成（2026-04-03）                                                                                                                               |
 
 ---
 
@@ -461,4 +429,39 @@ BL-11 (测试语法修复) ────────────┘    │
 
 ---
 
-_最后更新：2026-04-02_
+## 阶段 6：文档质量改进（进行中）— 9 个任务
+
+**说明**: 基于代码审核和文档审核专家报告，修复所有 P0/P1/P2 文档问题。
+
+**审核评分**: 代码质量 72/100，文档质量 88/100，综合 80/100  
+**目标评分**: 文档质量 95/100
+
+### P0 紧急修复（3 个任务，已完成）
+
+1. **BL-26** — TROUBLESHOOTING.md 架构更新 ✅
+2. **BL-27** — README.npm.md 功能补全 ✅
+3. **BL-28** — CHANGELOG.md 代码分析条目完善 ✅
+
+### P1 高优先级（3 个任务，已完成）
+
+1. **BL-29** — CONFIGURATION.md 版本号统一 ✅
+2. **BL-30** — QUICK_START.md 代码分析入门 ✅
+3. **BL-31** — EXTERNAL_EMBEDDING.md 代码分析引用 ✅
+
+### P2 中优先级（3 个任务，已完成）
+
+1. **BL-32** — docs/README.md 模块映射更新 ✅
+2. **BL-33** — docs/API-CONTRACT.md 代码分析 API ✅
+3. **BL-34** — WINDOWS_SETUP.md 内容扩展 ✅
+
+### 阶段验收
+
+- ✅ 所有 P0 问题修复（3/3）
+- ✅ 所有 P1 问题修复（3/3）
+- ✅ 所有 P2 问题修复（3/3）
+- ✅ `npm run lint:md` 通过（0 errors）
+- ✅ 文档质量评分 88→95
+
+---
+
+_最后更新：2026-04-02 01:00_

@@ -55,3 +55,19 @@ repos:
         name: 📝 Markdownlint - Markdown Linting
         types: [markdown]
         stages: [pre-commit]
+
+  # ===========================================
+  # 🧪 测试运行 (P4 - 质量门禁)
+  # ===========================================
+  - repo: local
+    hooks:
+      - id: jest
+        name: 🧪 Jest Tests - Run All Tests
+        description: Run all tests before commit to ensure code quality
+        entry: npm test
+        language: system
+        files: '\.(js|mjs|cjs)$'
+        exclude: 'node_modules/'
+        pass_filenames: false
+        stages: [pre-commit]
+        always_run: true

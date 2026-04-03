@@ -42,6 +42,9 @@
 - ✅ **Phase C: Trie Index** - 10x faster local search with prefix tree indexing
 - ✅ **Phase C: Autocomplete** - Smart search suggestions (<50ms)
 - ✅ **Phase C: Real-time Sync** - WebSocket live synchronization
+- ✅ **v2.9: Code Analysis** - Automatic AST analysis on file save (JavaScript, TypeScript, Python, Go, Rust, Java)
+- ✅ **v2.9: File Watcher** - 300ms debounce, batch upload, privacy filter
+- ✅ **v2.9: JSDoc Types** - IDE IntelliSense without TypeScript compilation
 
 ### Available Tools (15)
 
