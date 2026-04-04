@@ -422,7 +422,9 @@ async search(params) {
 | **前置依赖** | 无                                                                                                                                                                    |
 | **完成标准** | 1. Jest hook 的 `entry` 改为 `cd opencode-memory-plugin && npm test`<br>2. 从仓库根目录执行 `git commit` 时 Jest 测试能正确运行<br>3. 不再需要 `--no-verify` 绕过测试 |
 | **验证方式** | 1. 修改一个文件后执行 `git add -A && git commit -m "test"` 观察 Jest hook 通过<br>2. `git reset --soft HEAD~1` 回退测试提交                                           |
-| **状态**     | ⏳ 待执行                                                                                                                                                             |
+| **状态**     | ✅ 已完成（2026-04-04）                                                                                                                                               |
+
+**修复内容**: `.pre-commit-config.yaml` 第67行 `entry` 从 `bash -c 'cd opencode-memory-plugin && npm test'` 改为 `powershell -Command "cd opencode-memory-plugin; npm test"`，解决 Windows 环境无 bash 的问题。
 
 ---
 
@@ -435,7 +437,14 @@ async search(params) {
 | **前置依赖** | BL-36 完成（确保测试能正确运行）                                                                                                                                  |
 | **完成标准** | 1. 将 Checkpoint 3 的超时时间从默认 10s 增加到 15s 或 20s<br>2. `npm test` 全部通过（150/150 tests, 0 failed）<br>3. 不再出现 "Exceeded timeout of 10000 ms" 错误 |
 | **验证方式** | 1. `npm test` 在 `opencode-memory-plugin/` 目录下全部通过<br>2. 无超时失败                                                                                        |
-| **状态**     | ⏳ 待执行                                                                                                                                                         |
+| **状态**     | ✅ 已完成（2026-04-04）                                                                                                                                           |
+
+**修复内容**: 为以下测试用例增加超时时间：
+
+- `should upload memory to backend`: 20000ms（已有）
+- `should search memories via backend`: 15000ms（新增）
+- `should handle batch upload`: 15000ms（新增）
+- `should detect and handle duplicates`: 15000ms（新增）
 
 ---
 
@@ -448,7 +457,9 @@ async search(params) {
 | **前置依赖** | 无                                                                                                                                                        |
 | **完成标准** | 1. `package.json` 中 `"version": "2.9.0"` → `"version": "2.9.1"`<br>2. `package-lock.json` 中版本号同步更新<br>3. CHANGELOG.md 和 package.json 版本号一致 |
 | **验证方式** | 1. `grep '"version": "2.9.1"' package.json` 有结果<br>2. `grep '"version": "2.9.0"' package.json` 无结果<br>3. `npm install` 成功                         |
-| **状态**     | ⏳ 待执行                                                                                                                                                 |
+| **状态**     | ✅ 已完成（2026-04-04）- 版本号已一致                                                                                                                     |
+
+**验证结果**: `package.json` 版本号为 `2.9.1`，与 `CHANGELOG.md` 最新版本一致，无需修改。
 
 ---
 
@@ -461,7 +472,17 @@ async search(params) {
 | **前置依赖** | BL-36、BL-37 完成（确保测试基础设施正常）                                                                                               |
 | **完成标准** | 1. `npm test` 全部通过（0 failed）<br>2. 记录测试基线：通过数、跳过数、耗时<br>3. 无新增 warning 或 deprecated 警告                     |
 | **验证方式** | 1. `npm test` 输出 `Test Suites: X passed, X total`<br>2. `Tests: Y passed, 0 failed, Z skipped, Y+Z total`<br>3. 结果记录到 BACKLOG.md |
-| **状态**     | ⏳ 待执行                                                                                                                               |
+| **状态**     | ✅ 已完成（2026-04-04）                                                                                                                 |
+
+**测试基线**:
+
+| 指标     | 数值                              |
+| -------- | --------------------------------- |
+| 测试套件 | 18 passed, 18 total               |
+| 测试用例 | 140 passed, 10 skipped, 150 total |
+| 失败数   | 0                                 |
+| 耗时     | 15.107s                           |
+| 回归问题 | 无                                |
 
 ---
 
@@ -646,7 +667,24 @@ async search(params) {
 | **前置依赖** | BL-45 完成（使用验证后才能决策）                                                                                                |
 | **完成标准** | 1. 明确决策（继续/调整/停止）<br>2. 如继续：制定详细的下一步计划<br>3. 如调整：明确调整方向<br>4. 如停止：记录原因和经验教训    |
 | **验证方式** | 1. 决策有数据支撑（基于 Phase 3 的使用验证）<br>2. 下一步计划可行（资源、时间、技术）<br>3. 团队/个人认同决策                   |
-| **状态**     | ⏳ 待执行                                                                                                                       |
+| **状态**     | ✅ 已完成（2026-04-04）                                                                                                         |
+
+**决策结果**: **选项 A - 继续投入**
+
+**决策理由**:
+
+1. ✅ 核心功能已验证可用（CLI工具工作正常，25ms响应）
+2. ✅ 痛点可解决（技术可行，非架构性阻塞）
+3. ✅ 价值已被验证（代码审查、文档生成有价值）
+4. ✅ 投入产出比合理（2-3周投入，显著提升体验）
+
+**下一步计划（Phase 5）**:
+
+- **Week 5**: 自动触发实现（文件监听 + 防抖）
+- **Week 6**: 多语言支持（Tree-sitter降级链）
+- **Week 7**: 输出优化 + 记忆集成（格式化输出、自动保存）
+
+**决策文档**: `opencode-memory-plugin/code-analyzer/BL-46-phase-4-decision.md`
 
 ---
 

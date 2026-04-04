@@ -279,7 +279,7 @@ This is a full content for Phase A integration testing.
         console.error('❌ Search failed:', error.message);
         throw error;
       }
-    });
+    }, 15000);
 
     it('should handle batch upload', async () => {
       const timestamp = Date.now();
@@ -320,7 +320,7 @@ This is a full content for Phase A integration testing.
         console.error('❌ Batch upload failed:', error.message);
         throw error;
       }
-    });
+    }, 15000);
   });
 
   describe('Go/No-Go Checkpoint 4: End-to-End Workflow', () => {
@@ -504,7 +504,7 @@ ${entryData.content}
       const result2 = await response2.json();
       // Should be detected as duplicate or succeed depending on dedup implementation
       console.log('Second upload:', result2.success, 'success,', result2.failed, 'failed');
-    });
+    }, 15000);
   });
 
   describe('Go/No-Go Checkpoint 6: Performance', () => {

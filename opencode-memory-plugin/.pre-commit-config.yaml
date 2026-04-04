@@ -64,7 +64,7 @@ repos:
       - id: jest
         name: 🧪 Jest Tests - Run All Tests
         description: Run all tests before commit to ensure code quality
-        entry: bash -c 'cd opencode-memory-plugin && npm test'
+        entry: powershell -Command "cd opencode-memory-plugin; npm test"
         language: system
         files: '\.(js|mjs|cjs)$'
         exclude: 'node_modules/'
