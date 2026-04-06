@@ -1,5 +1,60 @@
 # Changelog
 
+## [3.0.0] - 2026-04-06
+
+### Code Analysis v3.0 - Complete Feature Set (BL-48 ~ BL-51)
+
+#### 🚀 New Features
+
+- **Auto-Trigger (BL-48)**: File watcher with 300ms debounce
+  - Automatic code analysis on file save
+  - Uses `chokidar` for cross-platform file watching
+  - Smart exclusion of node_modules, .git, sensitive files
+  - Integration with OpenCode plugin lifecycle
+
+- **Multi-Language Support (BL-49)**: Tree-sitter WASM integration
+  - Python: Function and class extraction
+  - Go: Function and type extraction
+  - Rust: Function and struct extraction
+  - Java: Method and class extraction
+  - Graceful degradation: Oxc → Tree-sitter → Fallback
+
+- **Output Formatting (BL-50)**: Human-readable output formats
+  - `--format table`: Tabular output with complexity metrics
+  - `--format tree`: Hierarchical tree structure
+  - `--format json`: Machine-readable JSON (default)
+  - `--save`: Save analysis results to memory system
+
+- **Project-Level Analysis (BL-51)**: Health grading and risk detection
+  - Project health report with A/B/C/D grading
+  - Language distribution statistics
+  - High-risk file identification (complexity > 10)
+  - Large file detection (lines > 500)
+  - Batch analysis of entire project
+
+#### 🔧 Technical Improvements
+
+- **New Dependencies**: `chokidar`, `tree-sitter-python`, `tree-sitter-go`, `tree-sitter-rust`, `tree-sitter-java`
+- **New Modules**:
+  - `lib/file-watcher.js`: File system watcher
+  - `lib/tree-sitter-parser.js`: Multi-language AST parser
+  - `lib/code-analysis-formatter.js`: Output formatting
+  - `lib/project-analyzer.js`: Project-level analysis
+
+#### 📚 Documentation
+
+- **CODE-ANALYSIS.md**: Updated to v3.0.0, removed "in development" markers
+- **QUICK_START_CODE_ANALYSIS.md**: New 5-minute quick start guide
+- **README.md**: Added Code Analysis feature section with examples
+
+#### 🧪 Testing
+
+- 18 test suites, 140 tests passing
+- Integration tests for all 6 languages
+- Project analysis validation
+
+---
+
 ## [2.9.1] - 2026-04-03
 
 ### Bug Fixes (BL-35)

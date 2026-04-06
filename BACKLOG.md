@@ -898,4 +898,24 @@ node cli/code-analyzer.cjs --project .
 
 ---
 
-_最后更新：2026-04-04_
+---
+
+## Phase 6 规划（Week 9-10）
+
+详见 [`BACKLOG-PHASE6.md`](./BACKLOG-PHASE6.md)
+
+**Phase 6 任务概览**:
+
+| 任务      | 优先级 | 目标           | 交付物                       |
+| --------- | ------ | -------------- | ---------------------------- |
+| **BL-52** | P0     | 更新产品文档   | CODE-ANALYSIS.md             |
+| **BL-53** | P0     | 编写快速入门   | QUICK_START.md               |
+| **BL-54** | P1     | 更新 README    | README.md                    |
+| **BL-55** | P1     | 编写 CHANGELOG | CHANGELOG.md                 |
+| **BL-56** | P1     | 编写开发者文档 | CODE_ANALYSIS_DEVELOPMENT.md |
+| **BL-57** | P2     | GitHub Release | Release v3.0.0               |
+| **BL-58** | P2     | npm 发布       | npm v3.0.0                   |
+
+---
+
+_最后更新：2026-04-06_

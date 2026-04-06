@@ -42,9 +42,33 @@
 - ✅ **Phase C: Trie Index** - 10x faster local search with prefix tree indexing
 - ✅ **Phase C: Autocomplete** - Smart search suggestions (<50ms)
 - ✅ **Phase C: Real-time Sync** - WebSocket live synchronization
-- ✅ **v2.9: Code Analysis** - Automatic AST analysis on file save (JavaScript, TypeScript, Python, Go, Rust, Java)
-- ✅ **v2.9: File Watcher** - 300ms debounce, batch upload, privacy filter
+- ✅ **v3.0: Code Analysis** - Automatic AST analysis on file save (JavaScript, TypeScript, Python, Go, Rust, Java)
+- ✅ **v3.0: File Watcher** - 300ms debounce, batch upload, privacy filter
+- ✅ **v3.0: Project Health** - Code quality grading (A/B/C/D) and risk detection
 - ✅ **v2.9: JSDoc Types** - IDE IntelliSense without TypeScript compilation
+
+### Code Analysis Feature
+
+Analyze your code automatically on file save. Extract functions, classes, and complexity metrics.
+
+**Quick Start**:
+
+```bash
+# Analyze a single file
+node opencode-memory-plugin/cli/code-analyzer.cjs src/utils.js
+
+# Analyze entire project with health report
+node opencode-memory-plugin/cli/code-analyzer.cjs --project .
+```
+
+**Features**:
+
+- 6 languages: JavaScript, TypeScript, Python, Go, Rust, Java
+- 3 output formats: JSON, Table, Tree
+- Auto-save to memory system
+- Project health grading (A/B/C/D)
+
+📖 **[Complete Guide](opencode-memory-plugin/CODE-ANALYSIS.md)** | 🚀 **[Quick Start](opencode-memory-plugin/QUICK_START_CODE_ANALYSIS.md)**
 
 ### Available Tools (15)
 

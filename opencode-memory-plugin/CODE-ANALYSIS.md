@@ -1,7 +1,7 @@
 # Code Analysis Feature
 
-**版本**: v2.9.0  
-**最后更新**: 2026-04-02
+**版本**: v3.0.0  
+**最后更新**: 2026-04-06
 
 ---
 
@@ -11,11 +11,12 @@
 
 **核心特性**:
 
-- ⚠️ **自动触发** — 文件保存后自动分析（开发中，当前需手动触发）
+- ✅ **自动触发** — 文件保存后自动分析（300ms防抖）
 - ✅ **AST 分析** — 使用 Oxc 解析器进行精确的语法树分析（JS/TS）
+- ✅ **多语言支持** — 支持 JavaScript, TypeScript, Python, Go, Rust, Java
 - ✅ **批量上传** — 智能批量处理，减少网络请求
 - ✅ **隐私保护** — 自动检测并跳过敏感文件（.env、配置文件等）
-- ⚠️ **多语言支持** — JavaScript, TypeScript（已支持）, Python, Go, Rust, Java（开发中）
+- ✅ **项目级分析** — 生成项目健康度报告（A/B/C/D评级）
 
 ---
 
@@ -25,50 +26,42 @@
 | -------------- | ----------------------------- | -------------------------------- | --------- |
 | **JavaScript** | `.js`, `.mjs`, `.cjs`         | 函数、类、导入、导出             | ✅ 已支持 |
 | **TypeScript** | `.ts`, `.mts`, `.cts`, `.tsx` | 函数、类、接口、类型、导入、导出 | ✅ 已支持 |
-| **Python**     | `.py`                         | 基础信息（行数等）               | ⚠️ 开发中 |
-| **Go**         | `.go`                         | 基础信息（行数等）               | ⚠️ 开发中 |
-| **Rust**       | `.rs`                         | 基础信息（行数等）               | ⚠️ 开发中 |
-| **Java**       | `.java`                       | 基础信息（行数等）               | ⚠️ 开发中 |
+| **Python**     | `.py`                         | 函数、类、方法                   | ✅ 已支持 |
+| **Go**         | `.go`                         | 函数、类型、接口                 | ✅ 已支持 |
+| **Rust**       | `.rs`                         | 函数、结构体、impl               | ✅ 已支持 |
+| **Java**       | `.java`                       | 方法、类、接口                   | ✅ 已支持 |
 
-> **说明**: Python/Go/Rust/Java 当前仅提取基础信息（行数、文件大小等），完整 AST 分析开发中。
+> **说明**: 所有语言均支持 AST 分析，使用 Tree-sitter WASM 解析器。
 
 ---
 
 ## 工作原理
 
-### 当前实现（手动触发）
-
-```
-CLI 命令或 API 调用
-    ↓
-隐私过滤器检查（跳过敏感文件）
-    ↓
-Oxc AST 分析（提取函数、类、接口等）
-    ↓
-批量队列（最多 10 个文件或 2 秒后上传）
-    ↓
-保存到后端记忆服务
-```
-
-### 计划实现（自动触发）
+### 自动触发流程
 
 ```
 文件保存
     ↓
-OpenCode 触发 file.saved 事件（开发中）
+文件系统监听（chokidar）
     ↓
-插件监听器捕获事件（300ms 防抖）
+300ms 防抖处理
     ↓
 隐私过滤器检查（跳过敏感文件）
     ↓
-Oxc AST 分析（提取函数、类、接口等）
+解析器选择（Oxc/Tree-sitter/Fallback）
+    ↓
+AST 分析（提取函数、类、接口等）
     ↓
 批量队列（最多 10 个文件或 2 秒后上传）
     ↓
 保存到后端记忆服务
 ```
 
-> **注意**: 自动触发功能开发中，当前版本请使用 CLI 手动触发。
+**降级策略**:
+
+- **JS/TS** → Oxc 解析器（高性能）
+- **Python/Go/Rust/Java** → Tree-sitter WASM（多语言支持）
+- **其他/失败** → Fallback（基础信息）
 
 **性能优化**:
 
@@ -76,6 +69,72 @@ Oxc AST 分析（提取函数、类、接口等）
 - **批量上传** — 最多 10 个文件或等待 2 秒后统一上传
 - **并发控制** — 最多 2 个文件同时分析
 - **隐私过滤** — 自动跳过 `.env`、`node_modules`、`.git` 等目录
+
+---
+
+## CLI 使用指南
+
+### 分析单个文件
+
+```bash
+# 分析 JavaScript 文件
+node cli/code-analyzer.cjs src/utils.js
+
+# 分析 TypeScript 文件
+node cli/code-analyzer.cjs src/index.ts
+
+# 分析 Python 文件
+node cli/code-analyzer.cjs backend/api.py
+```
+
+### 输出格式
+
+```bash
+# JSON 格式（默认）
+node cli/code-analyzer.cjs src/utils.js
+
+# 表格格式（人类可读）
+node cli/code-analyzer.cjs src/utils.js --format table
+
+# 树形格式
+node cli/code-analyzer.cjs src/utils.js --format tree
+```
+
+### 保存到记忆系统
+
+```bash
+# 分析并保存结果
+node cli/code-analyzer.cjs src/utils.js --save
+
+# 表格格式 + 保存
+node cli/code-analyzer.cjs src/utils.js --format table --save
+```
+
+### 项目级分析
+
+```bash
+# 分析整个项目
+node cli/code-analyzer.cjs --project .
+
+# 输出项目健康度报告
+```
+
+### 指定语言
+
+```bash
+# 强制指定语言（用于无扩展名文件）
+node cli/code-analyzer.cjs --language python script.txt
+```
+
+### 输出到文件
+
+```bash
+# 保存结果到 JSON 文件
+node cli/code-analyzer.cjs src/utils.js --output result.json
+
+# 保存表格格式到文件
+node cli/code-analyzer.cjs src/utils.js --format table --output report.txt
+```
 
 ---
 
@@ -203,6 +262,50 @@ memory_search query="useEffect 自定义 hook"
 # 查看某个模块的所有导出
 memory_search query="src/utils 导出"
 ```
+
+### 5. 项目健康度检查
+
+**场景**: 了解项目整体代码质量，识别技术债务。
+
+**操作**:
+
+```bash
+# 分析整个项目
+node cli/code-analyzer.cjs --project .
+```
+
+**输出示例**:
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                 Project Health Report                      │
+│ Project: @longray/my-project                               │
+├────────────────────────────────────────────────────────────┤
+│ Overall Grade: 🟡 B (良好)                                  │
+├────────────────────────────────────────────────────────────┤
+│ Statistics:                                                │
+│  • Total Files: 150                                        │
+│  • Total Functions: 450                                    │
+│  • Total Classes: 30                                       │
+│  • Average Complexity: 5.2                                 │
+│  • Language Distribution:                                  │
+│    - JavaScript: 60%                                       │
+│    - TypeScript: 30%                                       │
+│    - Python: 10%                                           │
+├────────────────────────────────────────────────────────────┤
+│ 🔴 High Risk Files (Complexity > 10):                     │
+│  1. src/utils/dataProcessor.js (complexity: 25)            │
+│  2. src/services/api.ts (complexity: 18)                   │
+│  3. backend/api.py (complexity: 15)                        │
+└────────────────────────────────────────────────────────────┘
+```
+
+**健康度评级**:
+
+- **A (优秀)**: 平均复杂度 < 5，无高风险文件
+- **B (良好)**: 平均复杂度 < 8，高风险文件 < 5
+- **C (一般)**: 平均复杂度 < 12，高风险文件 < 10
+- **D (需改进)**: 其他情况
 
 ---
 
