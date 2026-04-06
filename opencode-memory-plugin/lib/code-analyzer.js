@@ -1,6 +1,7 @@
 import { parseSync } from 'oxc-parser';
 import { readFileSync } from 'fs';
 import { extname } from 'path';
+import { analyzeWithTreeSitter } from './tree-sitter-parser.js';
 
 /**
  * @typedef {Object} AnalysisResult
@@ -149,12 +150,18 @@ export class CodeAnalyzer {
       }
     }
 
-    warnings.push({
-      type: 'degraded',
-      from: 'tree-sitter',
-      to: 'fallback',
-      reason: 'Tree-sitter WASM not available in current version',
-    });
+    // Try Tree-sitter for non-JS/TS languages or as Oxc fallback
+    try {
+      const treeSitterResult = await analyzeWithTreeSitter(filePath, sourceCode, language);
+      return treeSitterResult;
+    } catch (error) {
+      warnings.push({
+        type: 'degraded',
+        from: 'tree-sitter',
+        to: 'fallback',
+        reason: error.message || 'Tree-sitter parse error',
+      });
+    }
 
     return this.createFallbackResult(filePath, sourceCode, lines, warnings);
   }

@@ -13,6 +13,7 @@ import {
   sync_checkpoint,
 } from './tools/sync.js';
 import { onFileSaved } from './lib/code-analysis-service.js';
+import { startFileWatcher } from './lib/file-watcher.js';
 
 const memory_read = tool({
   description: 'Read from a memory file with level support',
@@ -37,13 +38,19 @@ const memory_read = tool({
 });
 
 export const MemoryPlugin = async ctx => {
+  const projectRoot = process.cwd();
+
   // 注册文件保存事件监听器，自动触发代码分析
   if (ctx?.on) {
+    // OpenCode 事件监听（首选）
     ctx.on('file.saved', filePath => {
-      const projectRoot = process.cwd();
       onFileSaved(filePath, projectRoot);
     });
-    console.log('[MemoryPlugin] Code analysis file watcher enabled');
+    console.log('[MemoryPlugin] Code analysis file watcher enabled (OpenCode event)');
+  } else {
+    // 文件系统监听（fallback）
+    startFileWatcher(projectRoot);
+    console.log('[MemoryPlugin] Code analysis file watcher enabled (filesystem)');
   }
 
   return {

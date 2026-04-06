@@ -24,12 +24,16 @@ Commands:
   --language <lang> <file>  Analyze file with specified language
 
 Options:
-  --output, -o <file>       Save output to file (JSON format)
+  --output, -o <file>       Save output to file
+  --format, -f <format>     Output format: json, table, tree (default: json)
   --pretty, -p              Pretty print JSON output
+  --save, -s                Save analysis result to memory system
   --help, -h                Show this help message
 
 Examples:
   opencode-memory code-analyze src/index.ts
+  opencode-memory code-analyze src/index.ts --format table
+  opencode-memory code-analyze src/index.ts --format tree --save
   opencode-memory code-analyze --project
   opencode-memory code-analyze --language python script.py
   opencode-memory code-analyze src/index.ts --output result.json
@@ -46,6 +50,8 @@ function parseArgs(args) {
     language: null,
     output: null,
     pretty: false,
+    format: 'json',
+    save: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -62,6 +68,10 @@ function parseArgs(args) {
       options.output = args[++i];
     } else if (arg === '--pretty' || arg === '-p') {
       options.pretty = true;
+    } else if (arg === '--format' || arg === '-f') {
+      options.format = args[++i];
+    } else if (arg === '--save' || arg === '-s') {
+      options.save = true;
     } else if (!arg.startsWith('-') && !options.file) {
       options.file = arg;
     }
@@ -112,9 +122,8 @@ async function analyzeFile(filePath, language = null) {
   }
 }
 
-async function analyzeProject(projectPath = '.') {
+async function collectProjectFiles(projectPath = '.') {
   const results = [];
-  const errors = [];
 
   const supportedExtensions = [
     '.js',
@@ -152,36 +161,99 @@ async function analyzeProject(projectPath = '.') {
   }
 
   scanDirectory(projectPath);
+  return results;
+}
 
-  console.log(`Found ${results.length} files to analyze...`);
+async function analyzeProject(projectPath = '.') {
+  const files = await collectProjectFiles(projectPath);
 
-  const analysisResults = [];
-  for (let i = 0; i < results.length; i++) {
-    const file = results[i];
-    console.log(`[${i + 1}/${results.length}] Analyzing: ${file}`);
-
-    const result = await analyzeFile(file);
-    analysisResults.push(result);
-
-    if (!result.success) {
-      errors.push(result);
-    }
+  if (files.length === 0) {
+    return {
+      success: false,
+      error: 'No supported files found in project',
+      total: 0,
+      analyzed: 0,
+      failed: 0,
+    };
   }
 
+  // Use ProjectAnalyzer for comprehensive project analysis
+  const { ProjectAnalyzer } = await import('../lib/project-analyzer.js');
+  const analyzer = new ProjectAnalyzer(projectPath);
+  const report = await analyzer.analyzeProject(files);
+
   return {
-    success: errors.length === 0,
-    total: results.length,
-    analyzed: analysisResults.filter(r => r.success).length,
-    failed: errors.length,
-    results: analysisResults,
+    success: report.success,
+    type: 'project-report',
+    report,
   };
 }
 
-function formatOutput(result, pretty = false) {
-  if (pretty) {
-    return JSON.stringify(result, null, 2);
+async function formatOutput(result, options) {
+  // Handle project report
+  if (result.type === 'project-report') {
+    const { formatProjectReportAsTable } = await import('../lib/project-analyzer.js');
+    return formatProjectReportAsTable(result.report);
   }
-  return JSON.stringify(result);
+
+  // Handle single file analysis
+  const { formatAsTable, formatAsTree, formatAsJson } =
+    await import('../lib/code-analysis-formatter.js');
+
+  switch (options.format) {
+    case 'table':
+      return formatAsTable(result);
+    case 'tree':
+      return formatAsTree(result);
+    case 'json':
+    default:
+      return formatAsJson(result, options.pretty);
+  }
+}
+
+async function saveToMemory(result) {
+  if (!result.success) {
+    console.error('[CodeAnalysis] Cannot save failed analysis to memory');
+    return null;
+  }
+
+  try {
+    const { writeMemory } = await import('../lib/memory-core.js');
+    const { resolveProjectId } = await import('../lib/project-resolver.js');
+
+    const projectRoot = process.cwd();
+    const projectId = resolveProjectId({ projectRoot });
+    const analysis = result.result;
+
+    const memoryResult = await writeMemory({
+      abstract: `${analysis.language} file: ${result.file} (${analysis.functions?.length || 0} funcs, ${analysis.classes?.length || 0} classes)`,
+      overview: `File: ${result.file}\nLanguage: ${analysis.language}\nFunctions: ${
+        analysis.functions
+          ?.map(f => f.name)
+          .slice(0, 5)
+          .join(', ') || 'none'
+      }\nClasses: ${
+        analysis.classes
+          ?.map(c => c.name)
+          .slice(0, 3)
+          .join(', ') || 'none'
+      }\nComplexity: ${analysis.complexity_metrics?.cyclomatic || 0}`,
+      content: JSON.stringify(analysis, null, 2),
+      type: 'code-analysis',
+      tags: ['code-analysis', analysis.language, projectId],
+    });
+
+    if (memoryResult.success) {
+      console.log(`[CodeAnalysis] Result saved to memory: ${memoryResult.entry_id}`);
+      return memoryResult.entry_id;
+    } else {
+      console.error('[CodeAnalysis] Failed to save to memory:', memoryResult.message);
+      return null;
+    }
+  } catch (error) {
+    console.error('[CodeAnalysis] Error saving to memory:', error.message);
+    return null;
+  }
 }
 
 async function main() {
@@ -204,13 +276,18 @@ async function main() {
     result = await analyzeFile(options.file, options.language);
   }
 
-  const output = formatOutput(result, options.pretty);
+  const output = await formatOutput(result, options);
 
   if (options.output) {
     fs.writeFileSync(options.output, output);
     console.log(`\nResults saved to: ${options.output}`);
   } else {
     console.log('\n' + output);
+  }
+
+  // Save to memory if requested
+  if (options.save) {
+    await saveToMemory(result);
   }
 
   process.exit(result.success ? 0 : 1);
