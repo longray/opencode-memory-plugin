@@ -170,7 +170,7 @@ export class AnalysisQueue {
 ### 关键缺失
 
 1. **代码分析模块零覆盖** - 7 个测试文件无法运行
-2. ** Bun 到 Jest 迁移** - 语法不兼容
+2. **Bun 到 Jest 迁移** - 语法不兼容
 3. **测试与实现不匹配** - 如 shouldSkipFile 方法调用错误
 
 ---
@@ -184,7 +184,7 @@ export class AnalysisQueue {
 
 ### 本周修复（Week 1-2）
 
-3. **BL-42-P1-3**: 修复剩余 3-5 个测试文件
+1. **BL-42-P1-3**: 修复剩余 3-5 个测试文件
 
 ---
 

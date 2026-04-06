@@ -2,7 +2,8 @@
 
 > **目标**: 5 分钟内上手代码分析功能  
 > **难度**: ⭐ 简单  
-> **前提**: 已安装 OpenCode Memory Plugin
+> **前提**: 已安装 OpenCode Memory Plugin  
+> **版本**: v3.0.0 | v1.4 路线图规划中
 
 ---
 
@@ -128,7 +129,7 @@ nano ~/.opencode/memory/memory-config.json
 
 **A**: 检查以下几点：
 
-1. 文件扩展名是否正确（`.js`, `.ts`, `.py`, `.go`, `.rs`, `.java`）
+1. 文件扩展名是否正确（`.js`, `.ts`）
 2. 文件是否在项目目录内
 3. 运行 `npm test` 确认测试通过
 
@@ -146,7 +147,7 @@ nano ~/.opencode/memory/memory-config.json
 
 ### Q: 支持哪些语言？
 
-**A**: JavaScript, TypeScript, Python, Go, Rust, Java
+**A**: 当前支持 JavaScript 和 TypeScript（使用 Oxc 解析器）。提供 AST 分析、复杂度计算、JSDoc 提取等功能。
 
 ### Q: 分析结果保存在哪里？
 
@@ -170,7 +171,44 @@ node cli/code-analyzer.cjs --project .
 
 ---
 
-## 5. 下一步
+## 5. v1.4 新特性速览
+
+v1.4 在 v3.0.0 基础上增强多语言分析和代码质量评估能力。
+
+### 调用关系提取（规划中）
+
+分析函数之间的调用关系，了解代码的依赖结构：
+
+```bash
+# v1.4 将新增 calls 字段
+node cli/code-analyzer.cjs src/auth.js
+# 输出包含: "calls": [{ "target": "validateUser", "line": 42 }]
+```
+
+### 增强复杂度计算（规划中）
+
+Tree-sitter 多语言路径将从启发式估算升级为 AST 级别精确计算：
+
+```bash
+# 当前: Tree-sitter 使用函数名启发式（handle→3, validate→4）
+# v1.4: 基于 if/for/while/catch/&&/|| 的 AST 遍历精确计算
+node cli/code-analyzer.cjs --language python src/handler.py
+```
+
+### 文件级质量评分（规划中）
+
+每个分析文件将获得 0-100 的质量评分：
+
+```
+Quality Score: 85/100  ✅ Good
+  Complexity: 4 (Low)  Nesting: 2 (Normal)
+```
+
+**任务进度**: 详见 [BACKLOG.md](../../BACKLOG.md) 场景九
+
+---
+
+## 6. 下一步
 
 ### 深入学习
 
@@ -203,4 +241,4 @@ node cli/code-analyzer.cjs --project .
 
 ---
 
-_最后更新：2026-04-06_
+_最后更新：2026-04-07_

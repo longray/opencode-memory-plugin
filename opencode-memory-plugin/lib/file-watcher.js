@@ -1,9 +1,12 @@
 import { watch } from 'chokidar';
 import { onFileSaved } from './code-analysis-service.js';
 import { shouldSkipFile } from './privacy-filter.js';
+import { getConfig } from './storage.js';
 import { relative } from 'path';
 
-const DEBOUNCE_MS = 300;
+const userConfig = getConfig();
+const CODE_ANALYSIS_CONFIG = userConfig.code_analysis || {};
+const DEBOUNCE_MS = CODE_ANALYSIS_CONFIG.debounce_ms || 300;
 
 export class FileWatcher {
   constructor(projectRoot) {

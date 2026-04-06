@@ -1,7 +1,7 @@
 # Code Analysis Feature
 
-**版本**: v3.0.0  
-**最后更新**: 2026-04-06
+**版本**: v3.0.0 (v1.4 路线图规划中)  
+**最后更新**: 2026-04-07
 
 ---
 
@@ -13,25 +13,23 @@
 
 - ✅ **自动触发** — 文件保存后自动分析（300ms防抖）
 - ✅ **AST 分析** — 使用 Oxc 解析器进行精确的语法树分析（JS/TS）
-- ✅ **多语言支持** — 支持 JavaScript, TypeScript, Python, Go, Rust, Java
+- ✅ **深度指标** — 圈复杂度、嵌套深度、函数数量
+- ✅ **JSDoc 提取** — 自动提取函数文档注释
 - ✅ **批量上传** — 智能批量处理，减少网络请求
 - ✅ **隐私保护** — 自动检测并跳过敏感文件（.env、配置文件等）
 - ✅ **项目级分析** — 生成项目健康度报告（A/B/C/D评级）
+- 🔄 **v1.4 规划中** — 调用关系提取（CallSymbol）、Tree-sitter 路径增强、文件级质量评分
 
 ---
 
 ## 支持语言
 
-| 语言           | 扩展名                        | 分析内容                         | 状态      |
-| -------------- | ----------------------------- | -------------------------------- | --------- |
-| **JavaScript** | `.js`, `.mjs`, `.cjs`         | 函数、类、导入、导出             | ✅ 已支持 |
-| **TypeScript** | `.ts`, `.mts`, `.cts`, `.tsx` | 函数、类、接口、类型、导入、导出 | ✅ 已支持 |
-| **Python**     | `.py`                         | 函数、类、方法                   | ✅ 已支持 |
-| **Go**         | `.go`                         | 函数、类型、接口                 | ✅ 已支持 |
-| **Rust**       | `.rs`                         | 函数、结构体、impl               | ✅ 已支持 |
-| **Java**       | `.java`                       | 方法、类、接口                   | ✅ 已支持 |
+| 语言           | 扩展名                        | 分析内容                    | 状态      |
+| -------------- | ----------------------------- | --------------------------- | --------- |
+| **JavaScript** | `.js`, `.mjs`, `.cjs`         | 函数、类、导入、导出、JSDoc | ✅ 已支持 |
+| **TypeScript** | `.ts`, `.mts`, `.cts`, `.tsx` | 函数、类、接口、类型、JSDoc | ✅ 已支持 |
 
-> **说明**: 所有语言均支持 AST 分析，使用 Tree-sitter WASM 解析器。
+> **说明**: 使用 Oxc 解析器提供高性能 JS/TS 分析。Tree-sitter 多语言解析器（Python/Go/Rust/Java）已内部实现但未正式发布。
 
 ---
 
@@ -59,9 +57,10 @@ AST 分析（提取函数、类、接口等）
 
 **降级策略**:
 
-- **JS/TS** → Oxc 解析器（高性能）
-- **Python/Go/Rust/Java** → Tree-sitter WASM（多语言支持）
-- **其他/失败** → Fallback（基础信息）
+- **JS/TS** → Oxc 解析器（高性能）✅ 当前可用
+- **其他/失败** → Fallback（基础信息）✅ 当前可用
+
+> **内部实验**: Tree-sitter WASM 解析器（Python/Go/Rust/Java）已内部实现，待后端 API 就绪后发布。
 
 **性能优化**:
 
@@ -82,9 +81,6 @@ node cli/code-analyzer.cjs src/utils.js
 
 # 分析 TypeScript 文件
 node cli/code-analyzer.cjs src/index.ts
-
-# 分析 Python 文件
-node cli/code-analyzer.cjs backend/api.py
 ```
 
 ### 输出格式
@@ -290,13 +286,12 @@ node cli/code-analyzer.cjs --project .
 │  • Average Complexity: 5.2                                 │
 │  • Language Distribution:                                  │
 │    - JavaScript: 60%                                       │
-│    - TypeScript: 30%                                       │
-│    - Python: 10%                                           │
+│    - TypeScript: 40%                                       │
 ├────────────────────────────────────────────────────────────┤
 │ 🔴 High Risk Files (Complexity > 10):                     │
 │  1. src/utils/dataProcessor.js (complexity: 25)            │
 │  2. src/services/api.ts (complexity: 18)                   │
-│  3. backend/api.py (complexity: 15)                        │
+│  3. src/components/DataTable.tsx (complexity: 15)          │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -356,22 +351,83 @@ export class EventEmitter {
   "language": "javascript",
   "analyzer": "oxc",
   "functions": [
-    { "name": "formatDate", "start": 0, "end": 3 },
-    { "name": "parseJSON", "start": 4, "end": 12 },
-    { "name": "on", "start": 18, "end": 24 },
-    { "name": "emit", "start": 25, "end": 31 }
+    {
+      "name": "formatDate",
+      "start": 0,
+      "end": 3,
+      "jsdoc": {
+        "description": "Format a date to string",
+        "params": [{ "type": "Date", "name": "date" }],
+        "returns": { "type": "string" }
+      }
+    }
   ],
   "classes": [{ "name": "EventEmitter" }],
   "exports": [
     { "name": "formatDate", "type": "function" },
-    { "name": "parseJSON", "type": "function" },
     { "name": "EventEmitter", "type": "class" }
   ],
   "complexity_metrics": {
     "lines_of_code": 31,
     "functions": 4,
     "classes": 1,
-    "cyclomatic": 3
+    "cyclomatic": 3,
+    "max_function_complexity": 5,
+    "average_function_complexity": 2.5,
+    "max_nesting_depth": 2,
+    "average_nesting_depth": 1.2
+  }
+}
+```
+
+### 复杂度指标说明
+
+| 指标                          | 说明             | 健康阈值            |
+| ----------------------------- | ---------------- | ------------------- |
+| `cyclomatic`                  | 平均圈复杂度     | < 5 优秀，< 10 良好 |
+| `max_function_complexity`     | 最高函数圈复杂度 | < 10 安全           |
+| `average_function_complexity` | 平均函数圈复杂度 | < 5 优秀            |
+| `max_nesting_depth`           | 最大嵌套深度     | < 3 安全            |
+| `average_nesting_depth`       | 平均嵌套深度     | < 2 优秀            |
+| `lines_of_code`               | 代码行数         | -                   |
+| `function_count`              | 函数数量         | -                   |
+| `class_count`                 | 类数量           | -                   |
+
+### JSDoc 提取
+
+Oxc 解析器会自动提取函数、类、接口的 JSDoc 注释：
+
+**支持的标签**:
+
+- `@description` — 描述文本（无标签部分）
+- `@param {type} name - description` — 参数类型和说明
+- `@returns {type} - description` — 返回值类型和说明
+
+**示例**:
+
+```javascript
+/**
+ * Calculate sum of two numbers
+ * @param {number} a - First number
+ * @param {number} b - Second number
+ * @returns {number} Sum of a and b
+ */
+function add(a, b) {
+  return a + b;
+}
+```
+
+**提取结果**:
+
+```json
+{
+  "jsdoc": {
+    "description": "Calculate sum of two numbers",
+    "params": [
+      { "type": "number", "name": "a", "description": "First number" },
+      { "type": "number", "name": "b", "description": "Second number" }
+    ],
+    "returns": { "type": "number", "description": "Sum of a and b" }
   }
 }
 ```
@@ -390,6 +446,67 @@ Complexity: 3
 
 Content: [完整代码内容]
 ```
+
+---
+
+## v1.4 路线图（规划中）
+
+v1.4 在 v3.0.0 基础上补齐设计文档承诺的数据字段，增强 Tree-sitter 多语言路径。
+
+### 新增特性预览
+
+**调用关系提取（CallSymbol）**:
+
+分析函数之间的调用关系，支持跨文件引用追踪。
+
+```json
+{
+  "calls": [
+    { "target": "validateUser", "line": 42, "column": 8 },
+    { "target": "hashPassword", "line": 15, "column": 12 }
+  ]
+}
+```
+
+**文件级质量评分**:
+
+基于圈复杂度、嵌套深度、函数长度计算单个文件的质量评分。
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  Code Analysis: auth.ts                                    │
+├────────────────────────────────────────────────────────────┤
+│  Quality Score: 72/100  ⚠️ Needs Improvement              │
+│  Complexity: 12 (High)  Nesting: 4 (High)                │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Tree-sitter 路径增强**:
+
+当前 Tree-sitter 多语言解析器使用简化的启发式算法，v1.4 将对齐为 AST 级别的精确计算。
+
+| 特性       | v3.0.0（当前）   | v1.4（目标）                             |
+| ---------- | ---------------- | ---------------------------------------- |
+| 圈复杂度   | 函数名启发式估算 | AST 级别精确计算                         |
+| 函数元数据 | name, line, type | + return_type, is_exported, is_async     |
+| 类成员     | methods          | + properties                             |
+| 接口提取   | ❌ 缺失          | Go interface, Rust trait, Java interface |
+| 依赖分类   | 扁平数组         | internal/external/builtin 分类           |
+| 调用关系   | ❌ 缺失          | CallSymbol 数组                          |
+
+### 任务列表
+
+详见 [`BACKLOG.md`](../../BACKLOG.md) 场景九（BL-CA-11~19）。
+
+| 任务     | 优先级 | 状态        |
+| -------- | ------ | ----------- |
+| BL-CA-11 | P0     | ⚠️ 部分完成 |
+| BL-CA-12 | P1     | ⏳ 待执行   |
+| BL-CA-13 | P1     | ⚠️ 部分完成 |
+| BL-CA-14 | P1     | ⏳ 待执行   |
+| BL-CA-15 | P0     | ⚠️ 部分完成 |
+| BL-CA-16 | P1     | ⚠️ 部分完成 |
+| BL-CA-19 | P0     | ✅ 已完成   |
 
 ---
 
@@ -433,10 +550,11 @@ memory_timeline days=7 level=1
 
 **实现细节请参考开发文档**:
 
+- [`CODE_ANALYSIS_DEVELOPMENT.md`](./CODE_ANALYSIS_DEVELOPMENT.md) — 开发者指南
 - [`lib/code-analyzer.js`](./lib/code-analyzer.js) — Oxc AST 分析
 - [`lib/code-analysis-service.js`](./lib/code-analysis-service.js) — 批量队列管理
 - [`lib/privacy-filter.js`](./lib/privacy-filter.js) — 隐私过滤
 
 ---
 
-_最后更新：2026-04-02_
+_最后更新：2026-04-07_

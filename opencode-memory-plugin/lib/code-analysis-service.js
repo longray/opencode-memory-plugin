@@ -2,8 +2,12 @@ import { codeAnalyzer } from './code-analyzer.js';
 import { WrapperClient } from './wrapper-client.js';
 import { resolveProjectId } from './project-resolver.js';
 import { shouldSkipFile } from './privacy-filter.js';
+import { getConfig } from './storage.js';
 import { readFileSync } from 'fs';
 import { extname, relative, basename } from 'path';
+
+const userConfig = getConfig();
+const CODE_ANALYSIS_CONFIG = userConfig.code_analysis || {};
 
 const SUPPORTED_EXTENSIONS = [
   '.js',
@@ -19,12 +23,12 @@ const SUPPORTED_EXTENSIONS = [
   '.java',
 ];
 
-const DEBOUNCE_MS = 300;
-const BATCH_DELAY_MS = 2000;
-const BATCH_MAX_SIZE = 10;
-const MAX_CONCURRENT = 2;
-const QUEUE_TIMEOUT_MS = 5000;
-const MAX_QUEUE_SIZE = 10;
+const DEBOUNCE_MS = CODE_ANALYSIS_CONFIG.debounce_ms || 300;
+const BATCH_DELAY_MS = CODE_ANALYSIS_CONFIG.batch_delay_ms || 2000;
+const BATCH_MAX_SIZE = CODE_ANALYSIS_CONFIG.batch_max_size || 10;
+const MAX_CONCURRENT = CODE_ANALYSIS_CONFIG.max_concurrent || 2;
+const QUEUE_TIMEOUT_MS = CODE_ANALYSIS_CONFIG.queue_timeout_ms || 5000;
+const MAX_QUEUE_SIZE = CODE_ANALYSIS_CONFIG.max_queue_size || 10;
 
 export class AnalysisQueue {
   constructor() {

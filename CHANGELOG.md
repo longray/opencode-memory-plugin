@@ -1,8 +1,8 @@
 # Changelog
 
-## [3.0.0] - 2026-04-06
+## [3.0.0] - 2026-04-07
 
-### Code Analysis v3.0 - Complete Feature Set (BL-48 ~ BL-51)
+### Code Analysis v3.0 - Complete Feature Set (BL-44 ~ BL-48)
 
 #### 🚀 New Features
 
@@ -12,12 +12,23 @@
   - Smart exclusion of node_modules, .git, sensitive files
   - Integration with OpenCode plugin lifecycle
 
-- **Multi-Language Support (BL-49)**: Tree-sitter WASM integration
-  - Python: Function and class extraction
-  - Go: Function and type extraction
-  - Rust: Function and struct extraction
-  - Java: Method and class extraction
-  - Graceful degradation: Oxc → Tree-sitter → Fallback
+- **Configuration System (BL-45)**: Customizable analysis parameters
+  - `debounce_ms`: Adjust debounce timing (default: 300ms)
+  - `batch_max_size`: Files per batch (default: 10)
+  - `large_file_threshold`: Warning threshold (default: 5000 lines)
+  - `skip_file_threshold`: Skip threshold (default: 10000 lines)
+  - `max_concurrent`: Concurrent analysis limit (default: 2)
+
+- **Enhanced Complexity Metrics (BL-47)**: AST-based accurate calculation
+  - Cyclomatic complexity per function
+  - Nesting depth tracking (max/average)
+  - Function-level complexity metrics
+  - Project health grading (A/B/C/D) based on complexity
+
+- **JSDoc Extraction (BL-48)**: Automatic documentation parsing
+  - Extracts description, @param, @returns from JSDoc comments
+  - Attached to functions, classes, and interfaces
+  - Supports TypeScript and JavaScript
 
 - **Output Formatting (BL-50)**: Human-readable output formats
   - `--format table`: Tabular output with complexity metrics
@@ -34,24 +45,30 @@
 
 #### 🔧 Technical Improvements
 
-- **New Dependencies**: `chokidar`, `tree-sitter-python`, `tree-sitter-go`, `tree-sitter-rust`, `tree-sitter-java`
+- **New Dependencies**: `chokidar`, `oxc-parser`
 - **New Modules**:
   - `lib/file-watcher.js`: File system watcher
-  - `lib/tree-sitter-parser.js`: Multi-language AST parser
   - `lib/code-analysis-formatter.js`: Output formatting
   - `lib/project-analyzer.js`: Project-level analysis
+  - `lib/code-fingerprint.js`: Change detection for incremental sync
 
 #### 📚 Documentation
 
-- **CODE-ANALYSIS.md**: Updated to v3.0.0, removed "in development" markers
-- **QUICK_START_CODE_ANALYSIS.md**: New 5-minute quick start guide
-- **README.md**: Added Code Analysis feature section with examples
+- **CODE-ANALYSIS.md**: Updated to v3.0.0, accurate language support (JS/TS only)
+- **QUICK_START_CODE_ANALYSIS.md**: Updated FAQ for accurate language support
+- **README.md**: Updated to v3.0.0, added complexity and JSDoc features
+- **CODE_ANALYSIS_DEVELOPMENT.md**: New developer documentation
 
 #### 🧪 Testing
 
 - 18 test suites, 140 tests passing
-- Integration tests for all 6 languages
+- Integration tests for JavaScript and TypeScript
 - Project analysis validation
+
+#### ⚠️ Notes
+
+- Multi-language support (Python/Go/Rust/Java) via Tree-sitter is implemented internally but not officially released pending backend API support
+- Incremental sync (fingerprint-based) frontend is ready, waiting for backend `/api/v1/sync/code-fingerprints` endpoint
 
 ---
 

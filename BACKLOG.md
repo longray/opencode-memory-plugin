@@ -918,4 +918,175 @@ node cli/code-analyzer.cjs --project .
 
 ---
 
-_最后更新：2026-04-06_
+## 场景九：代码分析 v1.4 实施
+
+> **背景**: v1.4 设计文档（`embedding_service/docs/CODE-ANALYSIS-DESIGN-v1.4.md`）定义了代码分析功能的完整数据模型和增强计划。Phase 5（BL-48~51）已实现核心功能，v1.4 在此基础上补齐遗漏字段并新增调用关系、质量评分等特性。
+>
+> **目标**: 补齐 v1.2/v1.4 设计文档承诺但尚未完整实现的数据字段和功能
+>
+> **设计文档**: `D:\embedding_service\docs\CODE-ANALYSIS-DESIGN-v1.4.md`
+>
+> **当前阶段**: 规划中
+
+---
+
+### BL-CA-11 [P0] 扩展函数元数据字段
+
+| 项目         | 内容                                                                                                                                                                                                                                                                                                                                          |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 确保 `FunctionSymbol` 包含 `return_type`、`is_exported`、`is_async` 字段，Oxc 和 Tree-sitter 两条路径输出一致                                                                                                                                                                                                                                 |
+| **涉及范围** | 1. `lib/code-analyzer.js`（Oxc 路径）<br>2. `lib/tree-sitter-parser.js`（Tree-sitter 路径）                                                                                                                                                                                                                                                   |
+| **前置依赖** | 无                                                                                                                                                                                                                                                                                                                                            |
+| **完成标准** | 1. Oxc 路径已输出 `return_type`、`is_exported`、`is_async` ✅<br>2. Tree-sitter 路径补齐 `return_type`（Python type hints, Go 返回值, Rust -> T, Java 返回类型）<br>3. Tree-sitter 路径补齐 `is_exported`（Python 无, Go 大写, Rust pub, Java public）<br>4. Tree-sitter 路径补齐 `is_async`（Python async def, Go goroutine, Rust async fn） |
+| **验证方式** | 1. 分析 JS/TS 文件，验证 Oxc 输出包含三个新字段 ✅<br>2. 分析 Python 文件，验证 Tree-sitter 输出包含 `is_async`（async def）<br>3. 分析 Rust 文件，验证 Tree-sitter 输出包含 `is_exported`（pub fn）<br>4. 单元测试覆盖新增字段提取逻辑                                                                                                       |
+| **状态**     | ⚠️ 部分完成 — Oxc 路径已实现，Tree-sitter 路径待增强                                                                                                                                                                                                                                                                                          |
+
+**当前实现**:
+
+- ✅ Oxc 路径：`return_type`（line 224）、`is_exported`（line 225）、`is_async`（line 226）
+- ❌ Tree-sitter 路径：仅输出 `name`、`line`、`column`、`type`，缺少上述三个字段
+
+---
+
+### BL-CA-12 [P1] 新增调用关系提取（CallSymbol）
+
+| 项目         | 内容                                                                                                                                                                                                                                                                                            |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 新增 `_extract_calls()` 方法，提取函数调用关系（CallSymbol），支持跨文件引用追踪                                                                                                                                                                                                                |
+| **涉及范围** | 1. `lib/code-analyzer.js`（新增 `_extract_calls`）<br>2. `lib/tree-sitter-parser.js`（新增调用提取）<br>3. 分析结果新增 `calls` 字段                                                                                                                                                            |
+| **前置依赖** | 无                                                                                                                                                                                                                                                                                              |
+| **完成标准** | 1. Oxc 路径：遍历 `CallExpression` 节点，提取 `{ target, line, column }`<br>2. Tree-sitter 路径：遍历 `call_expression` 节点，提取调用关系<br>3. 分析结果包含 `calls: CallSymbol[]` 字段<br>4. 支持过滤内置调用（console.log 等）<br>5. 单元测试覆盖调用提取逻辑<br>6. CLI 输出包含调用关系统计 |
+| **验证方式** | 1. 分析包含多函数调用的 JS 文件，验证 `calls` 数组正确<br>2. 分析 Python 文件，验证函数调用提取正确<br>3. 单元测试覆盖 5+ 场景（嵌套调用、方法调用、链式调用等）                                                                                                                                |
+| **状态**     | ⏳ 待执行                                                                                                                                                                                                                                                                                       |
+
+**数据模型**（v1.4 设计文档 Section 2.1）:
+
+```typescript
+interface CallSymbol {
+  target: string; // 被调用函数名
+  line: number; // 调用所在行
+  column?: number; // 调用所在列
+}
+```
+
+---
+
+### BL-CA-13 [P1] 新增类成员提取（methods, properties, interfaces）
+
+| 项目         | 内容                                                                                                                                                                                                                                                                                                                         |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 确保 `ClassSymbol` 包含 `methods`、`properties` 列表，`InterfaceSymbol` 提取完整，Oxc 和 Tree-sitter 两条路径输出一致                                                                                                                                                                                                        |
+| **涉及范围** | 1. `lib/code-analyzer.js`（Oxc 路径）<br>2. `lib/tree-sitter-parser.js`（Tree-sitter 路径）                                                                                                                                                                                                                                  |
+| **前置依赖** | 无                                                                                                                                                                                                                                                                                                                           |
+| **完成标准** | 1. Oxc 路径已输出 `methods`、`properties` ✅<br>2. Oxc 路径已提取 `InterfaceSymbol` ✅<br>3. Tree-sitter 路径补齐 `properties`（Python `self.x`, Go struct fields, Rust struct fields, Java fields）<br>4. Tree-sitter 路径补齐 `InterfaceSymbol`（Go interface, Rust trait, Java interface）<br>5. 单元测试覆盖新增提取逻辑 |
+| **验证方式** | 1. 分析 TS 文件，验证 Oxc 输出接口包含 methods 和 properties ✅<br>2. 分析 Python 文件，验证 Tree-sitter 输出类包含 properties（self.xxx）<br>3. 分析 Go 文件，验证 Tree-sitter 输出包含 interface 定义<br>4. 分析 Rust 文件，验证 Tree-sitter 输出包含 trait 和 impl methods                                                |
+| **状态**     | ⚠️ 部分完成 — Oxc 路径已实现，Tree-sitter 路径待增强                                                                                                                                                                                                                                                                         |
+
+**当前实现**:
+
+- ✅ Oxc 路径：`ClassSymbol.methods`（line 239）、`ClassSymbol.properties`（line 241）、`InterfaceSymbol`（line 260-280）
+- ⚠️ Tree-sitter 路径：Python/Java 类有 `methods` 但无 `properties`；Go/Rust 有 `methods` 但无 `properties`；无 `InterfaceSymbol` 提取
+
+---
+
+### BL-CA-14 [P1] 增强 Python/Go/Rust/Java 解析器
+
+| 项目         | 内容                                                                                                                                                                                                                                                                                                                              |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 增强 Tree-sitter 多语言解析器，使输出结构与 Oxc 路径对齐，补齐缺失字段                                                                                                                                                                                                                                                            |
+| **涉及范围** | 1. `lib/tree-sitter-parser.js`（4 个语言提取函数增强）<br>2. 分析结果结构对齐（`exports`、`dependencies` 分类）                                                                                                                                                                                                                   |
+| **前置依赖** | BL-CA-11、BL-CA-13 完成                                                                                                                                                                                                                                                                                                           |
+| **完成标准** | 1. 所有语言输出统一的 `functions`、`classes`、`interfaces`、`imports`、`exports` 结构<br>2. `dependencies` 分类为 `internal`/`external`/`builtin`（当前 Tree-sitter 路径为扁平数组）<br>3. `exports` 正确提取（Python **all**, Go 大写, Rust pub, Java public）<br>4. `ImportSymbol` 包含 `line` 字段<br>5. 单元测试覆盖 4 种语言 |
+| **验证方式** | 1. 分析 Python 文件，验证 `dependencies` 正确分类（标准库 → builtin, 第三方 → external, 相对 → internal）<br>2. 分析 Go 文件，验证大写导出正确识别<br>3. 分析 Rust 文件，验证 `pub` 导出正确识别<br>4. 运行 `npm test` 全部通过                                                                                                   |
+| **状态**     | ⏳ 待执行（依赖 BL-CA-11、BL-CA-13）                                                                                                                                                                                                                                                                                              |
+
+**当前差距**:
+
+- ❌ `exports` 字段为空数组（简化处理）
+- ❌ `dependencies` 为扁平数组（未分类为 internal/external/builtin）
+- ❌ `ImportSymbol` 缺少 `imported_names` 字段
+- ❌ `InterfaceSymbol` 提取缺失
+
+---
+
+### BL-CA-15 [P0] 实现代码复杂度计算（圈复杂度）
+
+| 项目         | 内容                                                                                                                                                                                                                                                                                         |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 确保 Tree-sitter 路径使用 AST 级别的圈复杂度计算，替代当前基于函数名的启发式估算                                                                                                                                                                                                             |
+| **涉及范围** | 1. `lib/tree-sitter-parser.js`（`calculateBasicComplexity` 重写）<br>2. 新增 `calculateCyclomaticComplexity` 用于 Tree-sitter AST                                                                                                                                                            |
+| **前置依赖** | 无                                                                                                                                                                                                                                                                                           |
+| **完成标准** | 1. Oxc 路径圈复杂度已基于 AST 计算 ✅<br>2. Tree-sitter 路径改为 AST 级别圈复杂度计算（if/for/while/try/and/or 计数）<br>3. 补齐 `max_function_complexity` 和 `average_function_complexity` 字段<br>4. 补齐 `max_nesting_depth` 和 `average_nesting_depth` 字段<br>5. 单元测试覆盖复杂度计算 |
+| **验证方式** | 1. 分析包含 if/for/while 的 Python 文件，验证复杂度 > 1<br>2. 分析嵌套函数，验证 `max_nesting_depth` 正确<br>3. 对比 Oxc 和 Tree-sitter 对同一 JS 文件的复杂度结果，差异 < 10%<br>4. 运行 `npm test` 全部通过                                                                                |
+| **状态**     | ⚠️ 部分完成 — Oxc 路径已实现 AST 级别计算，Tree-sitter 路径使用启发式估算                                                                                                                                                                                                                    |
+
+**当前实现**:
+
+- ✅ Oxc 路径：`calculateCyclomaticComplexity`（line 492-536）基于 AST 遍历 if/for/while/catch/&&/||
+- ❌ Tree-sitter 路径：`calculateBasicComplexity`（line 383-410）基于函数名启发式（handle→3, validate→4）
+
+---
+
+### BL-CA-16 [P1] 实现代码质量评分
+
+| 项目         | 内容                                                                                                                                                                                                                                |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | 基于复杂度指标实现文件级和项目级代码质量评分，辅助代码审查决策                                                                                                                                                                      |
+| **涉及范围** | 1. `lib/project-analyzer.js`（健康度评级已实现）<br>2. `lib/code-analyzer.js`（新增文件级评分）<br>3. CLI 输出包含评分                                                                                                              |
+| **前置依赖** | BL-CA-15 完成（准确的复杂度计算是评分基础）                                                                                                                                                                                         |
+| **完成标准** | 1. 项目级健康度评级（A/B/C/D）已实现 ✅<br>2. 新增文件级质量评分函数（基于圈复杂度、嵌套深度、函数长度）<br>3. CLI `--format table` 输出包含质量评分列<br>4. 评分标准可配置（通过 `memory-config.json`）<br>5. 单元测试覆盖评分算法 |
+| **验证方式** | 1. `code-analyzer file.js --format table`，验证输出包含质量评分列<br>2. `code-analyzer --project .`，验证项目级和文件级评分一致<br>3. 分析已知高复杂度文件，验证评分合理<br>4. 运行 `npm test` 全部通过                             |
+| **状态**     | ⚠️ 部分完成 — 项目级健康度评级已实现，文件级评分待实现                                                                                                                                                                              |
+
+**当前实现**:
+
+- ✅ `ProjectAnalyzer.calculateGrade()` — 项目级 A/B/C/D 评级
+- ❌ 文件级质量评分函数未实现
+
+---
+
+### BL-CA-19 [P0] 实现 CLI 代码分析工具
+
+| 项目         | 内容                                                                                                                                                                                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标**     | CLI 工具支持代码分析的全部功能，包括单文件分析、项目分析、多格式输出、记忆保存                                                                                                                                                                                   |
+| **涉及范围** | 1. `cli/code-analyzer.cjs`（CLI 入口）<br>2. `lib/code-analysis-formatter.js`（格式化输出）<br>3. `lib/project-analyzer.js`（项目分析）                                                                                                                          |
+| **前置依赖** | 无                                                                                                                                                                                                                                                               |
+| **完成标准** | 1. 单文件分析：`code-analyzer file.js` ✅<br>2. 多格式输出：`--format json/table/tree` ✅<br>3. 保存到记忆：`--save` ✅<br>4. 项目级分析：`--project .` ✅<br>5. 语言指定：`--language python` ✅<br>6. 输出到文件：`--output result.json` ✅<br>7. npm bin 注册 |
+| **验证方式** | 1. `node cli/code-analyzer.cjs file.js` 输出 JSON ✅<br>2. `node cli/code-analyzer.cjs file.js --format table` 输出表格 ✅<br>3. `node cli/code-analyzer.cjs --project .` 输出项目报告 ✅<br>4. 运行 `npm test` 全部通过                                         |
+| **状态**     | ✅ 已完成（Phase 5, BL-50/51）                                                                                                                                                                                                                                   |
+
+---
+
+## 场景九任务总览
+
+| 任务     | 优先级 | 目标                       | Oxc 路径 | Tree-sitter 路径 | 状态        |
+| -------- | ------ | -------------------------- | -------- | ---------------- | ----------- |
+| BL-CA-11 | P0     | 函数元数据字段补齐         | ✅       | ❌               | ⚠️ 部分完成 |
+| BL-CA-12 | P1     | 调用关系提取（CallSymbol） | ❌       | ❌               | ⏳ 待执行   |
+| BL-CA-13 | P1     | 类成员提取补齐             | ✅       | ⚠️               | ⚠️ 部分完成 |
+| BL-CA-14 | P1     | 多语言解析器增强           | N/A      | ❌               | ⏳ 待执行   |
+| BL-CA-15 | P0     | AST 级别圈复杂度           | ✅       | ❌               | ⚠️ 部分完成 |
+| BL-CA-16 | P1     | 代码质量评分               | ⚠️       | ❌               | ⚠️ 部分完成 |
+| BL-CA-19 | P0     | CLI 工具                   | ✅       | ✅               | ✅ 已完成   |
+
+**依赖关系**:
+
+```
+BL-CA-11 (函数元数据) ──┐
+BL-CA-13 (类成员)   ────┼──→ BL-CA-14 (多语言增强)
+BL-CA-15 (圈复杂度) ────┼──→ BL-CA-16 (质量评分)
+BL-CA-12 (调用关系) ────┘
+```
+
+**跳过的后端专属任务**（需后端 API 支持）:
+
+- BL-CA-18: `code_filter` 扩展（后端 Meilisearch 过滤字段）
+- BL-CA-20~22: 调用关系存储/引用查询/依赖查询 API
+- BL-CA-23~25: 项目级代码地图 API
+- BL-CA-26~29: 语义代码搜索
+- BL-CA-30~33: opencode 工具集成
+
+---
+
+_最后更新：2026-04-07_

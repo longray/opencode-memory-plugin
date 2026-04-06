@@ -2,6 +2,10 @@ import { parseSync } from 'oxc-parser';
 import { readFileSync } from 'fs';
 import { extname } from 'path';
 import { analyzeWithTreeSitter } from './tree-sitter-parser.js';
+import { getConfig } from './storage.js';
+
+const userConfig = getConfig();
+const CODE_ANALYSIS_CONFIG = userConfig.code_analysis || {};
 
 /**
  * @typedef {Object} AnalysisResult
@@ -35,15 +39,15 @@ import { analyzeWithTreeSitter } from './tree-sitter-parser.js';
  */
 
 export const DEFAULT_CONFIG = {
-  debounceMs: 300,
-  maxConcurrent: 2,
-  maxQueueSize: 10,
-  queueTimeoutMs: 5000,
-  fileTimeoutMs: 500,
-  largeFileThreshold: 5000,
-  skipFileThreshold: 10000,
-  batchDelayMs: 2000,
-  batchMaxSize: 10,
+  debounceMs: CODE_ANALYSIS_CONFIG.debounce_ms || 300,
+  maxConcurrent: CODE_ANALYSIS_CONFIG.max_concurrent || 2,
+  maxQueueSize: CODE_ANALYSIS_CONFIG.max_queue_size || 10,
+  queueTimeoutMs: CODE_ANALYSIS_CONFIG.queue_timeout_ms || 5000,
+  fileTimeoutMs: CODE_ANALYSIS_CONFIG.file_timeout_ms || 500,
+  largeFileThreshold: CODE_ANALYSIS_CONFIG.large_file_threshold || 5000,
+  skipFileThreshold: CODE_ANALYSIS_CONFIG.skip_file_threshold || 10000,
+  batchDelayMs: CODE_ANALYSIS_CONFIG.batch_delay_ms || 2000,
+  batchMaxSize: CODE_ANALYSIS_CONFIG.batch_max_size || 10,
 };
 
 const EXTENSION_TO_LANGUAGE = {
@@ -170,6 +174,7 @@ export class CodeAnalyzer {
     const options = { sourceType: 'module' };
     const parseResult = parseSync(filePath, sourceCode, options);
     const ast = parseResult.program;
+    const comments = parseResult.comments || [];
 
     const functions = [];
     const classes = [];
@@ -177,15 +182,21 @@ export class CodeAnalyzer {
     const imports = [];
     const exports = [];
 
-    this.extractSymbolsFromOxcAst(ast, sourceCode, {
-      functions,
-      classes,
-      interfaces,
-      imports,
-      exports,
-    });
+    this.extractSymbolsFromOxcAst(
+      ast,
+      sourceCode,
+      {
+        functions,
+        classes,
+        interfaces,
+        imports,
+        exports,
+      },
+      false,
+      comments
+    );
 
-    const complexityMetrics = this.calculateComplexity(functions, classes, sourceCode);
+    const complexityMetrics = this.calculateComplexity(functions, classes, sourceCode, ast);
     const dependencies = this.extractDependencies(imports);
 
     return {
@@ -203,13 +214,14 @@ export class CodeAnalyzer {
     };
   }
 
-  extractSymbolsFromOxcAst(node, sourceCode, collectors, parentExported = false) {
+  extractSymbolsFromOxcAst(node, sourceCode, collectors, parentExported = false, comments = []) {
     if (!node || typeof node !== 'object') return;
 
     const { functions, classes, interfaces, imports, exports } = collectors;
 
     switch (node.type) {
-      case 'FunctionDeclaration':
+      case 'FunctionDeclaration': {
+        const jsdoc = this.extractJSDoc(node.start, comments);
         functions.push({
           name: node.id?.name || 'anonymous',
           start_line: node.loc?.start?.line ?? 0,
@@ -218,10 +230,13 @@ export class CodeAnalyzer {
           return_type: node.returnType?.typeAnnotation?.typeName?.name,
           is_exported: parentExported,
           is_async: node.async ?? false,
+          jsdoc,
         });
         break;
+      }
 
       case 'ClassDeclaration': {
+        const jsdoc = this.extractJSDoc(node.start, comments);
         const classMethods = [];
         const classProperties = [];
 
@@ -239,15 +254,17 @@ export class CodeAnalyzer {
           end_line: node.loc?.end?.line ?? 0,
           methods: classMethods,
           properties: classProperties,
+          jsdoc,
         });
 
         node.body?.body?.forEach(member => {
-          this.extractSymbolsFromOxcAst(member, sourceCode, collectors, parentExported);
+          this.extractSymbolsFromOxcAst(member, sourceCode, collectors, parentExported, comments);
         });
         break;
       }
 
       case 'TSInterfaceDeclaration': {
+        const jsdoc = this.extractJSDoc(node.start, comments);
         const interfaceMethods = [];
         const interfaceProperties = [];
 
@@ -265,6 +282,7 @@ export class CodeAnalyzer {
           end_line: node.loc?.end?.line ?? 0,
           methods: interfaceMethods,
           properties: interfaceProperties,
+          jsdoc,
         });
         break;
       }
@@ -331,12 +349,71 @@ export class CodeAnalyzer {
       const value = node[key];
       if (Array.isArray(value)) {
         value.forEach(child =>
-          this.extractSymbolsFromOxcAst(child, sourceCode, collectors, parentExported)
+          this.extractSymbolsFromOxcAst(child, sourceCode, collectors, parentExported, comments)
         );
       } else if (typeof value === 'object' && value !== null) {
-        this.extractSymbolsFromOxcAst(value, sourceCode, collectors, parentExported);
+        this.extractSymbolsFromOxcAst(value, sourceCode, collectors, parentExported, comments);
       }
     }
+  }
+
+  extractJSDoc(nodeStart, comments) {
+    if (!comments || comments.length === 0) return null;
+
+    const precedingComments = comments.filter(c => c.end < nodeStart);
+    if (precedingComments.length === 0) return null;
+
+    const lastComment = precedingComments[precedingComments.length - 1];
+    if (lastComment.type !== 'Block' || !lastComment.value.startsWith('*')) return null;
+
+    return this.parseJSDoc(lastComment.value);
+  }
+
+  parseJSDoc(commentValue) {
+    const lines = commentValue.split('\n');
+    const result = {
+      description: '',
+      params: [],
+      returns: null,
+    };
+
+    let currentTag = null;
+
+    for (const line of lines) {
+      const trimmed = line
+        .trim()
+        .replace(/^\*\s?/, '')
+        .trim();
+
+      if (trimmed.startsWith('@param')) {
+        const match = trimmed.match(/@param\s+\{([^}]+)\}\s+(\w+)\s*-?\s*(.*)/);
+        if (match) {
+          result.params.push({
+            type: match[1],
+            name: match[2],
+            description: match[3] || '',
+          });
+        }
+        currentTag = 'param';
+      } else if (trimmed.startsWith('@returns') || trimmed.startsWith('@return')) {
+        const match = trimmed.match(/@returns?\s+\{([^}]+)\}\s*-?\s*(.*)/);
+        if (match) {
+          result.returns = {
+            type: match[1],
+            description: match[2] || '',
+          };
+        }
+        currentTag = 'returns';
+      } else if (trimmed.startsWith('@')) {
+        currentTag = trimmed.split(' ')[0];
+      } else if (trimmed && !trimmed.startsWith('/')) {
+        if (currentTag === null) {
+          result.description += (result.description ? ' ' : '') + trimmed;
+        }
+      }
+    }
+
+    return result;
   }
 
   extractParams(params) {
@@ -346,36 +423,167 @@ export class CodeAnalyzer {
     }));
   }
 
-  calculateComplexity(functions, classes, sourceCode) {
+  calculateComplexity(functions, classes, sourceCode, ast) {
     const lines = sourceCode.split('\n').length;
     const functionCount = functions.length;
     const classCount = classes.length;
 
-    const controlFlowKeywords = (
-      sourceCode.match(/\b(if|else|for|while|switch|case|catch|&&|\|\|)\b/g) || []
-    ).length;
-    const cyclomatic = Math.max(1, controlFlowKeywords + 1);
-
-    const functionComplexities = functions.map(f => {
-      const funcLines = f.end_line - f.start_line;
-      return Math.max(1, funcLines / 10);
+    const functionComplexities = functions.map(func => {
+      const funcAst = this.findFunctionAst(ast, func.name, func.start_line);
+      if (funcAst) {
+        const complexity = this.calculateCyclomaticComplexity(funcAst);
+        const maxDepth = this.calculateMaxNestingDepth(funcAst);
+        return {
+          ...func,
+          cyclomatic: complexity,
+          max_nesting_depth: maxDepth,
+        };
+      }
+      return { ...func, cyclomatic: 1, max_nesting_depth: 0 };
     });
 
-    const maxFunctionComplexity =
-      functionComplexities.length > 0 ? Math.max(...functionComplexities) : 0;
-    const averageFunctionComplexity =
-      functionComplexities.length > 0
-        ? functionComplexities.reduce((a, b) => a + b, 0) / functionComplexities.length
-        : 0;
+    const cyclomaticValues = functionComplexities.map(f => f.cyclomatic);
+    const totalCyclomatic = cyclomaticValues.reduce((a, b) => a + b, 0);
+    const averageCyclomatic = functionCount > 0 ? totalCyclomatic / functionCount : 1;
+    const maxFunctionComplexity = functionCount > 0 ? Math.max(...cyclomaticValues) : 0;
+
+    const depthValues = functionComplexities.map(f => f.max_nesting_depth);
+    const averageNestingDepth =
+      functionCount > 0 ? depthValues.reduce((a, b) => a + b, 0) / functionCount : 0;
 
     return {
-      cyclomatic,
+      cyclomatic: Math.round(averageCyclomatic),
       lines_of_code: lines,
       function_count: functionCount,
       class_count: classCount,
-      max_function_complexity: Math.round(maxFunctionComplexity * 10) / 10,
-      average_function_complexity: Math.round(averageFunctionComplexity * 10) / 10,
+      max_function_complexity: maxFunctionComplexity,
+      average_function_complexity: Math.round(averageCyclomatic * 10) / 10,
+      average_nesting_depth: Math.round(averageNestingDepth * 10) / 10,
+      max_nesting_depth: functionCount > 0 ? Math.max(...depthValues) : 0,
     };
+  }
+
+  findFunctionAst(ast, funcName, _startLine) {
+    let found = null;
+
+    const traverse = node => {
+      if (found) return;
+      if (!node || typeof node !== 'object') return;
+
+      if (node.type === 'FunctionDeclaration' && node.id?.name === funcName) {
+        found = node;
+        return;
+      }
+
+      if (
+        (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') &&
+        node.id?.name === funcName
+      ) {
+        found = node;
+        return;
+      }
+
+      for (const key in node) {
+        if (key === 'type' || key === 'loc' || key === 'range') continue;
+        const value = node[key];
+        if (Array.isArray(value)) {
+          value.forEach(child => traverse(child));
+        } else if (typeof value === 'object' && value !== null) {
+          traverse(value);
+        }
+      }
+    };
+
+    traverse(ast);
+    return found;
+  }
+
+  calculateCyclomaticComplexity(node) {
+    let complexity = 1;
+
+    const traverse = n => {
+      if (!n || typeof n !== 'object') return;
+
+      switch (n.type) {
+        case 'IfStatement':
+        case 'ConditionalExpression':
+          complexity++;
+          break;
+        case 'SwitchCase':
+          if (n.test) complexity++;
+          break;
+        case 'ForStatement':
+        case 'ForInStatement':
+        case 'ForOfStatement':
+        case 'WhileStatement':
+        case 'DoWhileStatement':
+          complexity++;
+          break;
+        case 'CatchClause':
+          complexity++;
+          break;
+        case 'LogicalExpression':
+          if (n.operator === '&&' || n.operator === '||') {
+            complexity++;
+          }
+          break;
+      }
+
+      for (const key in n) {
+        if (key === 'type' || key === 'loc' || key === 'range') continue;
+        const value = n[key];
+        if (Array.isArray(value)) {
+          value.forEach(child => traverse(child));
+        } else if (typeof value === 'object' && value !== null) {
+          traverse(value);
+        }
+      }
+    };
+
+    traverse(node);
+    return complexity;
+  }
+
+  calculateMaxNestingDepth(node) {
+    let maxDepth = 0;
+
+    const traverse = (n, currentDepth) => {
+      if (!n || typeof n !== 'object') return;
+
+      const isNestingStructure = [
+        'IfStatement',
+        'ForStatement',
+        'ForInStatement',
+        'ForOfStatement',
+        'WhileStatement',
+        'DoWhileStatement',
+        'SwitchStatement',
+        'TryStatement',
+        'CatchClause',
+        'FunctionDeclaration',
+        'FunctionExpression',
+        'ArrowFunctionExpression',
+        'ClassDeclaration',
+      ].includes(n.type);
+
+      if (isNestingStructure) {
+        currentDepth++;
+        maxDepth = Math.max(maxDepth, currentDepth);
+      }
+
+      for (const key in n) {
+        if (key === 'type' || key === 'loc' || key === 'range') continue;
+        const value = n[key];
+        if (Array.isArray(value)) {
+          value.forEach(child => traverse(child, currentDepth));
+        } else if (typeof value === 'object' && value !== null) {
+          traverse(value, currentDepth);
+        }
+      }
+    };
+
+    traverse(node, 0);
+    return maxDepth;
   }
 
   extractDependencies(imports) {

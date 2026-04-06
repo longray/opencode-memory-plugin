@@ -219,7 +219,7 @@ async analyzeWithStrategy(filePath, sourceCode, language, warnings) {
 
 ### 可选优化（按需）
 
-3. **BL-41-P2-5**: 清理 Dead Code
+1. **BL-41-P2-5**: 清理 Dead Code
    - 移除未使用的 Tree-sitter 相关代码
    - 工作量：15分钟
 

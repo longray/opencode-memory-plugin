@@ -154,18 +154,18 @@ console.log(result);
 
 ### 本周修复（Week 1）
 
-2. **BL-40-P1-2**: 决定 Tree-sitter 依赖命运
+1. **BL-40-P1-2**: 决定 Tree-sitter 依赖命运
    - 方案 A: 实现降级策略（1-2 周）
    - 方案 B: 暂时移除（2 分钟）
 
-3. **BL-40-P1-3**: 验证 `typescript` 依赖位置
+2. **BL-40-P1-3**: 验证 `typescript` 依赖位置
    - 测试 Oxc 是否能独立解析 TS
    - 如不能，移到 `dependencies`
 
 ### 可选优化（按需）
 
-4. **BL-40-P2-4**: 添加 `chokidar`（如需要文件监听）
-5. **BL-40-P2-5**: 更新 `ws` 版本
+1. **BL-40-P2-4**: 添加 `chokidar`（如需要文件监听）
+2. **BL-40-P2-5**: 更新 `ws` 版本
 
 ---
 

@@ -42,7 +42,7 @@
 - ✅ **Phase C: Trie Index** - 10x faster local search with prefix tree indexing
 - ✅ **Phase C: Autocomplete** - Smart search suggestions (<50ms)
 - ✅ **Phase C: Real-time Sync** - WebSocket live synchronization
-- ✅ **v3.0: Code Analysis** - Automatic AST analysis on file save (JavaScript, TypeScript, Python, Go, Rust, Java)
+- ✅ **v3.0: Code Analysis** - Automatic AST analysis on file save (JavaScript, TypeScript)
 - ✅ **v3.0: File Watcher** - 300ms debounce, batch upload, privacy filter
 - ✅ **v3.0: Project Health** - Code quality grading (A/B/C/D) and risk detection
 - ✅ **v2.9: JSDoc Types** - IDE IntelliSense without TypeScript compilation
@@ -63,10 +63,12 @@ node opencode-memory-plugin/cli/code-analyzer.cjs --project .
 
 **Features**:
 
-- 6 languages: JavaScript, TypeScript, Python, Go, Rust, Java
+- 2 languages: JavaScript, TypeScript (with Oxc parser)
 - 3 output formats: JSON, Table, Tree
 - Auto-save to memory system
 - Project health grading (A/B/C/D)
+- Complexity metrics (cyclomatic, nesting depth)
+- JSDoc extraction (description, params, returns)
 
 📖 **[Complete Guide](opencode-memory-plugin/CODE-ANALYSIS.md)** | 🚀 **[Quick Start](opencode-memory-plugin/QUICK_START_CODE_ANALYSIS.md)**
 
@@ -577,16 +579,17 @@ MIT License - see [LICENSE](LICENSE) for details
 - Hugging Face for Transformers.js and the all-MiniLM-L6-v2 model
 - All contributors and users
 
-**Current Version**: v2.9.0
+**Current Version**: v3.0.0
 
 ### Version History
 
 For detailed release notes, see [CHANGELOG.md](CHANGELOG.md).
 
-**Latest**: v2.9.0 (2026-03-29) - Markdownlint 集成与文档质量提升
+**Latest**: v3.0.0 (2026-04-07) - Code Analysis v3.0: AST analysis, project health, JSDoc extraction
 
 **Recent Highlights**:
 
+- v3.0.0: Code Analysis v3.0 (AST analysis, project health, JSDoc extraction)
 - v2.9.0: Markdownlint 集成与文档质量提升
 - v2.6.0: Oxlint + Prettier 代码规范迁移
 - v2.5.2: 后端 v2.4.0 API 对齐（syncPreview, auto_clean）

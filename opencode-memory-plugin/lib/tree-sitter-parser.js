@@ -96,6 +96,13 @@ export async function analyzeWithTreeSitter(filePath, sourceCode, language) {
       analysis_duration_ms: duration,
     };
   } catch (error) {
+    if (error.message.includes('Parser.init is not a function')) {
+      throw new Error(
+        `Tree-sitter WASM initialization failed. ` +
+          `Multi-language support (Python/Go/Rust/Java) is not yet available. ` +
+          `Please use JavaScript or TypeScript files for full AST analysis.`
+      );
+    }
     throw new Error(`Tree-sitter analysis failed: ${error.message}`);
   }
 }
