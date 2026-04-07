@@ -474,3 +474,25 @@ BL-CA-21 (符号导航) ────────┘
 | P1     | BL-CA-19 | 重构决策支持   | 高 - 降低重构风险   |
 | P1     | BL-CA-20 | 项目质量监控   | 中 - 长期价值       |
 | P2     | BL-CA-21 | 代码导航增强   | 中 - 开发效率       |
+
+---
+
+## 场景十一：Agent-Native Backlog API 实施
+
+> **背景**: 基于 BACKLOG_V2_DESIGN.md 最终方案，实施 Backlog 管理功能
+>
+> **目标**: 基于 Memory 系统实现 Backlog 管理，采用 ULID、4状态、Metadata 嵌套方案
+>
+> **设计文档**: [BACKLOG_V2_DESIGN.md](./BACKLOG_V2_DESIGN.md)
+>
+> **详细任务**: [BACKLOG_BACKLOG_API.md](./BACKLOG_BACKLOG_API.md)
+>
+> **关键决策**:
+>
+> - ID: ULID 天然唯一，字典序可排序
+> - 状态机: 4状态（backlog → in_progress → review → done）
+> - 数据模型: Metadata 嵌套，零 Schema 变更
+>
+> **实施阶段**: Phase 1-5（5-8天）
+>
+> **任务列表**: BL-CA-22 到 BL-CA-26
