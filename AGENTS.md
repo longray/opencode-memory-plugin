@@ -2,7 +2,7 @@
 
 **版本**: v2.9.0  
 **分支**: main  
-**更新时间**: 2026-03-29
+**更新时间**: 2026-04-07
 
 ---
 
@@ -23,7 +23,15 @@ D:/github/opencode-memory-plugin/
 │   │   ├── project-resolver.js # 项目 ID 解析器
 │   │   ├── bm25.js           # BM25 关键词搜索
 │   │   ├── trie-index.js     # Trie 索引
-│   │   └── ws-client.js      # WebSocket 客户端
+│   │   ├── ws-client.js      # WebSocket 客户端
+│   │   ├── code-analyzer.js  # 代码 AST 分析（Oxc + Tree-sitter）
+│   │   ├── tree-sitter-parser.js # 多语言 AST 解析（Python/Go/Rust/Java）
+│   │   ├── project-analyzer.js   # 项目级分析（健康度评级）
+│   │   ├── code-analysis-formatter.js # 输出格式化（table/tree/json）
+│   │   ├── code-analysis-service.js # 批量分析队列
+│   │   ├── code-fingerprint.js # 变更检测
+│   │   ├── privacy-filter.js  # 敏感内容过滤
+│   │   └── file-watcher.js    # 文件系统监听
 │   ├── tools/                # OpenCode 插件工具
 │   │   ├── core.js           # memory_write
 │   │   ├── search.js         # memory_search, memory_suggest
@@ -59,14 +67,17 @@ D:/github/opencode-memory-plugin/
 
 ### lib/ 核心库
 
-| 文件              | 主要导出                                                    | 说明                              |
-| ----------------- | ----------------------------------------------------------- | --------------------------------- |
-| memory-core.js    | writeMemory, readMemory, writeAndSyncMemory                 | 写入/读取/同步核心逻辑            |
-| entry.js          | buildEntryContent, writeEntryToTimeline, parseEntryFromFile | 条目格式化和文件操作              |
-| extractor.js      | extractByLevel, getEntryInfo                                | 分层提取和 frontmatter 解析       |
-| wrapper-client.js | WrapperClient                                               | 后端 API 客户端（所有 HTTP 调用） |
-| storage.js        | getConfig, getLinkMap, getEntryById                         | 配置和 link-map 读取              |
-| trie-index.js     | searchByPrefix, getAutocompleteSuggestions                  | Trie 索引和自动补全               |
+| 文件                  | 主要导出                                                    | 说明                               |
+| --------------------- | ----------------------------------------------------------- | ---------------------------------- |
+| memory-core.js        | writeMemory, readMemory, writeAndSyncMemory                 | 写入/读取/同步核心逻辑             |
+| entry.js              | buildEntryContent, writeEntryToTimeline, parseEntryFromFile | 条目格式化和文件操作               |
+| extractor.js          | extractByLevel, getEntryInfo                                | 分层提取和 frontmatter 解析        |
+| wrapper-client.js     | WrapperClient                                               | 后端 API 客户端（所有 HTTP 调用）  |
+| storage.js            | getConfig, getLinkMap, getEntryById                         | 配置和 link-map 读取               |
+| trie-index.js         | searchByPrefix, getAutocompleteSuggestions                  | Trie 索引和自动补全                |
+| code-analyzer.js      | CodeAnalyzer                                                | 代码 AST 分析（Oxc + Tree-sitter） |
+| tree-sitter-parser.js | analyzeWithTreeSitter                                       | 多语言 AST 解析                    |
+| project-analyzer.js   | ProjectAnalyzer                                             | 项目级分析（健康度评级）           |
 
 ### tools/ 工具
 
@@ -366,21 +377,22 @@ npm run test:watch
 
 ### 三类文档
 
-| 类别        | 文档                                           | 受众          | 内容                         |
-| ----------- | ---------------------------------------------- | ------------- | ---------------------------- |
-| **产品**    | `README.md`                                    | 用户/AI Agent | GitHub 首页、安装、使用      |
-| **产品**    | `README.npm.md`                                | npm 用户      | npm 包首页                   |
-| **产品**    | `CHANGELOG.md`                                 | 所有人        | 版本发布记录                 |
-| **产品**    | `opencode-memory-plugin/CONFIGURATION.md`      | 用户          | 配置指南                     |
-| **产品**    | `opencode-memory-plugin/QUICK_START.md`        | 新用户        | 快速入门                     |
-| **产品**    | `opencode-memory-plugin/TROUBLESHOOTING.md`    | 用户          | 故障排除                     |
-| **产品**    | `opencode-memory-plugin/EXTERNAL_EMBEDDING.md` | 用户          | 嵌入服务配置                 |
-| **产品**    | `opencode-memory-plugin/WINDOWS_SETUP.md`      | Windows 用户  | 安装说明                     |
-| **开发**    | `AGENTS.md`                                    | 开发者        | 项目结构、代码规范（本文件） |
-| **开发**    | `docs/API-CONTRACT.md`                         | 开发者        | 工具↔后端 API 映射           |
-| **开发**    | `docs/CODE-ANALYSIS-DESIGN.md`                 | 开发者        | 远期功能设计                 |
-| **backlog** | `BACKLOG.md`                                   | 项目管理      | 未完成任务                   |
-| **backlog** | `backlog_archive.md`                           | 项目管理      | 已完成任务归档               |
+| 类别        | 文档                                           | 受众          | 内容                              |
+| ----------- | ---------------------------------------------- | ------------- | --------------------------------- |
+| **产品**    | `README.md`                                    | 用户/AI Agent | GitHub 首页、安装、使用           |
+| **产品**    | `README.npm.md`                                | npm 用户      | npm 包首页                        |
+| **产品**    | `CHANGELOG.md`                                 | 所有人        | 版本发布记录                      |
+| **产品**    | `opencode-memory-plugin/CONFIGURATION.md`      | 用户          | 配置指南                          |
+| **产品**    | `opencode-memory-plugin/QUICK_START.md`        | 新用户        | 快速入门                          |
+| **产品**    | `opencode-memory-plugin/TROUBLESHOOTING.md`    | 用户          | 故障排除                          |
+| **产品**    | `opencode-memory-plugin/EXTERNAL_EMBEDDING.md` | 用户          | 嵌入服务配置                      |
+| **产品**    | `opencode-memory-plugin/WINDOWS_SETUP.md`      | Windows 用户  | 安装说明                          |
+| **开发**    | `AGENTS.md`                                    | 开发者        | 项目结构、代码规范（本文件）      |
+| **开发**    | `docs/API-CONTRACT.md`                         | 开发者        | 工具↔后端 API 映射                |
+| **开发**    | `docs/CODE-ANALYSIS-DESIGN.md`                 | 开发者        | 代码分析远期功能设计（v1.0 归档） |
+| **开发**    | `docs/CODE_ANALYSIS_DEVELOPMENT.md`            | 开发者        | 代码分析开发者指南（v3.0 + v1.4） |
+| **backlog** | `BACKLOG.md`                                   | 项目管理      | 未完成任务                        |
+| **backlog** | `backlog_archive.md`                           | 项目管理      | 已完成任务归档                    |
 
 ### Backlog 编号规则
 

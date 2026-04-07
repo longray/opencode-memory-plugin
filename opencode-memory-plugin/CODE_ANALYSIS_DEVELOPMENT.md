@@ -340,6 +340,93 @@ DEBUG=code-analysis node cli/code-analyzer.cjs file.js
 
 ---
 
+## 8. v1.4 Data Structures
+
+### 8.1 FunctionSymbol (Extended)
+
+Complete field definition:
+
+| Field       | Type    | Description            | Status                 |
+| ----------- | ------- | ---------------------- | ---------------------- |
+| name        | string  | Function name          | ✅ Implemented         |
+| start_line  | number  | Start line             | ✅ Implemented         |
+| end_line    | number  | End line               | ✅ Implemented         |
+| params      | array   | Parameters with types  | ✅ Implemented         |
+| return_type | string  | Return type annotation | ✅ Oxc, ⚠️ Tree-sitter |
+| is_exported | boolean | Whether exported       | ✅ Oxc, ⚠️ Tree-sitter |
+| is_async    | boolean | Whether async function | ✅ Oxc, ⚠️ Tree-sitter |
+
+### 8.2 CallSymbol (New)
+
+Function call relationship:
+
+```typescript
+interface CallSymbol {
+  target: string; // Called function name
+  line: number; // Call location line
+  column?: number; // Call location column
+  file_path?: string; // Source file (for cross-file calls)
+}
+```
+
+### 8.3 ClassSymbol (Extended)
+
+| Field      | Type   | Description          | Status                 |
+| ---------- | ------ | -------------------- | ---------------------- |
+| name       | string | Class name           | ✅ Implemented         |
+| methods    | array  | Method definitions   | ✅ Implemented         |
+| properties | array  | Property definitions | ✅ Oxc, ⚠️ Tree-sitter |
+
+### 8.4 InterfaceSymbol (New)
+
+```typescript
+interface InterfaceSymbol {
+  name: string;
+  methods: FunctionSymbol[];
+  properties: PropertySymbol[];
+}
+```
+
+### 8.5 DependencyInfo (Enhanced)
+
+Categorized dependencies:
+
+```typescript
+interface DependencyInfo {
+  internal: string[]; // Relative imports (./, ../)
+  external: string[]; // npm/pip/cargo packages
+  builtin: string[]; // Built-in modules (node:fs, os, sys)
+}
+```
+
+### 8.6 Complexity Metrics
+
+**Cyclomatic Complexity Algorithm**:
+
+- Formula: `complexity = 1 + decision_points`
+- Decision points: if, for, while, switch, catch, &&, ||, ?:
+
+**Nesting Depth Algorithm**:
+
+- Formula: `max_depth = max(nesting_level)`
+- Tracks nested blocks recursively
+
+### 8.7 Quality Scoring
+
+**File-level scoring** (planned):
+
+- Based on: cyclomatic complexity, nesting depth, function length
+- Output: 0-100 score with grade (A/B/C/D)
+
+**Project-level grading** (implemented):
+
+- A: avg_complexity < 5, no high-risk files
+- B: avg_complexity < 8, high-risk files < 5
+- C: avg_complexity < 12, high-risk files < 10
+- D: other
+
+---
+
 ## References
 
 - [CODE-ANALYSIS.md](./CODE-ANALYSIS.md) — 用户文档

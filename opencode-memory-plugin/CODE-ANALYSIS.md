@@ -1,6 +1,6 @@
 # Code Analysis Feature
 
-**版本**: v3.0.0 (v1.4 路线图规划中)  
+**版本**: v3.0.0 (v1.4 实施中)
 **最后更新**: 2026-04-07
 
 ---
@@ -18,7 +18,9 @@
 - ✅ **批量上传** — 智能批量处理，减少网络请求
 - ✅ **隐私保护** — 自动检测并跳过敏感文件（.env、配置文件等）
 - ✅ **项目级分析** — 生成项目健康度报告（A/B/C/D评级）
-- 🔄 **v1.4 规划中** — 调用关系提取（CallSymbol）、Tree-sitter 路径增强、文件级质量评分
+- 🔄 **调用关系提取 (CallSymbol)** — 插件端开发中，后端 Phase 2
+- 🔄 **Tree-sitter 路径增强** — 插件端开发中
+- 🔄 **文件级质量评分** — 插件端开发中
 
 ---
 
@@ -68,6 +70,55 @@ AST 分析（提取函数、类、接口等）
 - **批量上传** — 最多 10 个文件或等待 2 秒后统一上传
 - **并发控制** — 最多 2 个文件同时分析
 - **隐私过滤** — 自动跳过 `.env`、`node_modules`、`.git` 等目录
+
+---
+
+## v1.4 新特性
+
+### 调用关系追踪
+
+自动提取函数调用关系，支持跨文件引用查询。
+
+**功能**:
+
+- 提取函数调用链 (CallSymbol)
+- 查询谁调用了某个函数 (references)
+- 查询某个函数调用了谁 (dependencies)
+
+**状态**: 🔄 开发中 (后端 Phase 2)
+
+### 增强的代码指标
+
+**新增字段**:
+
+- `return_type`: 函数返回类型
+- `is_exported`: 是否导出
+- `is_async`: 是否异步
+- `properties`: 类属性
+- `interfaces`: 接口定义
+
+**状态**: ⚠️ 部分完成 (Oxc 路径 ✅, Tree-sitter 路径 🔄)
+
+### 代码地图
+
+项目级代码可视化，包含文件树、模块依赖、热点文件。
+
+**API**: `GET /api/v1/projects/{id}/map`
+
+**状态**: 🔄 规划中 (后端 Phase 3)
+
+---
+
+## 后端支持状态
+
+| 功能         | 后端 API                               | 状态       |
+| ------------ | -------------------------------------- | ---------- |
+| 代码存储     | POST /api/v1/memories                  | ✅ 已支持  |
+| 调用关系存储 | POST /api/v1/calls/batch               | 🔄 Phase 2 |
+| 引用查询     | GET /api/v1/memories/{id}/references   | 🔄 Phase 2 |
+| 依赖查询     | GET /api/v1/memories/{id}/dependencies | 🔄 Phase 2 |
+| 代码地图     | GET /api/v1/projects/{id}/map          | 🔄 Phase 3 |
+| 项目统计     | GET /api/v1/projects/{id}/stats        | 🔄 Phase 3 |
 
 ---
 

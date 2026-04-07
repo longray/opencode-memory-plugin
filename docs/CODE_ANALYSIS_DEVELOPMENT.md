@@ -2,7 +2,8 @@
 
 > **目标**: 帮助开发者理解代码分析功能的架构和开发流程  
 > **读者**: 贡献者、维护者  
-> **前置知识**: JavaScript/Node.js, AST 基础
+> **前置知识**: JavaScript/Node.js, AST 基础  
+> **版本**: v3.0.0 + v1.4 路线图
 
 ---
 
@@ -298,9 +299,209 @@ npm test -- --testTimeout=30000
 
 ---
 
-## 7. 扩展开发
+## 8. v1.4 数据模型与增强计划
 
-### 7.1 添加新语言支持
+> **设计文档**: `embedding_service/docs/CODE-ANALYSIS-DESIGN-v1.4.md`
+
+### 8.1 完整数据结构（v1.4 目标）
+
+```typescript
+interface CodeAnalysisResult {
+  // 基础信息
+  language: string; // 标准化语言名
+  analyzer: string; // "oxc" | "tree-sitter" | "fallback"
+  analyzed_at: string; // ISO 8601
+  analyzer_version: string;
+
+  // 符号信息
+  functions: FunctionSymbol[]; // ✅ v3.0 已实现（Oxc），⚠️ Tree-sitter 待增强
+  classes: ClassSymbol[]; // ✅ v3.0 已实现（Oxc），⚠️ Tree-sitter 待增强
+  interfaces: InterfaceSymbol[]; // ✅ v3.0 已实现（Oxc），❌ Tree-sitter 缺失
+  imports: ImportSymbol[]; // ✅ v3.0 已实现，⚠️ Tree-sitter 结构待增强
+  exports: ExportSymbol[]; // ✅ v3.0 已实现（Oxc），❌ Tree-sitter 缺失
+
+  // 复杂度指标
+  complexity_metrics: ComplexityMetrics;
+
+  // 依赖信息
+  dependencies: DependencyInfo;
+
+  // 调用关系（v1.4 新增）
+  calls?: CallSymbol[]; // ❌ 待实现
+
+  // 错误与警告
+  errors?: ParseError[];
+  warnings?: ParseWarning[];
+}
+```
+
+### 8.2 FunctionSymbol（v1.4 完整字段）
+
+```typescript
+interface FunctionSymbol {
+  name: string;
+  start_line: number;
+  end_line: number;
+  params: Array<{ name: string; type?: string }>;
+  return_type?: string; // ✅ Oxc 已有，❌ Tree-sitter 缺失
+  is_exported: boolean; // ✅ Oxc 已有，❌ Tree-sitter 缺失
+  is_async: boolean; // ✅ Oxc 已有，❌ Tree-sitter 缺失
+}
+```
+
+**实现状态**:
+
+| 字段        | Oxc 路径  | Tree-sitter 路径 | 任务     |
+| ----------- | --------- | ---------------- | -------- |
+| name        | ✅        | ✅               | —        |
+| start/end   | ✅        | ✅ (line only)   | BL-CA-11 |
+| params      | ✅ 含类型 | ⚠️ 无类型        | BL-CA-11 |
+| return_type | ✅        | ❌               | BL-CA-11 |
+| is_exported | ✅        | ❌               | BL-CA-11 |
+| is_async    | ✅        | ❌               | BL-CA-11 |
+
+### 8.3 CallSymbol（v1.4 新增）
+
+```typescript
+interface CallSymbol {
+  target: string; // 被调用函数名
+  line: number; // 调用所在行
+  column?: number; // 调用所在列
+}
+```
+
+**提取策略**:
+
+- **Oxc 路径**: 遍历 `CallExpression` AST 节点，提取 `callee.name`
+- **Tree-sitter 路径**: 遍历 `call_expression` 节点，提取 `function` 子节点
+- **过滤规则**: 跳过内置调用（`console.log`、`require`、`super` 等）
+- **任务**: BL-CA-12
+
+**实现位置**: `lib/code-analyzer.js` 新增 `_extractCalls(ast)` 方法
+
+### 8.4 ClassSymbol（v1.4 完整字段）
+
+```typescript
+interface ClassSymbol {
+  name: string;
+  start_line: number;
+  end_line: number;
+  methods: string[]; // ✅ Oxc 已有，⚠️ Tree-sitter 部分有
+  properties: string[]; // ✅ Oxc 已有，❌ Tree-sitter 缺失
+}
+```
+
+**实现状态**:
+
+| 字段       | Oxc 路径 | Tree-sitter Python | Tree-sitter Go | Tree-sitter Rust | Tree-sitter Java |
+| ---------- | -------- | ------------------ | -------------- | ---------------- | ---------------- |
+| name       | ✅       | ✅                 | ✅             | ✅               | ✅               |
+| methods    | ✅       | ✅                 | ❌             | ✅ (impl)        | ✅               |
+| properties | ✅       | ❌                 | ❌             | ❌               | ❌               |
+
+**任务**: BL-CA-13
+
+### 8.5 InterfaceSymbol（v1.4 新增实现）
+
+```typescript
+interface InterfaceSymbol {
+  name: string;
+  start_line: number;
+  end_line: number;
+  methods: string[];
+  properties: string[];
+}
+```
+
+**语言映射**:
+
+| 语言  | 概念           | Tree-sitter 节点类型        |
+| ----- | -------------- | --------------------------- |
+| Go    | interface      | `interface_type`            |
+| Rust  | trait          | `trait_item`                |
+| Java  | interface      | `interface_declaration`     |
+| JS/TS | interface (TS) | `TSInterfaceDeclaration` ✅ |
+
+**任务**: BL-CA-13
+
+### 8.6 圈复杂度计算（v1.4 增强）
+
+**当前差距**:
+
+| 路径        | 算法                                | 准确度 |
+| ----------- | ----------------------------------- | ------ |
+| Oxc         | AST 遍历 if/for/while/catch/&&/\|\| | ✅ 高  |
+| Tree-sitter | 函数名启发式（handle→3）            | ❌ 低  |
+
+**v1.4 目标**: Tree-sitter 路径改为 AST 级别计算。
+
+**算法**: 遍历 Tree-sitter AST，计数分支节点：
+
+```text
+基础复杂度 = 1
++1: if, elif, else, for, while, repeat, until, except, catch
++1: and (&&), or (||)
++1: case (switch/case, match)
+```
+
+**实现位置**: `lib/tree-sitter-parser.js` 新增 `calculateCyclomaticFromAST(node)`
+
+**任务**: BL-CA-15
+
+### 8.7 代码质量评分（v1.4 新增）
+
+**评分维度**:
+
+| 维度              | 权重 | 计算                                | 满分 |
+| ----------------- | ---- | ----------------------------------- | ---- |
+| 圈复杂度          | 30%  | `max(0, 100 - avg_complexity * 10)` | 30   |
+| 嵌套深度          | 20%  | `max(0, 100 - max_depth * 25)`      | 20   |
+| 函数长度          | 20%  | `avg(100 - func_length_penalty)`    | 20   |
+| 函数数量/文件长度 | 15%  | 基于函数密度评分                    | 15   |
+| 注释覆盖          | 15%  | `comment_lines / total_lines`       | 15   |
+
+**评级映射**:
+
+```text
+90-100: A (优秀)
+70-89:  B (良好)
+50-69:  C (一般)
+0-49:   D (需改进)
+```
+
+**实现位置**: `lib/code-analyzer.js` 新增 `calculateQualityScore(result)` 方法
+
+**任务**: BL-CA-16
+
+### 8.8 DependencyInfo 分类（v1.4 增强）
+
+```typescript
+interface DependencyInfo {
+  internal: string[]; // 相对路径导入
+  external: string[]; // npm/pip/cargo 第三方包
+  builtin: string[]; // 语言内置模块
+}
+```
+
+**分类规则**:
+
+| 语言   | builtin 判断                                   | external 判断                   |
+| ------ | ---------------------------------------------- | ------------------------------- |
+| JS/TS  | `node:*` 前缀或内置模块名（fs, path, http...） | 非相对路径且非 builtin          |
+| Python | 标准库模块名（os, sys, json...）               | 非相对路径且非 builtin          |
+| Go     | 标准库（fmt, net, io...）                      | 非相对路径且非 builtin          |
+| Rust   | 核心库（std, core, alloc...）                  | 外部 crate（非 std/core/alloc） |
+| Java   | `java.*` / `javax.*` 包名                      | 第三方包                        |
+
+**当前状态**: Oxc 路径已实现分类 ✅，Tree-sitter 路径为扁平数组 ❌
+
+**任务**: BL-CA-14
+
+---
+
+## 9. 扩展开发
+
+### 9.1 添加新语言支持
 
 1. 安装 Tree-sitter grammar:
 
@@ -326,7 +527,7 @@ function extract<Language>Symbols(node, sourceCode, collectors) {
 
 1. 添加测试用例
 
-### 7.2 添加新输出格式
+### 9.2 添加新输出格式
 
 1. 在 `code-analysis-formatter.js` 中添加格式化函数:
 
@@ -341,12 +542,13 @@ export function formatAs<Format>(result) {
 
 ---
 
-## 8. 相关文档
+## 10. 相关文档
 
 - **[产品文档](../opencode-memory-plugin/CODE-ANALYSIS.md)** - 用户指南
 - **[快速入门](../opencode-memory-plugin/QUICK_START_CODE_ANALYSIS.md)** - 5分钟上手
-- **[API 文档](../docs/API-CONTRACT.md)** - 后端 API 契约
+- **[API 文档](./API-CONTRACT.md)** - 后端 API 契约
+- **[v1.4 设计文档](../../embedding_service/docs/CODE-ANALYSIS-DESIGN-v1.4.md)** - 完整设计方案
 
 ---
 
-_最后更新：2026-04-06_
+_最后更新：2026-04-07_
