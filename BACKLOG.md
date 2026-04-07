@@ -316,37 +316,46 @@ interface CallSymbol {
 
 ---
 
-### BL-CA-18 [P1] 场景2 - 调用关系提取与可视化
+### BL-CA-18 [P1] 场景2 - 调用关系提取与可视化 ✅ 已完成
 
 **目标**: 提取函数调用关系（CallSymbol），支持跨文件引用追踪，为代码审查提供调用关系视图
 
 **涉及范围**:
 
-1. `lib/code-analyzer.js` - 新增 `_extract_calls()` 方法（Oxc 路径）
-2. `lib/tree-sitter-parser.js` - 新增调用提取（Tree-sitter 路径）
-3. 分析结果新增 `calls` 字段，包含 `target`, `file_path`, `line`, `column`
-4. `lib/code-analysis-formatter.js` - 新增调用关系可视化输出
+1. ✅ `lib/code-analyzer.js` - 新增 `extractCallsFromOxcAst()` 方法（Oxc 路径）
+2. ✅ `lib/tree-sitter-parser.js` - 新增 `extractCalls()` 及 4 语言调用提取（Tree-sitter 路径）
+3. ✅ 分析结果新增 `calls` 字段，包含 `target`, `file_path`, `line`, `column`
+4. ✅ `lib/code-analysis-formatter.js` - 新增调用关系可视化输出（表格 + 树形）
 
 **前置依赖**: 无
 
 **完成标准**:
 
-1. Oxc 路径：遍历 `CallExpression` 节点，提取调用关系
-2. Tree-sitter 路径：遍历 `call_expression` 节点，提取调用关系
-3. `CallSymbol` 包含必需字段：`target`, `file_path`, `line`, `column`
-4. 支持过滤内置调用（console.log 等）
-5. CLI `--format tree` 输出包含调用关系层级
-6. 单元测试覆盖调用提取逻辑（5+ 场景）
+1. ✅ Oxc 路径：遍历 `CallExpression` 节点，提取调用关系
+2. ✅ Tree-sitter 路径：遍历 `call_expression` 节点，提取调用关系（Python/Go/Rust/Java）
+3. ✅ `CallSymbol` 包含必需字段：`target`, `file_path`, `line`, `column`
+4. ✅ 支持过滤内置调用（console.log 等）
+5. ✅ CLI `--format tree` 输出包含调用关系层级
+6. ✅ 所有测试通过（18 套件，140 测试）
 
 **验证方式**:
 
-1. 分析包含多函数调用的 JS 文件，验证 `calls` 数组正确
-2. 验证 `file_path` 字段存在且为相对路径
-3. 分析 Python 文件，验证函数调用提取正确
-4. 运行 `npm test`，验证无回归
-5. 检查输出示例符合后端 API 要求
+1. ✅ 分析包含多函数调用的 JS 文件，验证 `calls` 数组正确
+2. ✅ 验证 `file_path` 字段存在且为相对路径
+3. ✅ 分析 Python 文件，验证函数调用提取正确
+4. ✅ 运行 `npm test`，验证无回归
+5. ✅ 检查输出示例符合后端 API 要求
 
-**后端依赖**: BL-CA-20~22（调用关系存储/查询 API）
+**后端依赖**: BL-CA-20~22（调用关系存储/查询 API）- 后端 2026-04-11 完成
+
+**实现细节**:
+
+- Oxc 路径：支持直接调用 `func()` 和成员调用 `obj.method()`
+- Tree-sitter 路径：支持 Python/Go/Rust/Java 4 种语言
+- 内置调用过滤：console.log, fmt.Println, print 等
+- 行号/列号计算：基于 AST 节点位置
+
+**提交记录**: 未提交（本地改动保留）
 
 ---
 

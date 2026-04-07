@@ -198,6 +198,7 @@ export class CodeAnalyzer {
 
     const complexityMetrics = this.calculateComplexity(functions, classes, sourceCode, ast);
     const dependencies = this.extractDependencies(imports);
+    const calls = this.extractCallsFromOxcAst(ast, filePath, sourceCode);
 
     return {
       language,
@@ -209,6 +210,7 @@ export class CodeAnalyzer {
       interfaces,
       imports,
       exports,
+      calls,
       complexity_metrics: complexityMetrics,
       dependencies,
     };
@@ -616,6 +618,95 @@ export class CodeAnalyzer {
     }
 
     return { internal, external, builtin };
+  }
+
+  /**
+   * 从 Oxc AST 提取函数调用关系
+   * @param {Object} ast - Oxc AST
+   * @param {string} filePath - 文件路径
+   * @param {string} sourceCode - 源代码
+   * @returns {Array<{target: string, file_path: string, line: number, column?: number}>} 调用列表
+   */
+  extractCallsFromOxcAst(ast, filePath, sourceCode) {
+    const calls = [];
+    const builtinCalls = [
+      'console.log',
+      'console.error',
+      'console.warn',
+      'console.info',
+      'console.debug',
+    ];
+
+    const traverse = node => {
+      if (!node || typeof node !== 'object') return;
+
+      // 处理 CallExpression
+      if (node.type === 'CallExpression') {
+        let targetName = null;
+
+        // 直接调用: func()
+        if (node.callee?.type === 'Identifier') {
+          targetName = node.callee.name;
+        }
+        // 成员调用: obj.method()
+        else if (node.callee?.type === 'MemberExpression') {
+          const obj = node.callee.object?.name || '';
+          const prop = node.callee.property?.name || '';
+          if (obj && prop) {
+            targetName = `${obj}.${prop}`;
+          }
+        }
+
+        // 过滤内置调用
+        if (targetName && !builtinCalls.includes(targetName)) {
+          const line = this.getLineFromPosition(sourceCode, node.start);
+          const column = this.getColumnFromPosition(sourceCode, node.start);
+          calls.push({
+            target: targetName,
+            file_path: filePath,
+            line: line,
+            column: column,
+          });
+        }
+      }
+
+      // 递归遍历子节点
+      for (const key in node) {
+        if (key === 'type' || key === 'loc' || key === 'range') continue;
+        const value = node[key];
+        if (Array.isArray(value)) {
+          value.forEach(child => traverse(child));
+        } else if (typeof value === 'object' && value !== null) {
+          traverse(value);
+        }
+      }
+    };
+
+    traverse(ast);
+    return calls;
+  }
+
+  /**
+   * 从位置计算行号
+   * @param {string} sourceCode - 源代码
+   * @param {number} position - 字符位置
+   * @returns {number} 行号（1-based）
+   */
+  getLineFromPosition(sourceCode, position) {
+    const lines = sourceCode.substring(0, position).split('\n');
+    return lines.length;
+  }
+
+  /**
+   * 从位置计算列号
+   * @param {string} sourceCode - 源代码
+   * @param {number} position - 字符位置
+   * @returns {number} 列号（0-based）
+   */
+  getColumnFromPosition(sourceCode, position) {
+    const lines = sourceCode.substring(0, position).split('\n');
+    const lastLine = lines[lines.length - 1];
+    return lastLine.length;
   }
 
   createFallbackResult(filePath, sourceCode, lines, warnings) {

@@ -36,6 +36,7 @@
 
 - `analyze(filePath, sourceCode)` — 分析单个文件
 - `analyzeWithOxc(filePath, sourceCode, language)` — Oxc 解析
+- `extractCallsFromOxcAst(ast, filePath, sourceCode)` — **调用关系提取（v1.4 新增）**
 - `calculateComplexity(functions, classes, sourceCode, ast)` — 复杂度计算
 - `extractJSDoc(nodeStart, comments)` — JSDoc 提取
 - `parseJSDoc(commentValue)` — JSDoc 解析
@@ -208,6 +209,7 @@ function add(a, b) { ... }
 {
   "code_analysis": {
     "enabled": true,
+    "auto_trigger": true,
     "debounce_ms": 300,
     "batch_max_size": 10,
     "batch_delay_ms": 2000,
@@ -220,15 +222,16 @@ function add(a, b) { ... }
 
 ### 配置项说明
 
-| 配置项               | 默认值 | 说明                 |
-| -------------------- | ------ | -------------------- |
-| enabled              | true   | 是否启用代码分析     |
-| debounce_ms          | 300    | 防抖时间（毫秒）     |
-| batch_max_size       | 10     | 每批最大文件数       |
-| batch_delay_ms       | 2000   | 批量延迟（毫秒）     |
-| max_concurrent       | 2      | 最大并发分析数       |
-| large_file_threshold | 5000   | 大文件警告阈值（行） |
-| skip_file_threshold  | 10000  | 跳过文件阈值（行）   |
+| 配置项               | 默认值 | 说明                   |
+| -------------------- | ------ | ---------------------- |
+| enabled              | true   | 是否启用代码分析       |
+| auto_trigger         | true   | 文件保存时自动触发分析 |
+| debounce_ms          | 300    | 防抖时间（毫秒）       |
+| batch_max_size       | 10     | 每批最大文件数         |
+| batch_delay_ms       | 2000   | 批量延迟（毫秒）       |
+| max_concurrent       | 2      | 最大并发分析数         |
+| large_file_threshold | 5000   | 大文件警告阈值（行）   |
+| skip_file_threshold  | 10000  | 跳过文件阈值（行）     |
 
 ---
 
@@ -425,6 +428,46 @@ interface DependencyInfo {
 - C: avg_complexity < 12, high-risk files < 10
 - D: other
 
+### 8.8 Call Extraction (v1.4)
+
+**Implementation**:
+
+- **Oxc Path**: `extractCallsFromOxcAst()` in `lib/code-analyzer.js`
+  - Traverses `CallExpression` nodes
+  - Supports direct calls: `func()`
+  - Supports member calls: `obj.method()`
+  - Filters builtin calls: `console.log`, `console.error`, etc.
+  - Calculates line/column from AST node position
+
+- **Tree-sitter Path**: `extractCalls()` in `lib/tree-sitter-parser.js`
+  - Python: `call` nodes
+  - Go: `call_expression` nodes
+  - Rust: `call_expression` nodes
+  - Java: `method_invocation` nodes
+
+**CallSymbol Structure**:
+
+```typescript
+{
+  target: string; // Function name (e.g., "hashPassword" or "obj.method")
+  file_path: string; // Relative path to calling file
+  line: number; // 1-based line number
+  column: number; // 0-based column number
+}
+```
+
+**Backend API Integration** (planned):
+
+- `POST /api/v1/calls/batch` — Upload call relationships
+- `GET /api/v1/memories/{id}/references` — Find who calls this function
+- `GET /api/v1/memories/{id}/dependencies` — Find what this function calls
+
+**Memory ID Caching**:
+
+- Cache: `Map<file_path, memory_id>`
+- Updated after each file upload
+- Used to resolve `callee_memory_id` from `target_file`
+
 ---
 
 ## References
@@ -436,4 +479,4 @@ interface DependencyInfo {
 
 ---
 
-_最后更新：2026-04-07_
+_最后更新：2026-04-07（添加调用关系提取文档）_

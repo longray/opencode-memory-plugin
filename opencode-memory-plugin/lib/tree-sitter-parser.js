@@ -79,6 +79,7 @@ export async function analyzeWithTreeSitter(filePath, sourceCode, language) {
     });
 
     const complexityMetrics = calculateBasicComplexity(functions, classes, sourceCode);
+    const calls = extractCalls(rootNode, sourceCode, language, filePath);
     const duration = performance.now() - startTime;
 
     return {
@@ -91,6 +92,7 @@ export async function analyzeWithTreeSitter(filePath, sourceCode, language) {
       interfaces: [], // Tree-sitter 不区分接口
       imports,
       exports: [], // 简化处理
+      calls,
       complexity_metrics: complexityMetrics,
       dependencies: imports.map(imp => imp.source),
       analysis_duration_ms: duration,
@@ -375,6 +377,190 @@ function extractReceiverType(receiverNode) {
     }
   }
   return 'Unknown';
+}
+
+/**
+ * 从 AST 提取调用关系
+ */
+function extractCalls(node, sourceCode, language, filePath) {
+  const calls = [];
+
+  switch (language) {
+    case 'python':
+      extractPythonCalls(node, sourceCode, filePath, calls);
+      break;
+    case 'go':
+      extractGoCalls(node, sourceCode, filePath, calls);
+      break;
+    case 'rust':
+      extractRustCalls(node, sourceCode, filePath, calls);
+      break;
+    case 'java':
+      extractJavaCalls(node, sourceCode, filePath, calls);
+      break;
+  }
+
+  return calls;
+}
+
+/**
+ * 提取 Python 调用
+ */
+function extractPythonCalls(node, sourceCode, filePath, calls) {
+  const builtinCalls = ['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set'];
+
+  if (node.type === 'call') {
+    const funcNode = node.childForFieldName('function');
+    if (funcNode) {
+      let targetName = '';
+
+      // 直接调用: func()
+      if (funcNode.type === 'identifier') {
+        targetName = funcNode.text;
+      }
+      // 成员调用: obj.method()
+      else if (funcNode.type === 'attribute') {
+        const objNode = funcNode.childForFieldName('object');
+        const attrNode = funcNode.childForFieldName('attribute');
+        if (objNode && attrNode) {
+          targetName = `${objNode.text}.${attrNode.text}`;
+        }
+      }
+
+      if (targetName && !builtinCalls.includes(targetName.split('.')[0])) {
+        calls.push({
+          target: targetName,
+          file_path: filePath,
+          line: node.startPosition.row + 1,
+          column: node.startPosition.column,
+        });
+      }
+    }
+  }
+
+  // 递归处理子节点
+  for (const child of node.children) {
+    extractPythonCalls(child, sourceCode, filePath, calls);
+  }
+}
+
+/**
+ * 提取 Go 调用
+ */
+function extractGoCalls(node, sourceCode, filePath, calls) {
+  const builtinCalls = ['fmt.Println', 'fmt.Printf', 'fmt.Print', 'len', 'cap', 'append'];
+
+  if (node.type === 'call_expression') {
+    const funcNode = node.childForFieldName('function');
+    if (funcNode) {
+      let targetName = '';
+
+      // 直接调用: func()
+      if (funcNode.type === 'identifier') {
+        targetName = funcNode.text;
+      }
+      // 成员调用: pkg.Func()
+      else if (funcNode.type === 'selector_expression') {
+        const pkgNode = funcNode.childForFieldName('operand');
+        const funcNameNode = funcNode.childForFieldName('field');
+        if (pkgNode && funcNameNode) {
+          targetName = `${pkgNode.text}.${funcNameNode.text}`;
+        }
+      }
+
+      if (targetName && !builtinCalls.includes(targetName)) {
+        calls.push({
+          target: targetName,
+          file_path: filePath,
+          line: node.startPosition.row + 1,
+          column: node.startPosition.column,
+        });
+      }
+    }
+  }
+
+  // 递归处理子节点
+  for (const child of node.children) {
+    extractGoCalls(child, sourceCode, filePath, calls);
+  }
+}
+
+/**
+ * 提取 Rust 调用
+ */
+function extractRustCalls(node, sourceCode, filePath, calls) {
+  const builtinCalls = ['println!', 'print!', 'eprintln!', 'eprint!', 'format!', 'vec!'];
+
+  if (node.type === 'call_expression') {
+    const funcNode = node.childForFieldName('function');
+    if (funcNode) {
+      let targetName = '';
+
+      // 直接调用: func()
+      if (funcNode.type === 'identifier') {
+        targetName = funcNode.text;
+      }
+      // 成员调用: obj.method()
+      else if (funcNode.type === 'field_expression') {
+        const objNode = funcNode.childForFieldName('value');
+        const methodNode = funcNode.childForFieldName('field');
+        if (objNode && methodNode) {
+          targetName = `${objNode.text}.${methodNode.text}`;
+        }
+      }
+
+      if (targetName && !builtinCalls.includes(targetName)) {
+        calls.push({
+          target: targetName,
+          file_path: filePath,
+          line: node.startPosition.row + 1,
+          column: node.startPosition.column,
+        });
+      }
+    }
+  }
+
+  // 递归处理子节点
+  for (const child of node.children) {
+    extractRustCalls(child, sourceCode, filePath, calls);
+  }
+}
+
+/**
+ * 提取 Java 调用
+ */
+function extractJavaCalls(node, sourceCode, filePath, calls) {
+  const builtinCalls = ['System.out.println', 'System.out.print', 'System.err.println'];
+
+  if (node.type === 'method_invocation') {
+    const funcNode = node.childForFieldName('name');
+    const objNode = node.childForFieldName('object');
+
+    let targetName = '';
+
+    // 直接调用: method()
+    if (funcNode && !objNode) {
+      targetName = funcNode.text;
+    }
+    // 成员调用: obj.method()
+    else if (funcNode && objNode) {
+      targetName = `${objNode.text}.${funcNode.text}`;
+    }
+
+    if (targetName && !builtinCalls.includes(targetName)) {
+      calls.push({
+        target: targetName,
+        file_path: filePath,
+        line: node.startPosition.row + 1,
+        column: node.startPosition.column,
+      });
+    }
+  }
+
+  // 递归处理子节点
+  for (const child of node.children) {
+    extractJavaCalls(child, sourceCode, filePath, calls);
+  }
 }
 
 /**

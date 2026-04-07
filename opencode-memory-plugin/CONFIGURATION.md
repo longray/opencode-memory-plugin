@@ -244,7 +244,8 @@ The code analysis feature automatically analyzes code files on save and stores t
 ```json
 {
   "code_analysis": {
-    "enabled": true
+    "enabled": true,
+    "auto_trigger": true
   }
 }
 ```
@@ -252,6 +253,9 @@ The code analysis feature automatically analyzes code files on save and stores t
 **Options**:
 
 - `enabled`: Enable or disable code analysis (default: `true`)
+- `auto_trigger`: Automatically analyze files on save (default: `true`)
+  - Set to `false` to disable automatic analysis
+  - Use CLI tool `code-analyzer` for manual analysis when disabled
 
 ### Exclude Patterns
 
@@ -293,6 +297,7 @@ The code analysis feature automatically analyzes code files on save and stores t
   "version": "3.0",
   "code_analysis": {
     "enabled": true,
+    "auto_trigger": true,
     "exclude_patterns": ["node_modules", ".git", "dist", "build"],
     "batch_max_size": 10,
     "batch_delay_ms": 2000,

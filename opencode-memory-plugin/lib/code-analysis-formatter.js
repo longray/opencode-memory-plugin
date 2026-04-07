@@ -12,7 +12,7 @@ export function formatAsTable(result) {
   }
 
   const { file, result: analysis } = result;
-  const { language, functions, classes, complexity_metrics } = analysis;
+  const { language, functions, classes, complexity_metrics, calls } = analysis;
 
   const lines = [];
 
@@ -66,6 +66,26 @@ export function formatAsTable(result) {
     }
   }
 
+  // Calls
+  if (calls && calls.length > 0) {
+    lines.push('├' + '─'.repeat(58) + '┤');
+    lines.push(`│${padEnd(' Calls:', 58)}│`);
+    lines.push('│ ' + '─'.repeat(56) + ' │');
+    lines.push(`│ ${padEnd('Target', 35)}${padEnd('Line', 8)}${padEnd('Column', 13)}│`);
+    lines.push('│ ' + '─'.repeat(56) + ' │');
+
+    for (const call of calls.slice(0, 10)) {
+      const target = truncate(call.target, 33);
+      const line = String(call.line || '-');
+      const column = String(call.column || '-');
+      lines.push(`│ ${padEnd(target, 35)}${padEnd(line, 8)}${padEnd(column, 13)}│`);
+    }
+
+    if (calls.length > 10) {
+      lines.push(`│ ${padEnd(`... and ${calls.length - 10} more`, 56)}│`);
+    }
+  }
+
   lines.push('└' + '─'.repeat(58) + '┘');
 
   return lines.join('\n');
@@ -80,7 +100,7 @@ export function formatAsTree(result) {
   }
 
   const { file, result: analysis } = result;
-  const { language, functions, classes } = analysis;
+  const { language, functions, classes, calls } = analysis;
 
   const lines = [];
 
@@ -115,11 +135,26 @@ export function formatAsTree(result) {
         for (let j = 0; j < cls.methods.length; j++) {
           const method = cls.methods[j];
           const isLastMethod = j === cls.methods.length - 1;
-          const isLast = isLastClass && isLastMethod;
+          const isLast = isLastClass && isLastMethod && (!calls || calls.length === 0);
           const methodPrefix = isLast ? '        └── ' : '        ├── ';
           lines.push(`${methodPrefix}${method.name}() @ line ${method.line}`);
         }
       }
+    }
+  }
+
+  // Calls
+  if (calls && calls.length > 0) {
+    const hasFunctions = functions && functions.length > 0;
+    const hasClasses = classes && classes.length > 0;
+    const prefix = hasFunctions || hasClasses ? '└── ' : '├── ';
+    lines.push(`${prefix}Calls (${calls.length})`);
+
+    for (let i = 0; i < calls.length; i++) {
+      const call = calls[i];
+      const isLast = i === calls.length - 1;
+      const callPrefix = isLast ? '    └── ' : '    ├── ';
+      lines.push(`${callPrefix}${call.target}() @ line ${call.line}:${call.column}`);
     }
   }
 

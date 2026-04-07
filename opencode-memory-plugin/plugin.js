@@ -14,6 +14,7 @@ import {
 } from './tools/sync.js';
 import { onFileSaved } from './lib/code-analysis-service.js';
 import { startFileWatcher } from './lib/file-watcher.js';
+import { getConfig } from './lib/storage.js';
 
 const memory_read = tool({
   description: 'Read from a memory file with level support',
@@ -39,18 +40,25 @@ const memory_read = tool({
 
 export const MemoryPlugin = async ctx => {
   const projectRoot = process.cwd();
+  const config = getConfig();
+  const codeAnalysisConfig = config.code_analysis || {};
+  const autoTrigger = codeAnalysisConfig.auto_trigger !== false;
 
   // 注册文件保存事件监听器，自动触发代码分析
-  if (ctx?.on) {
-    // OpenCode 事件监听（首选）
-    ctx.on('file.saved', filePath => {
-      onFileSaved(filePath, projectRoot);
-    });
-    console.log('[MemoryPlugin] Code analysis file watcher enabled (OpenCode event)');
+  if (autoTrigger) {
+    if (ctx?.on) {
+      // OpenCode 事件监听（首选）
+      ctx.on('file.saved', filePath => {
+        onFileSaved(filePath, projectRoot);
+      });
+      console.log('[MemoryPlugin] Code analysis file watcher enabled (OpenCode event)');
+    } else {
+      // 文件系统监听（fallback）
+      startFileWatcher(projectRoot);
+      console.log('[MemoryPlugin] Code analysis file watcher enabled (filesystem)');
+    }
   } else {
-    // 文件系统监听（fallback）
-    startFileWatcher(projectRoot);
-    console.log('[MemoryPlugin] Code analysis file watcher enabled (filesystem)');
+    console.log('[MemoryPlugin] Code analysis auto-trigger disabled');
   }
 
   return {
