@@ -39,6 +39,7 @@ export class AnalysisQueue {
     this.debounceTimer = null;
     this.wrapperClient = new WrapperClient();
     this.concurrentCount = 0;
+    this.memoryIdCache = new Map(); // file_path -> memory_id
   }
 
   async add(filePath, projectRoot) {
@@ -214,9 +215,29 @@ export class AnalysisQueue {
       console.log(`[CodeAnalysis] Uploading ${batchToSend.length} code memories...`);
       const result = await this.wrapperClient.uploadMemories(batchToSend);
       console.log(`[CodeAnalysis] Upload complete: ${result.success}/${result.total} success`);
+
+      // 保存返回的 memory_id 到缓存
+      if (result.memory_ids && result.memory_ids.length > 0) {
+        for (let i = 0; i < result.memory_ids.length; i++) {
+          const memoryId = result.memory_ids[i];
+          const filePath = batchToSend[i]?.metadata?.file_path;
+          if (filePath && memoryId) {
+            this.memoryIdCache.set(filePath, memoryId);
+            console.log(`[CodeAnalysis] Cached memory_id for ${filePath}: ${memoryId}`);
+          }
+        }
+      }
     } catch (error) {
       console.error('[CodeAnalysis] Upload failed:', error.message);
     }
+  }
+
+  getMemoryId(filePath) {
+    return this.memoryIdCache.get(filePath);
+  }
+
+  getMemoryIdCache() {
+    return this.memoryIdCache;
   }
 }
 
