@@ -200,6 +200,8 @@ export class CodeAnalyzer {
     const dependencies = this.extractDependencies(imports);
     const calls = this.extractCallsFromOxcAst(ast, filePath, sourceCode);
 
+    const qualityScore = this.calculateFileQualityScore(complexityMetrics, functions, classes);
+
     return {
       language,
       analyzer: 'oxc',
@@ -213,7 +215,116 @@ export class CodeAnalyzer {
       calls,
       complexity_metrics: complexityMetrics,
       dependencies,
+      quality_score: qualityScore,
     };
+  }
+
+  /**
+   * 计算文件级代码质量评分
+   * @param {Object} complexityMetrics - 复杂度指标
+   * @param {Array} functions - 函数列表
+   * @param {Array} classes - 类列表
+   * @returns {Object} 质量评分
+   */
+  calculateFileQualityScore(complexityMetrics, functions, _classes) {
+    const { cyclomatic, max_function_complexity, max_nesting_depth, lines_of_code } =
+      complexityMetrics;
+
+    let score = 100;
+    const issues = [];
+
+    if (cyclomatic > 10) {
+      score -= 20;
+      issues.push('平均圈复杂度过高');
+    } else if (cyclomatic > 5) {
+      score -= 10;
+      issues.push('平均圈复杂度偏高');
+    }
+
+    if (max_function_complexity > 20) {
+      score -= 20;
+      issues.push('存在极高复杂度函数');
+    } else if (max_function_complexity > 10) {
+      score -= 10;
+      issues.push('存在高复杂度函数');
+    }
+
+    if (max_nesting_depth > 5) {
+      score -= 15;
+      issues.push('嵌套深度过大');
+    } else if (max_nesting_depth > 3) {
+      score -= 5;
+      issues.push('嵌套深度偏高');
+    }
+
+    if (lines_of_code > 500) {
+      score -= 15;
+      issues.push('文件过大');
+    } else if (lines_of_code > 300) {
+      score -= 5;
+      issues.push('文件偏大');
+    }
+
+    const functionCount = functions?.length || 0;
+    if (functionCount > 20) {
+      score -= 10;
+      issues.push('函数数量过多');
+    }
+
+    score = Math.max(0, Math.min(100, score));
+
+    let grade = 'A';
+    if (score >= 90) {
+      grade = 'A';
+    } else if (score >= 70) {
+      grade = 'B';
+    } else if (score >= 50) {
+      grade = 'C';
+    } else {
+      grade = 'D';
+    }
+
+    return {
+      score,
+      grade,
+      issues,
+      recommendations: this.generateRecommendations(issues),
+    };
+  }
+
+  /**
+   * 生成改进建议
+   * @param {Array} issues - 问题列表
+   * @returns {Array} 建议列表
+   */
+  generateRecommendations(issues) {
+    const recommendations = [];
+
+    for (const issue of issues) {
+      switch (issue) {
+        case '平均圈复杂度过高':
+        case '平均圈复杂度偏高':
+          recommendations.push('考虑将复杂函数拆分为更小的函数');
+          break;
+        case '存在极高复杂度函数':
+        case '存在高复杂度函数':
+          recommendations.push('重构高复杂度函数，提取逻辑到独立函数');
+          break;
+        case '嵌套深度过大':
+        case '嵌套深度偏高':
+          recommendations.push('减少嵌套层级，使用提前返回或提取函数');
+          break;
+        case '文件过大':
+        case '文件偏大':
+          recommendations.push('考虑将大文件拆分为多个模块');
+          break;
+        case '函数数量过多':
+          recommendations.push('考虑将相关函数组织到单独的模块中');
+          break;
+      }
+    }
+
+    return recommendations;
   }
 
   extractSymbolsFromOxcAst(node, sourceCode, collectors, parentExported = false, comments = []) {

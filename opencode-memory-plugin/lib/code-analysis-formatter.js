@@ -27,6 +27,24 @@ export function formatAsTable(result) {
   lines.push(`│ Functions: ${padEnd(String(functions?.length || 0), 47)}│`);
   lines.push(`│ Classes: ${padEnd(String(classes?.length || 0), 49)}│`);
   lines.push(`│ Complexity: ${padEnd(String(complexity_metrics?.cyclomatic || 0), 46)}│`);
+
+  const qualityScore = result.result.quality_score;
+  if (qualityScore) {
+    const scoreText = `${qualityScore.score}/100 (${qualityScore.grade})`;
+    lines.push(`│ Quality: ${padEnd(scoreText, 48)}│`);
+
+    if (qualityScore.issues && qualityScore.issues.length > 0) {
+      lines.push('├' + '─'.repeat(58) + '┤');
+      lines.push(`│${padEnd(' Issues:', 58)}│`);
+      for (const issue of qualityScore.issues.slice(0, 3)) {
+        lines.push(`│  • ${padEnd(issue, 54)}│`);
+      }
+      if (qualityScore.issues.length > 3) {
+        lines.push(`│  • ${padEnd(`... and ${qualityScore.issues.length - 3} more`, 54)}│`);
+      }
+    }
+  }
+
   lines.push('├' + '─'.repeat(58) + '┤');
 
   // Functions
