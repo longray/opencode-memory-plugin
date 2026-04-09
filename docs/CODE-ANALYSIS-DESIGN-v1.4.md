@@ -110,12 +110,14 @@ interface InterfaceSymbol {
 | `GET /api/v1/memories/{id}/references`   | GET  | 查询谁调用了此函数 |
 | `GET /api/v1/memories/{id}/dependencies` | GET  | 查询此函数调用了谁 |
 
-### 3.3 Phase 3: 代码地图 API（BL-CA-23~25）
+### 3.3 Phase 3: 代码地图 API（⛔ 已推迟）
 
-| 端点                              | 方法 | 说明         |
-| --------------------------------- | ---- | ------------ |
-| `GET /api/v1/projects/{id}/map`   | GET  | 项目代码地图 |
-| `GET /api/v1/projects/{id}/stats` | GET  | 项目统计     |
+> ⚠️ **注意**: BL-CA-23~25 已取消/无限期推迟，代码地图功能不再作为 v1.4 范围。
+
+| 端点                              | 方法 | 说明         | 状态      |
+| --------------------------------- | ---- | ------------ | --------- |
+| `GET /api/v1/projects/{id}/map`   | GET  | 项目代码地图 | ⛔ 已取消 |
+| `GET /api/v1/projects/{id}/stats` | GET  | 项目统计     | ⛔ 已取消 |
 
 ---
 
@@ -127,16 +129,17 @@ interface InterfaceSymbol {
 - BL-CA-13: 类成员提取（methods, properties, interfaces）
 - BL-CA-15: AST 级别圈复杂度（Tree-sitter 路径）
 
+> ⚠️ **已知限制**: Tree-sitter 路径暂不支持圈复杂度计算，复杂度字段可能为估算值或 null。
+
 ### Phase 2: 调用关系（Week 3-4）
 
 - BL-CA-12: CallSymbol 提取
-- BL-CA-18: 调用关系可视化
-- 等待后端 API 就绪
+- BL-CA-18: 调用关系可视化（⚠️ 待后端 API 就绪）
+- BL-CA-20: 质量趋势追踪（⚠️ Phase 3 任务可能推迟）
 
-### Phase 3: 质量评分（Week 5-6）
+### Phase 3: 质量评分（⚠️ 可能推迟）
 
-- BL-CA-16: 文件级质量评分
-- BL-CA-20: 质量趋势追踪
+> ⚠️ **注意**: Phase 3 功能（BL-CA-16, BL-CA-20）与 Phase 3 API 依赖，可能无限期推迟。
 
 ---
 

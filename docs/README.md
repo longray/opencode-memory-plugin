@@ -43,18 +43,22 @@
 
 ### lib/ 核心库
 
-| 文件                       | 主要导出                                    | 说明                              |
-| -------------------------- | ------------------------------------------- | --------------------------------- |
-| `memory-core.js`           | writeMemory, readMemory, writeAndSyncMemory | 写入/读取/同步核心逻辑            |
-| `entry.js`                 | buildEntryContent, writeEntryToTimeline     | 条目格式化和文件操作              |
-| `extractor.js`             | extractByLevel, getEntryInfo                | 分层提取和 frontmatter 解析       |
-| `wrapper-client.js`        | WrapperClient                               | 后端 API 客户端（所有 HTTP 调用） |
-| `storage.js`               | getConfig, getLinkMap, getEntryById         | 配置和 link-map 读取              |
-| `trie-index.js`            | searchByPrefix, getAutocompleteSuggestions  | Trie 索引和自动补全               |
-| `code-analyzer.js`         | CodeAnalyzer                                | 代码 AST 分析（Oxc）              |
-| `code-analysis-service.js` | AnalysisQueue                               | 批量分析队列                      |
-| `code-fingerprint.js`      | CodeFingerprint                             | 变更检测                          |
-| `privacy-filter.js`        | shouldSkipFile, validateFileSize            | 敏感内容过滤                      |
+| 文件                         | 主要导出                                    | 说明                                   |
+| ---------------------------- | ------------------------------------------- | -------------------------------------- |
+| `memory-core.js`             | writeMemory, readMemory, writeAndSyncMemory | 写入/读取/同步核心逻辑                 |
+| `entry.js`                   | buildEntryContent, writeEntryToTimeline     | 条目格式化和文件操作                   |
+| `extractor.js`               | extractByLevel, getEntryInfo                | 分层提取和 frontmatter 解析            |
+| `wrapper-client.js`          | WrapperClient                               | 后端 API 客户端（所有 HTTP 调用）      |
+| `storage.js`                 | getConfig, getLinkMap, getEntryById         | 配置和 link-map 读取                   |
+| `trie-index.js`              | searchByPrefix, getAutocompleteSuggestions  | Trie 索引和自动补全                    |
+| `code-analyzer.js`           | CodeAnalyzer                                | 代码 AST 分析（Oxc）                   |
+| `tree-sitter-parser.js`      | analyzeWithTreeSitter                       | 多语言 AST 解析（Python/Go/Rust/Java） |
+| `project-analyzer.js`        | ProjectAnalyzer                             | 项目级分析（健康度评级）               |
+| `code-analysis-formatter.js` | formatCodeAnalysis, formatTable, formatTree | 输出格式化（table/tree/json）          |
+| `code-analysis-service.js`   | AnalysisQueue                               | 批量分析队列                           |
+| `code-fingerprint.js`        | CodeFingerprint                             | 变更检测                               |
+| `privacy-filter.js`          | shouldSkipFile, validateFileSize            | 敏感内容过滤                           |
+| `file-watcher.js`            | FileWatcher                                 | 文件系统监听（300ms debounce）         |
 
 ### tools/ 工具
 

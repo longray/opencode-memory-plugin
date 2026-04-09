@@ -126,7 +126,7 @@ WHERE project_id = $project_id
 ### 2.5 每周同步安排（问题 5 确认）
 
 **时间**: 每周五 16:00 - 16:30（北京时间）  
-**首次同步**: 2026-04-10（本周五）
+**首次同步**: 2026-04-11（下周五）
 
 **形式**:
 
@@ -179,15 +179,17 @@ WHERE project_id = $project_id
 - `GET /api/v1/memories/{id}/references` - 引用查询
 - `GET /api/v1/memories/{id}/dependencies` - 依赖查询
 
-### Phase 3: 代码地图 API（BL-CA-23~25）
+### Phase 3: 代码地图 API（⛔ 已取消）
+
+> ⚠️ **注意**: BL-CA-23~25 已取消/无限期推迟，代码地图功能不再作为 v1.4 范围。
 
 **依赖**: Phase 1 完成
 
 **API 端点**:
 
-- `GET /api/v1/projects/{id}/map` - 项目代码地图
-- `GET /api/v1/projects/{id}/stats` - 项目统计
-- `GET /api/v1/projects/{id}/hot-files` - 热点文件
+- `GET /api/v1/projects/{id}/map` - 项目代码地图（⛔ 已取消）
+- `GET /api/v1/projects/{id}/stats` - 项目统计（⛔ 已取消）
+- `GET /api/v1/projects/{id}/hot-files` - 热点文件（⛔ 已取消）
 
 ---
 
@@ -234,14 +236,95 @@ WHERE project_id = $project_id
 }
 ```
 
+#### CodeAnalysisResult 完整示例
+
+```json
+{
+  "content": "...",
+  "type": "code",
+  "metadata": {
+    "file_path": "src/utils/auth.ts",
+    "code_analysis": {
+      "language": "typescript",
+      "analyzer": "oxc",
+      "functions": [
+        {
+          "name": "hashPassword",
+          "start_line": 10,
+          "end_line": 25,
+          "params": [
+            { "name": "password", "type": "string" },
+            { "name": "salt", "type": "string" }
+          ],
+          "return_type": "string",
+          "is_exported": true,
+          "is_async": false,
+          "complexity": 3,
+          "max_nesting_depth": 2,
+          "docstring": "Hash a password with the given salt"
+        },
+        {
+          "name": "verifyPassword",
+          "start_line": 27,
+          "end_line": 35,
+          "params": [
+            { "name": "password", "type": "string" },
+            { "name": "hash", "type": "string" }
+          ],
+          "return_type": "boolean",
+          "is_exported": true,
+          "is_async": false,
+          "complexity": 2,
+          "max_nesting_depth": 1
+        }
+      ],
+      "classes": [
+        {
+          "name": "AuthService",
+          "start_line": 40,
+          "end_line": 80,
+          "methods": [...],
+          "properties": [
+            { "name": "secretKey", "type": "string" }
+          ],
+          "docstring": "Authentication service"
+        }
+      ],
+      "calls": [
+        {
+          "target": "hashPassword",
+          "file_path": "src/utils/crypto.ts",
+          "line": 50,
+          "column": 8
+        },
+        {
+          "target": "verifyToken",
+          "file_path": "src/middleware/auth.ts",
+          "line": 65,
+          "column": 12
+        }
+      ],
+      "complexity": {
+        "min": 2,
+        "max": 5,
+        "average": 3.2
+      },
+      "quality_score": 85
+    }
+  }
+}
+```
+
+> ⚠️ **已知限制**: Tree-sitter 路径（Python/Go/Rust/Java）暂不支持圈复杂度计算，`complexity` 字段可能为 null 或估算值。
+
 ---
 
 ## 5. 下一步行动
 
 ### 插件端（本周）
 
-- [ ] 调整 `CallSymbol` 结构，增加 `file_path` 字段
-- [ ] 提供示例 CodeAnalysisResult JSON
+- [x] 调整 `CallSymbol` 结构，增加 `file_path` 字段（已在 tree-sitter-parser.js 实现）
+- [x] 提供示例 CodeAnalysisResult JSON（见下方）
 - [ ] 确认项目全量上传策略
 - [ ] 启动 BL-CA-12 实现
 
@@ -254,7 +337,7 @@ WHERE project_id = $project_id
 
 ### 双方共同
 
-- [ ] 首次同步：2026-04-10（周五）16:00
+- [ ] 首次同步：2026-04-11（周五）16:00（已过期，更新为下次）
 - [ ] 建立共享同步文档
 
 ---
