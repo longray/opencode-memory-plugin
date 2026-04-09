@@ -200,14 +200,20 @@ export class CodeAnalyzer {
     const dependencies = this.extractDependencies(imports);
     const calls = this.extractCallsFromOxcAst(ast, filePath, sourceCode);
 
-    const qualityScore = this.calculateFileQualityScore(complexityMetrics, functions, classes);
+    const uniqueFunctions = this.deduplicateFunctions(functions);
+
+    const qualityScore = this.calculateFileQualityScore(
+      complexityMetrics,
+      uniqueFunctions,
+      classes
+    );
 
     return {
       language,
       analyzer: 'oxc',
       analyzed_at: new Date().toISOString(),
       analyzer_version: '0.x',
-      functions,
+      functions: uniqueFunctions,
       classes,
       interfaces,
       imports,
@@ -325,6 +331,18 @@ export class CodeAnalyzer {
     }
 
     return recommendations;
+  }
+
+  deduplicateFunctions(functions) {
+    const seen = new Set();
+    return functions.filter(func => {
+      const key = `${func.name}:${func.start_line}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
   }
 
   extractSymbolsFromOxcAst(node, sourceCode, collectors, parentExported = false, comments = []) {

@@ -3,8 +3,10 @@ import { WrapperClient } from './wrapper-client.js';
 import { resolveProjectId } from './project-resolver.js';
 import { shouldSkipFile } from './privacy-filter.js';
 import { getConfig } from './storage.js';
+import { MemoryIdCache } from './memory-id-cache.js';
 import { readFileSync } from 'fs';
 import { extname, relative, basename } from 'path';
+import { createHash } from 'crypto';
 
 const userConfig = getConfig();
 const CODE_ANALYSIS_CONFIG = userConfig.code_analysis || {};
@@ -39,7 +41,15 @@ export class AnalysisQueue {
     this.debounceTimer = null;
     this.wrapperClient = new WrapperClient();
     this.concurrentCount = 0;
-    this.memoryIdCache = new Map(); // file_path -> memory_id
+    this.memoryIdCache = null;
+  }
+
+  async initCache() {
+    if (!this.memoryIdCache) {
+      const projectId = resolveProjectId({});
+      this.memoryIdCache = new MemoryIdCache(projectId);
+      await this.memoryIdCache.load();
+    }
   }
 
   async add(filePath, projectRoot) {
@@ -146,6 +156,9 @@ export class AnalysisQueue {
   addToBatch(item, analysisResult, content) {
     const projectId = resolveProjectId({ projectRoot: item.projectRoot });
 
+    const sourceId = this.memoryIdCache?.generateSourceId() || `local-${Date.now()}`;
+    const contentHash = createHash('md5').update(content).digest('hex');
+
     const memoryItem = {
       type: 'code',
       content: content,
@@ -153,14 +166,22 @@ export class AnalysisQueue {
       overview: this.generateOverview(item.relativePath, analysisResult),
       tags: [analysisResult.language, 'code-analysis'],
       project_id: projectId,
+      source_id: sourceId,
+      local_id: sourceId,
       metadata: {
         file_path: item.relativePath,
         file_name: basename(item.filePath),
         code_analysis: analysisResult,
+        content_hash: contentHash,
       },
     };
 
-    this.batch.push(memoryItem);
+    this.batch.push({
+      memoryItem,
+      filePath: item.relativePath,
+      sourceId,
+      contentHash,
+    });
 
     if (this.batch.length >= BATCH_MAX_SIZE) {
       this.flushBatch();
@@ -212,18 +233,22 @@ export class AnalysisQueue {
     this.batch = [];
 
     try {
-      console.log(`[CodeAnalysis] Uploading ${batchToSend.length} code memories...`);
-      const result = await this.wrapperClient.uploadMemories(batchToSend);
+      await this.initCache();
+
+      const memoryItems = batchToSend.map(item => item.memoryItem);
+      console.log(`[CodeAnalysis] Uploading ${memoryItems.length} code memories...`);
+      const result = await this.wrapperClient.uploadMemories(memoryItems);
       console.log(`[CodeAnalysis] Upload complete: ${result.success}/${result.total} success`);
 
-      // 保存返回的 memory_id 到缓存
       if (result.memory_ids && result.memory_ids.length > 0) {
         for (let i = 0; i < result.memory_ids.length; i++) {
           const memoryId = result.memory_ids[i];
-          const filePath = batchToSend[i]?.metadata?.file_path;
-          if (filePath && memoryId) {
-            this.memoryIdCache.set(filePath, memoryId);
-            console.log(`[CodeAnalysis] Cached memory_id for ${filePath}: ${memoryId}`);
+          const batchItem = batchToSend[i];
+          if (batchItem && memoryId) {
+            await this.memoryIdCache.set(batchItem.filePath, batchItem.sourceId, memoryId, {
+              contentHash: batchItem.contentHash,
+            });
+            console.log(`[CodeAnalysis] Cached memory_id for ${batchItem.filePath}: ${memoryId}`);
           }
         }
       }
@@ -232,8 +257,14 @@ export class AnalysisQueue {
     }
   }
 
-  getMemoryId(filePath) {
-    return this.memoryIdCache.get(filePath);
+  async getMemoryId(filePath) {
+    await this.initCache();
+    return this.memoryIdCache.getMemoryId(filePath);
+  }
+
+  async getSourceId(filePath) {
+    await this.initCache();
+    return this.memoryIdCache.getSourceId(filePath);
   }
 
   getMemoryIdCache() {

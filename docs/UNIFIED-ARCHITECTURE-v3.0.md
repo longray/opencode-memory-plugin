@@ -755,19 +755,340 @@ onFileSave: async (filePath) => {
 
 ---
 
-## 8. 与现有系统集成
+## 8. 实现状态标注（基于代码分析）
 
-### 8.1 复用现有代码
+> **更新时间**: 2026-04-09  
+> **分析范围**: 后端记忆服务（wrapper）+ 插件端（opencode-memory-plugin）
 
-| 现有代码                   | 复用方式 | 修改内容               |
-| -------------------------- | -------- | ---------------------- |
-| `code-analyzer.js`         | 直接复用 | 添加预计算调用         |
-| `code-analysis-service.js` | 扩展     | 添加 `precompute` 方法 |
-| `wrapper-client.js`        | 扩展     | 添加预计算 API 调用    |
-| `tools/core.js`            | 保留     | 向后兼容               |
-| `tools/graph.js`           | 扩展     | 添加新关系类型         |
+---
 
-### 8.2 向后兼容
+### 8.1 详细实现状态总览
+
+#### 图例说明
+
+| 图标 | 含义             |
+| ---- | ---------------- |
+| ✅   | 已实现并可用     |
+| ⚠️   | 部分实现或需验证 |
+| ❌   | 未实现           |
+| 🚫   | 已取消/推迟      |
+
+---
+
+### 8.2 后端记忆服务（wrapper）实现状态
+
+#### 8.2.1 已实现的 API ✅
+
+| API 端点                          | 方法   | 状态 | 说明                    |
+| --------------------------------- | ------ | ---- | ----------------------- |
+| `/api/v1/memories`                | POST   | ✅   | 批量上传记忆条目        |
+| `/api/v1/memories/search`         | GET    | ✅   | 语义搜索（向量+关键词） |
+| `/api/v1/memories/{id}`           | GET    | ✅   | 获取单个记忆            |
+| `/api/v1/memories/{id}`           | DELETE | ✅   | 删除记忆                |
+| `/api/v1/memories/relations`      | POST   | ✅   | 创建记忆间关系          |
+| `/api/v1/memories/relations/{id}` | DELETE | ✅   | 删除关系                |
+| `/api/v1/memories/{id}/graph`     | POST   | ✅   | 图遍历查询              |
+| `/api/v1/memories/{id}/relations` | POST   | ✅   | 创建特定记忆的关系      |
+| `/api/v1/sync`                    | POST   | ✅   | 增量同步                |
+| `/api/v1/sync/full`               | POST   | ✅   | 全量同步                |
+
+**代码位置**: `wrapper/src/routers/memories.py`, `wrapper/src/routers/sync.py`
+
+#### 8.2.2 已取消/推迟的 API 🚫
+
+| API 端点                             | 方法 | 状态 | 说明                                 |
+| ------------------------------------ | ---- | ---- | ------------------------------------ |
+| `/api/v1/projects/{id}/map`          | GET  | 🚫   | 项目代码地图（v1.4 已取消）          |
+| `/api/v1/calls/batch`                | POST | ⚠️   | 调用关系批量创建（API 定义但未激活） |
+| `/api/v1/memories/{id}/references`   | GET  | ⚠️   | 查询调用者（API 定义但未激活）       |
+| `/api/v1/memories/{id}/dependencies` | GET  | ⚠️   | 查询被调用者（API 定义但未激活）     |
+
+**说明**: 调用关系相关 API 在 `API-CONTRACT.md` 中定义，但未在 `code-analysis-service.js` 中调用
+
+#### 8.2.3 待实现的 API ❌
+
+| API 端点                  | 方法 | 状态 | 优先级 | 说明               |
+| ------------------------- | ---- | ---- | ------ | ------------------ |
+| `/api/v1/code/precompute` | POST | ❌   | P0     | 触发代码预计算     |
+| `/api/v1/symbols`         | POST | ❌   | P0     | 创建符号           |
+| `/api/v1/symbols/{id}`    | GET  | ❌   | P0     | 获取符号           |
+| `/api/v1/symbols`         | GET  | ❌   | P0     | 搜索符号           |
+| `/api/v1/references`      | POST | ❌   | P0     | 创建引用关系       |
+| `/api/v1/references`      | GET  | ❌   | P0     | 查询引用关系       |
+| `/api/v1/graph/traverse`  | POST | ❌   | P0     | 图遍历（多跳查询） |
+| `/api/v1/graph/impact`    | GET  | ❌   | P0     | 爆炸半径分析       |
+| `/api/v1/clusters`        | POST | ❌   | P1     | 创建聚类           |
+| `/api/v1/processes`       | POST | ❌   | P1     | 创建执行流         |
+
+#### 8.2.4 现有数据库表结构
+
+**已实现的表**（`wrapper/src/database/surrealdb.py`）:
+
+```sql
+-- ✅ 已实现
+DEFINE TABLE memory TYPE NORMAL SCHEMAFULL;
+  DEFINE FIELD id ON memory TYPE record;
+  DEFINE FIELD content ON memory TYPE string;
+  DEFINE FIELD abstract ON memory TYPE string;
+  DEFINE FIELD overview ON memory TYPE string;
+  DEFINE FIELD type ON memory TYPE string;
+  DEFINE FIELD tags ON memory TYPE array<string>;
+  DEFINE FIELD metadata ON memory TYPE option<object>;
+
+-- ✅ 已实现
+DEFINE TABLE relation TYPE RELATION IN memory OUT memory SCHEMAFULL;
+  DEFINE FIELD type ON relation TYPE string;
+  DEFINE FIELD weight ON relation TYPE float DEFAULT 0.5;
+
+-- ✅ 已实现
+DEFINE TABLE timeline TYPE NORMAL;
+DEFINE TABLE link_map TYPE NORMAL;
+DEFINE TABLE sync_checkpoint TYPE NORMAL;
+```
+
+**待实现的表**:
+
+```sql
+-- ❌ 待实现（预计算设计）
+DEFINE TABLE symbol TYPE NORMAL SCHEMAFULL;
+  DEFINE FIELD id ON symbol TYPE record;
+  DEFINE FIELD name ON symbol TYPE string;
+  DEFINE FIELD type ON symbol TYPE string;  -- function/class/interface
+  DEFINE FIELD signature ON symbol TYPE option<string>;
+  DEFINE FIELD complexity ON symbol TYPE option<int>;
+  DEFINE FIELD file_path ON symbol TYPE string;
+  DEFINE FIELD start_line ON symbol TYPE int;
+  DEFINE FIELD end_line ON symbol TYPE int;
+
+-- ❌ 待实现
+DEFINE TABLE reference TYPE RELATION IN symbol OUT symbol SCHEMAFULL;
+  DEFINE FIELD type ON reference TYPE string;  -- calls/imports/extends
+  DEFINE FIELD line ON reference TYPE int;
+  DEFINE FIELD column ON reference TYPE int;
+
+-- ❌ 待实现
+DEFINE TABLE graph TYPE NORMAL;
+  DEFINE FIELD file_path ON graph TYPE string;
+  DEFINE FIELD nodes ON graph TYPE array<object>;
+  DEFINE FIELD edges ON graph TYPE array<object>;
+
+-- ❌ 待实现
+DEFINE TABLE cluster TYPE NORMAL;
+  DEFINE FIELD name ON cluster TYPE string;
+  DEFINE FIELD nodes ON cluster TYPE array<record<symbol>>;
+
+-- ❌ 待实现
+DEFINE TABLE process TYPE NORMAL;
+  DEFINE FIELD entry_point ON process TYPE record<symbol>;
+  DEFINE FIELD steps ON process TYPE array<record<symbol>>;
+```
+
+---
+
+### 8.3 插件端（opencode-memory-plugin）实现状态
+
+#### 8.3.1 已实现的工具（15/15）✅
+
+| 工具               | 文件              | 状态 | 说明                 |
+| ------------------ | ----------------- | ---- | -------------------- |
+| `memory_write`     | `tools/core.js`   | ✅   | 写入记忆             |
+| `memory_read`      | `plugin.js`       | ✅   | 读取记忆（L0/L1/L2） |
+| `memory_search`    | `tools/search.js` | ✅   | 混合搜索             |
+| `memory_suggest`   | `tools/search.js` | ✅   | 前缀搜索建议         |
+| `memory_relate`    | `tools/graph.js`  | ✅   | 创建关系             |
+| `memory_graph`     | `tools/graph.js`  | ✅   | 图遍历               |
+| `memory_timeline`  | `tools/browse.js` | ✅   | 时间线浏览           |
+| `memory_topics`    | `tools/browse.js` | ✅   | 主题浏览             |
+| `memory_pin`       | `tools/core.js`   | ✅   | 置顶记忆             |
+| `index_status`     | `tools/sync.js`   | ✅   | 索引状态             |
+| `rebuild_index`    | `tools/sync.js`   | ✅   | 重建索引             |
+| `incremental_sync` | `tools/sync.js`   | ✅   | 增量同步             |
+| `full_sync`        | `tools/sync.js`   | ✅   | 全量同步             |
+| `sync_checkpoint`  | `tools/sync.js`   | ✅   | 同步检查点           |
+| `conflict_list`    | `tools/sync.js`   | ✅   | 冲突列表             |
+| `conflict_resolve` | `tools/sync.js`   | ✅   | 冲突解决             |
+
+#### 8.3.2 已实现的代码分析功能 ✅
+
+| 功能             | 文件                       | 状态 | 说明                               |
+| ---------------- | -------------------------- | ---- | ---------------------------------- |
+| **AST 解析**     | `code-analyzer.js`         | ✅   | Oxc (JS/TS) + Tree-sitter (多语言) |
+| **函数提取**     | `code-analyzer.js`         | ✅   | 名称、参数、返回类型、复杂度       |
+| **类提取**       | `code-analyzer.js`         | ✅   | 名称、方法、属性                   |
+| **接口提取**     | `code-analyzer.js`         | ✅   | TypeScript/Java 接口               |
+| **导入提取**     | `code-analyzer.js`         | ✅   | 来源、分类                         |
+| **调用关系提取** | `code-analyzer.js`         | ✅   | `extractCallsFromOxcAst()`         |
+| **多语言支持**   | `tree-sitter-parser.js`    | ✅   | Python/Go/Rust/Java                |
+| **复杂度计算**   | `code-analyzer.js`         | ✅   | 圈复杂度、嵌套深度                 |
+| **质量评分**     | `code-analyzer.js`         | ✅   | A/B/C/D 评级                       |
+| **项目健康度**   | `project-analyzer.js`      | ✅   | 项目级分析报告                     |
+| **文件监听**     | `file-watcher.js`          | ✅   | chokidar + 300ms 防抖              |
+| **批量队列**     | `code-analysis-service.js` | ✅   | 批处理 + 并发控制                  |
+
+**代码分析流程**（已实现）:
+
+```javascript
+// code-analysis-service.js
+onFileSaved(filePath)
+  → AnalysisQueue.add(filePath)      // ✅ 队列管理
+  → codeAnalyzer.analyze(filePath)   // ✅ AST 分析
+  → addToBatch(item, analysis)       // ✅ 生成 memoryItem
+  → flushBatch()                     // ✅ 批量上传
+  → wrapperClient.uploadMemories()   // ✅ 上传到后端
+```
+
+#### 8.3.3 待实现的预计算功能 ❌
+
+| 功能                 | 文件                       | 状态 | 优先级 | 说明                           |
+| -------------------- | -------------------------- | ---- | ------ | ------------------------------ |
+| **符号提取**         | `code-analysis-service.js` | ❌   | P0     | 从 analysis 提取 symbols 数组  |
+| **预计算触发**       | `code-analysis-service.js` | ❌   | P0     | 调用 `/api/v1/code/precompute` |
+| **代码导航工具**     | `tools/code.js`            | ❌   | P0     | `code_navigate` 工具           |
+| **爆炸半径工具**     | `tools/code.js`            | ❌   | P0     | `code_impact` 工具             |
+| **代码搜索工具**     | `tools/code.js`            | ❌   | P0     | `code_search` 工具             |
+| **增量更新**         | `code-analysis-service.js` | ❌   | P1     | 指纹 + diff 机制               |
+| **Memory ID 持久化** | `code-analysis-service.js` | ❌   | P1     | 缓存写入本地文件               |
+
+#### 8.3.4 已取消的功能 🚫
+
+| 功能             | 文件                  | 状态 | 说明                        |
+| ---------------- | --------------------- | ---- | --------------------------- |
+| **项目代码地图** | `project-analyzer.js` | 🚫   | v1.4 设计文档中已标记为取消 |
+| **时序质量趋势** | -                     | 🚫   | Phase 3 功能，已推迟        |
+
+---
+
+### 8.4 关键差距分析
+
+#### 差距 1：调用关系未激活 ⚠️
+
+**现状**:
+
+```javascript
+// code-analyzer.js ✅ 已提取
+const calls = this.extractCallsFromOxcAst(ast, filePath, sourceCode);
+// 返回: [{target, file_path, line, column}]
+
+// code-analysis-service.js ❌ 未上传
+addToBatch(item, analysis) {
+  const memoryItem = {
+    metadata: {
+      code_analysis: {
+        calls: analysis.calls  // ❌ 嵌套在 metadata 中，未创建独立关系
+      }
+    }
+  };
+}
+```
+
+**设计目标**:
+
+```javascript
+// 应该创建独立的引用关系
+reference: {
+  type: "calls",
+  from: "symbol:analyzeCode@src_utils_ts",
+  to: "symbol:parseSync@src_parser_ts",
+  line: 95,
+  column: 20
+}
+```
+
+**影响**:
+
+- ❌ 无法查询"谁调用了 analyzeCode"
+- ❌ 无法进行爆炸半径分析
+- ❌ 无法进行代码导航
+
+**解决方案**:
+
+1. 后端新增 `symbol` 和 `reference` 表
+2. 后端新增 `POST /api/v1/code/precompute` API
+3. 插件端在 `flushBatch` 后调用预计算 API
+4. 插件端新增 `code_navigate` 和 `code_impact` 工具
+
+#### 差距 2：存储粒度不足 ⚠️
+
+**现状**（文件级）:
+
+```javascript
+// 一个文件 = 一个 memory 条目
+{
+  type: 'code',
+  content: '整个文件内容',
+  metadata: {
+    code_analysis: {
+      functions: [...],  // 嵌套在 metadata 中
+      calls: [...]
+    }
+  }
+}
+```
+
+**设计目标**（符号级）:
+
+```javascript
+// 一个函数 = 一个 symbol 条目
+symbol: {
+  id: "symbol:analyzeCode@src_utils_ts",
+  type: "function",
+  name: "analyzeCode",
+  signature: "async analyzeCode(filePath: string): Promise<AnalysisResult>",
+  complexity: 5,
+  file_path: "src/utils.ts",
+  start_line: 85,
+  end_line: 125
+}
+```
+
+**影响**:
+
+- ❌ 无法搜索特定函数
+- ❌ 无法更新单个函数信息
+- ❌ 无法建立函数级关系
+
+#### 差距 3：缺少查询工具 ❌
+
+**现状**: 没有代码导航和代码分析工具
+
+**设计目标**:
+
+```javascript
+// 代码导航工具
+code_navigate({
+  symbol: "analyzeCode",
+  action: "goto_definition",
+});
+// 返回: {file_path, line, column}
+
+code_impact({
+  symbol: "analyzeCode",
+  depth: 2,
+});
+// 返回: {affected_symbols, affected_files, risk_level}
+```
+
+---
+
+### 8.5 复用现有代码策略
+
+| 现有代码                   | 实现状态  | 复用方式 | 修改内容                       | 工作量 |
+| -------------------------- | --------- | -------- | ------------------------------ | ------ |
+| `code-analyzer.js`         | ✅ 已实现 | 直接复用 | 无需修改                       | 0%     |
+| `tree-sitter-parser.js`    | ✅ 已实现 | 直接复用 | 无需修改                       | 0%     |
+| `file-watcher.js`          | ✅ 已实现 | 直接复用 | 无需修改                       | 0%     |
+| `code-analysis-service.js` | ✅ 已实现 | 扩展     | 添加 `precompute()` 方法       | 20%    |
+| `wrapper-client.js`        | ✅ 已实现 | 扩展     | 添加预计算 API 调用            | 10%    |
+| `tools/core.js`            | ✅ 已实现 | 保留     | 向后兼容                       | 0%     |
+| `tools/graph.js`           | ✅ 已实现 | 扩展     | 添加代码导航工具               | 30%    |
+| 后端 `memories.py`         | ✅ 已实现 | 扩展     | 添加 symbol/reference 路由     | 40%    |
+| 后端数据库                 | ✅ 已实现 | 扩展     | 添加 symbol/reference/graph 表 | 30%    |
+
+**总体评估**: 约 60% 的功能已实现，40% 需要新增
+
+---
+
+### 8.6 向后兼容策略
 
 ```javascript
 // 现有 memory_write 仍然可用

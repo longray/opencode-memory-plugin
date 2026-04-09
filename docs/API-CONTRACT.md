@@ -217,3 +217,118 @@
 | 返回        | {success, id, source_id}                                    |
 | 说明        | 代码分析结果通过标准 memory 接口上传，type 标记为 'code'    |
 | 状态        | ✅ 正常                                                     |
+
+---
+
+### createCallRelations
+
+| 项目        | 值                                                                       |
+| ----------- | ------------------------------------------------------------------------ |
+| 工具文件    | lib/wrapper-client.js                                                    |
+| Client 方法 | client.createCallRelations()                                             |
+| HTTP        | POST /api/v1/calls/batch                                                 |
+| 参数        | {calls: [{caller_memory_id, callee_memory_id, line, column, file_path}]} |
+| 返回        | {success, created, errors}                                               |
+| 说明        | 批量创建函数调用关系，需要 memory_id 而非 file_path                      |
+| 状态        | ✅ 正常                                                                  |
+
+---
+
+### lookupMemory
+
+| 项目        | 值                                                                             |
+| ----------- | ------------------------------------------------------------------------------ |
+| 工具文件    | lib/wrapper-client.js                                                          |
+| Client 方法 | client.lookupMemory()                                                          |
+| HTTP        | GET /api/v1/memories/lookup                                                    |
+| 参数        | {source_id, hash, file_path, project_id, type, tenant_id, limit, all}          |
+| 返回        | {found: boolean, memory_id: string, source_id: string, file_path: string, ...} |
+| 说明        | 根据唯一标识符快速查找记忆 ID，支持多种查询优先级                              |
+| 状态        | ✅ 正常                                                                        |
+
+---
+
+### getCallReferences
+
+| 项目        | 值                                                   |
+| ----------- | ---------------------------------------------------- |
+| 工具文件    | lib/wrapper-client.js                                |
+| Client 方法 | client.getCallReferences()                           |
+| HTTP        | GET /api/v1/memories/{memory_id}/references          |
+| 参数        | memory_id (path), limit (query, default=50)          |
+| 返回        | {references: [{memory_id, file_path, line, column}]} |
+| 说明        | 查询谁调用了该函数（入站调用）                       |
+| 状态        | ✅ 正常                                              |
+
+---
+
+### getCallDependencies
+
+| 项目        | 值                                                     |
+| ----------- | ------------------------------------------------------ |
+| 工具文件    | lib/wrapper-client.js                                  |
+| Client 方法 | client.getCallDependencies()                           |
+| HTTP        | GET /api/v1/memories/{memory_id}/dependencies          |
+| 参数        | memory_id (path), limit (query, default=50)            |
+| 返回        | {dependencies: [{memory_id, file_path, line, column}]} |
+| 说明        | 查询该函数调用了谁（出站调用）                         |
+| 状态        | ✅ 正常                                                |
+
+---
+
+### getProjectMap
+
+| 项目        | 值                                                     |
+| ----------- | ------------------------------------------------------ |
+| 工具文件    | lib/wrapper-client.js                                  |
+| Client 方法 | client.getProjectMap()                                 |
+| HTTP        | GET /api/v1/projects/{project_id}/map                  |
+| 参数        | project_id (path)                                      |
+| 返回        | {files: [], dependencies: [], hotspots: [], stats: {}} |
+| 说明        | 获取项目代码地图（文件树、模块依赖、热点文件）         |
+| 状态        | ✅ 正常                                                |
+
+---
+
+### getProjectStats
+
+| 项目        | 值                                                                            |
+| ----------- | ----------------------------------------------------------------------------- |
+| 工具文件    | lib/wrapper-client.js                                                         |
+| Client 方法 | client.getProjectStats()                                                      |
+| HTTP        | GET /api/v1/projects/{project_id}/stats                                       |
+| 参数        | project_id (path)                                                             |
+| 返回        | {total_files, total_functions, total_classes, avg_complexity, max_complexity} |
+| 说明        | 获取项目代码统计信息                                                          |
+| 状态        | ✅ 正常                                                                       |
+
+---
+
+## Memory ID 缓存机制
+
+### 设计说明
+
+后端 `POST /api/v1/calls/batch` API 要求使用 `memory_id` 而非 `file_path` 来标识函数。前端需要维护本地缓存：
+
+```
+文件路径 → Memory ID 映射
+src/utils.ts → 01H1ABC...
+src/auth.ts → 01H2DEF...
+```
+
+### 缓存模块
+
+| 模块          | 文件                             | 说明                        |
+| ------------- | -------------------------------- | --------------------------- |
+| MemoryIdCache | lib/memory-id-cache.js           | 内存缓存 + 持久化到本地文件 |
+| 存储位置      | ~/.opencode/memory-id-cache.json | 项目级缓存文件              |
+| 生命周期      | 与项目绑定                       | 随代码上传自动更新          |
+
+### 使用流程
+
+1. 分析代码文件
+2. 上传代码分析结果 → 后端返回 memory_id
+3. 保存 file_path → memory_id 映射到缓存
+4. 提取调用关系（包含 file_path）
+5. 查询缓存获取 caller/callee 的 memory_id
+6. 调用 `POST /api/v1/calls/batch` 创建关系

@@ -590,13 +590,50 @@ export class WrapperClient {
       return [];
     }
   }
+
+  async lookupMemory(params) {
+    const queryParams = new URLSearchParams();
+
+    if (params.source_id) queryParams.append('source_id', params.source_id);
+    if (params.hash) queryParams.append('hash', params.hash);
+    if (params.file_path) queryParams.append('file_path', params.file_path);
+    if (params.project_id) queryParams.append('project_id', params.project_id);
+    if (params.type) queryParams.append('type', params.type);
+    if (params.tenant_id) queryParams.append('tenant_id', params.tenant_id);
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.all) queryParams.append('all', 'true');
+
+    const url = `/api/v1/memories/lookup?${queryParams.toString()}`;
+
+    return await withRetry(() => this.http.get(url), this.maxRetries);
+  }
+
+  async createCallRelations(calls) {
+    return await withRetry(() => this.http.post('/api/v1/calls/batch', { calls }), this.maxRetries);
+  }
+
+  async getCallReferences(memoryId, limit = 50) {
+    return await withRetry(
+      () => this.http.get(`/api/v1/memories/${memoryId}/references?limit=${limit}`),
+      this.maxRetries
+    );
+  }
+
+  async getCallDependencies(memoryId, limit = 50) {
+    return await withRetry(
+      () => this.http.get(`/api/v1/memories/${memoryId}/dependencies?limit=${limit}`),
+      this.maxRetries
+    );
+  }
+
+  async getProjectStats(projectId) {
+    return await withRetry(
+      () => this.http.get(`/api/v1/projects/${projectId}/stats`),
+      this.maxRetries
+    );
+  }
 }
 
-/**
- * 单例模式获取 WrapperClient
- * @param {Object} config - 配置对象（可选，仅在首次调用时使用）
- * @returns {WrapperClient}
- */
 let wrapperClientInstance = null;
 
 export function getWrapperClient(config) {
@@ -605,12 +642,3 @@ export function getWrapperClient(config) {
   }
   return wrapperClientInstance;
 }
-
-/**
- * 重置单例实例（用于测试或配置更新）
- */
-export function resetWrapperClient() {
-  wrapperClientInstance = null;
-}
-
-export default WrapperClient;

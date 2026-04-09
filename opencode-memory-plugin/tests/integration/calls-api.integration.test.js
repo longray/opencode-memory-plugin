@@ -50,10 +50,10 @@ describe('Calls API Integration Tests', () => {
     });
 
     test('should cache memory_ids after upload', async () => {
-      // This test verifies the memory_id cache is working
+      await analysisQueue.initCache();
       const cache = analysisQueue.getMemoryIdCache();
       expect(cache).toBeDefined();
-      expect(cache instanceof Map).toBe(true);
+      expect(cache.constructor.name).toBe('MemoryIdCache');
     });
   });
 
@@ -70,8 +70,8 @@ describe('Calls API Integration Tests', () => {
 
   describe('Scenario 3: Error Handling', () => {
     test('should handle missing memory_id gracefully', async () => {
-      const memoryId = analysisQueue.getMemoryId('non-existent-file.ts');
-      expect(memoryId).toBeUndefined();
+      const memoryId = await analysisQueue.getMemoryId('non-existent-file.ts');
+      expect(memoryId).toBeNull();
     });
   });
 });

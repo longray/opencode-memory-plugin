@@ -3,6 +3,267 @@ import * as Parser from 'web-tree-sitter';
 let parserInitialized = false;
 let languageCache = new Map();
 
+// 各语言内置模块定义
+const BUILTIN_MODULES = {
+  python: [
+    'os',
+    'sys',
+    'json',
+    're',
+    'math',
+    'random',
+    'datetime',
+    'collections',
+    'itertools',
+    'functools',
+    'typing',
+    'pathlib',
+    'io',
+    'string',
+    'hashlib',
+    'base64',
+    'urllib',
+    'http',
+    'socket',
+    'threading',
+    'multiprocessing',
+    'subprocess',
+    'time',
+    'calendar',
+    'decimal',
+    'fractions',
+    'statistics',
+    'csv',
+    'pickle',
+    'copy',
+    ' pprint',
+    'enum',
+    'inspect',
+    'textwrap',
+    'dataclasses',
+    'abc',
+    'contextlib',
+    'functools',
+    'heapq',
+    'bisect',
+    'copy',
+    'numbers',
+    'builtins',
+    '__future__',
+    'warnings',
+    'traceback',
+    'types',
+    'weakref',
+    'codecs',
+    'encodings',
+    'zoneinfo',
+    'graphlib',
+  ],
+  go: [
+    'fmt',
+    'os',
+    'io',
+    'bufio',
+    'strings',
+    'strconv',
+    'time',
+    'math',
+    'math/rand',
+    'sort',
+    'container/list',
+    'container/ring',
+    'container/heap',
+    'sync',
+    'sync/atomic',
+    'bytes',
+    'errors',
+    'flag',
+    'path/filepath',
+    'regexp',
+    'regexp/syntax',
+    'text/tabwriter',
+    'text/template',
+    'html',
+    'html/template',
+    'net',
+    'net/http',
+    'net/url',
+    'net/rpc',
+    'net/smtp',
+    'net/textproto',
+    'crypto',
+    'crypto/md5',
+    'crypto/sha1',
+    'crypto/sha256',
+    'encoding',
+    'encoding/json',
+    'encoding/base64',
+    'encoding/binary',
+    'encoding/csv',
+    'encoding/hex',
+    'encoding/xml',
+    'archive/tar',
+    'archive/zip',
+    'compress/gzip',
+    'compress/zlib',
+    'context',
+    'database/sql',
+    'database/sql/driver',
+    'debug',
+    'debug/dwarf',
+    'go/ast',
+    'go/build',
+    'go/parser',
+    'go/token',
+    'hash',
+    'image',
+    'log',
+    'mime',
+    'mime/multipart',
+    'runtime',
+    'runtime/debug',
+    'testing',
+    'testing/quick',
+    'unicode',
+    'unicode/utf8',
+    'unsafe',
+  ],
+  rust: [
+    'std',
+    'core',
+    'alloc',
+    'collections',
+    'hash',
+    'io',
+    'fs',
+    'path',
+    'sync',
+    'thread',
+    'time',
+    'net',
+    'process',
+    'env',
+    'fmt',
+    'str',
+    'string',
+    'vec',
+    'option',
+    'result',
+    'boxed',
+    'rc',
+    'arc',
+    'cell',
+    'refcell',
+    'mutex',
+    'rwlock',
+    'atomic',
+    'borrow',
+    'any',
+    'cmp',
+    'convert',
+    'default',
+    'iter',
+    'marker',
+    'mem',
+    'ops',
+    'pin',
+    'future',
+    'task',
+    'pin',
+    'alloc::vec',
+    'alloc::boxed',
+    'std::io',
+    'std::fs',
+    'std::path',
+    'std::sync',
+    'std::thread',
+    'std::time',
+    'std::net',
+    'std::process',
+    'std::env',
+    'std::collections',
+  ],
+  java: [
+    'java.lang',
+    'java.io',
+    'java.nio',
+    'java.util',
+    'java.math',
+    'java.time',
+    'java.text',
+    'java.net',
+    'java.security',
+    'java.sql',
+    'java.beans',
+    'java.awt',
+    'javax.swing',
+    'javafx',
+    'java.rmi',
+    'java.util.concurrent',
+    'java.util.function',
+    'java.util.stream',
+    'java.util.regex',
+    'java.util.zip',
+    'java.util.jar',
+    'java.util.prefs',
+    'java.util.logging',
+    'java.util.spi',
+    'java.lang.annotation',
+    'java.lang.invoke',
+    'java.lang.ref',
+    'java.lang.reflect',
+    'java.nio.charset',
+    'java.nio.file',
+    'java.nio.channels',
+    'javax.xml',
+    'javax.json',
+    'javax.crypto',
+    'javax.net',
+    'javax.security',
+    'javax.sql',
+    'javax.transaction',
+  ],
+};
+
+/**
+ * 分类依赖
+ * @param {Array} imports - 导入列表
+ * @param {string} language - 语言名称
+ * @returns {Object} 分类后的依赖
+ */
+function classifyDependencies(imports, language) {
+  const builtinList = BUILTIN_MODULES[language] || [];
+  const result = {
+    builtin: [],
+    internal: [],
+    external: [],
+  };
+
+  for (const imp of imports) {
+    const source = imp.source || imp;
+    if (!source) continue;
+
+    // 移除版本号等后缀
+    const cleanSource = source.replace(/["']/g, '').split(/[@>=<~]/)[0];
+
+    // 检查是否为内置模块
+    const isBuiltin = builtinList.some(
+      builtin => cleanSource === builtin || cleanSource.startsWith(builtin + '/')
+    );
+
+    if (isBuiltin) {
+      result.builtin.push(cleanSource);
+    } else if (cleanSource.startsWith('.') || cleanSource.includes('/')) {
+      // 相对路径或本地路径视为 internal
+      result.internal.push(cleanSource);
+    } else {
+      result.external.push(cleanSource);
+    }
+  }
+
+  return result;
+}
+
 /**
  * 初始化 Tree-sitter WASM
  */
@@ -72,16 +333,20 @@ export async function analyzeWithTreeSitter(filePath, sourceCode, language) {
     const classes = [];
     const interfaces = [];
     const imports = [];
+    const exports = [];
 
     extractSymbols(rootNode, sourceCode, language, {
       functions,
       classes,
       interfaces,
       imports,
+      exports,
     });
 
     const complexityMetrics = calculateBasicComplexity(functions, classes, sourceCode, rootNode);
+    const qualityScore = calculateFileQualityScore(complexityMetrics, functions, classes);
     const calls = extractCalls(rootNode, sourceCode, language, filePath);
+    const classifiedDeps = classifyDependencies(imports, language);
     const duration = performance.now() - startTime;
 
     return {
@@ -93,10 +358,11 @@ export async function analyzeWithTreeSitter(filePath, sourceCode, language) {
       classes,
       interfaces,
       imports,
-      exports: [],
+      exports,
       calls,
       complexity_metrics: complexityMetrics,
-      dependencies: imports.map(imp => imp.source),
+      quality_score: qualityScore,
+      dependencies: classifiedDeps,
       analysis_duration_ms: duration,
     };
   } catch (error) {
@@ -143,7 +409,7 @@ function extractSymbols(node, _sourceCode, language, collectors) {
  * 提取 Python 符号
  */
 function extractPythonSymbols(node, sourceCode, collectors) {
-  const { functions, classes, imports } = collectors;
+  const { functions, classes, imports, exports } = collectors;
 
   if (node.type === 'function_definition') {
     const nameNode = node.childForFieldName('name');
@@ -156,15 +422,28 @@ function extractPythonSymbols(node, sourceCode, collectors) {
         returnType = returnTypeNode.text;
       }
 
+      // Python 中所有顶层函数都是导出的（如果模块被导入）
+      // 实际导出由 __all__ 控制，这里标记为潜在导出
+      const isExported = true; // Python 模块级函数默认可导出
+
       functions.push({
         name: nameNode.text,
         line: node.startPosition.row + 1,
         column: node.startPosition.column,
         type: 'function',
         return_type: returnType,
-        is_exported: false,
+        is_exported: isExported,
         is_async: isAsync,
       });
+
+      // 添加到 exports 数组
+      if (isExported) {
+        exports.push({
+          name: nameNode.text,
+          line: node.startPosition.row + 1,
+          type: 'function',
+        });
+      }
     }
   } else if (node.type === 'class_definition') {
     const nameNode = node.childForFieldName('name');
@@ -207,6 +486,13 @@ function extractPythonSymbols(node, sourceCode, collectors) {
       }
 
       classes.push(classInfo);
+
+      // Python 类默认可导出
+      exports.push({
+        name: nameNode.text,
+        line: node.startPosition.row + 1,
+        type: 'class',
+      });
     }
   } else if (node.type === 'import_statement' || node.type === 'import_from_statement') {
     const moduleNode = node.childForFieldName('module') || node.childForFieldName('name');
@@ -228,7 +514,7 @@ function extractPythonSymbols(node, sourceCode, collectors) {
  * 提取 Go 符号
  */
 function extractGoSymbols(node, sourceCode, collectors) {
-  const { functions, classes, imports } = collectors;
+  const { functions, classes, imports, exports, interfaces } = collectors;
 
   if (node.type === 'function_declaration') {
     const nameNode = node.childForFieldName('name');
@@ -251,6 +537,14 @@ function extractGoSymbols(node, sourceCode, collectors) {
         is_exported: isExported,
         is_async: false,
       });
+
+      if (isExported) {
+        exports.push({
+          name: funcName,
+          line: node.startPosition.row + 1,
+          type: 'function',
+        });
+      }
     }
   } else if (node.type === 'method_declaration') {
     const nameNode = node.childForFieldName('name');
@@ -275,6 +569,14 @@ function extractGoSymbols(node, sourceCode, collectors) {
         is_exported: isExported,
         is_async: false,
       });
+
+      if (isExported) {
+        exports.push({
+          name: `${receiverType}.${methodName}`,
+          line: node.startPosition.row + 1,
+          type: 'method',
+        });
+      }
     }
   } else if (node.type === 'type_spec') {
     const nameNode = node.childForFieldName('name');
@@ -303,13 +605,32 @@ function extractGoSymbols(node, sourceCode, collectors) {
         }
 
         interfaces.push(interfaceInfo);
+
+        // Go interface 首字母大写表示导出
+        if (nameNode.text[0] === nameNode.text[0].toUpperCase()) {
+          exports.push({
+            name: nameNode.text,
+            line: node.startPosition.row + 1,
+            type: 'interface',
+          });
+        }
       } else {
+        const className = nameNode.text;
         classes.push({
-          name: nameNode.text,
+          name: className,
           line: node.startPosition.row + 1,
           methods: [],
           properties: [],
         });
+
+        // Go struct 首字母大写表示导出
+        if (className[0] === className[0].toUpperCase()) {
+          exports.push({
+            name: className,
+            line: node.startPosition.row + 1,
+            type: 'class',
+          });
+        }
       }
     }
   } else if (node.type === 'import_spec') {
@@ -332,7 +653,7 @@ function extractGoSymbols(node, sourceCode, collectors) {
  * 提取 Rust 符号
  */
 function extractRustSymbols(node, sourceCode, collectors) {
-  const { functions, classes, imports } = collectors;
+  const { functions, classes, imports, exports } = collectors;
 
   if (node.type === 'function_item') {
     const nameNode = node.childForFieldName('name');
@@ -357,6 +678,15 @@ function extractRustSymbols(node, sourceCode, collectors) {
         is_exported: isExported,
         is_async: isAsync,
       });
+
+      // Rust 函数在顶层声明时视为导出
+      if (isExported) {
+        exports.push({
+          name: nameNode.text,
+          line: node.startPosition.row + 1,
+          type: 'function',
+        });
+      }
     }
   } else if (node.type === 'struct_item') {
     const nameNode = node.childForFieldName('name');
@@ -385,6 +715,13 @@ function extractRustSymbols(node, sourceCode, collectors) {
       }
 
       classes.push(classInfo);
+
+      // Rust struct 默认导出
+      exports.push({
+        name: nameNode.text,
+        line: node.startPosition.row + 1,
+        type: 'class',
+      });
     }
   } else if (node.type === 'impl_item') {
     const typeNode = node.childForFieldName('type');
@@ -433,6 +770,13 @@ function extractRustSymbols(node, sourceCode, collectors) {
       }
 
       interfaces.push(interfaceInfo);
+
+      // Rust trait 默认导出
+      exports.push({
+        name: nameNode.text,
+        line: node.startPosition.row + 1,
+        type: 'interface',
+      });
     }
   } else if (node.type === 'use_declaration') {
     const argument = node.childForFieldName('argument');
@@ -453,7 +797,7 @@ function extractRustSymbols(node, sourceCode, collectors) {
  * 提取 Java 符号
  */
 function extractJavaSymbols(node, sourceCode, collectors) {
-  const { functions, classes, imports } = collectors;
+  const { functions, classes, imports, exports } = collectors;
 
   if (node.type === 'method_declaration') {
     const nameNode = node.childForFieldName('name');
@@ -477,6 +821,14 @@ function extractJavaSymbols(node, sourceCode, collectors) {
         is_exported: isExported,
         is_async: false,
       });
+
+      if (isExported) {
+        exports.push({
+          name: nameNode.text,
+          line: node.startPosition.row + 1,
+          type: 'method',
+        });
+      }
     }
   } else if (node.type === 'class_declaration') {
     const nameNode = node.childForFieldName('name');
@@ -515,6 +867,13 @@ function extractJavaSymbols(node, sourceCode, collectors) {
       }
 
       classes.push(classInfo);
+
+      // Java 类默认导出
+      exports.push({
+        name: nameNode.text,
+        line: node.startPosition.row + 1,
+        type: 'class',
+      });
     }
   } else if (node.type === 'interface_declaration') {
     const nameNode = node.childForFieldName('name');
@@ -541,6 +900,13 @@ function extractJavaSymbols(node, sourceCode, collectors) {
       }
 
       interfaces.push(interfaceInfo);
+
+      // Java 接口默认导出
+      exports.push({
+        name: nameNode.text,
+        line: node.startPosition.row + 1,
+        type: 'interface',
+      });
     }
   } else if (node.type === 'import_declaration') {
     const pathNode = node.childForFieldName('path');
@@ -787,7 +1153,6 @@ function calculateCyclomaticComplexity(node) {
       'or',
       '&&',
       '||',
-      'binary_expression',
     ];
 
     if (decisionTypes.includes(n.type)) {
@@ -901,6 +1266,105 @@ function calculateBasicComplexity(functions, classes, sourceCode, rootNode) {
     average_function_complexity: Math.round(averageCyclomatic * 10) / 10,
     average_nesting_depth: Math.round(averageNestingDepth * 10) / 10,
     max_nesting_depth: functionCount > 0 ? Math.max(...depthValues) : 0,
+  };
+}
+
+/**
+ * 计算文件质量评分
+ * @param {Object} complexityMetrics - 复杂度指标
+ * @param {Array} functions - 函数列表
+ * @param {Array} classes - 类列表
+ * @returns {Object} 质量评分
+ */
+function calculateFileQualityScore(complexityMetrics, functions, _classes) {
+  const { cyclomatic, max_function_complexity, max_nesting_depth, lines_of_code } =
+    complexityMetrics;
+
+  let score = 100;
+  const issues = [];
+
+  if (cyclomatic > 10) {
+    score -= 20;
+    issues.push('平均圈复杂度过高');
+  } else if (cyclomatic > 5) {
+    score -= 10;
+    issues.push('平均圈复杂度偏高');
+  }
+
+  if (max_function_complexity > 20) {
+    score -= 20;
+    issues.push('存在极高复杂度函数');
+  } else if (max_function_complexity > 10) {
+    score -= 10;
+    issues.push('存在高复杂度函数');
+  }
+
+  if (max_nesting_depth > 5) {
+    score -= 15;
+    issues.push('嵌套深度过大');
+  } else if (max_nesting_depth > 3) {
+    score -= 5;
+    issues.push('嵌套深度偏高');
+  }
+
+  if (lines_of_code > 500) {
+    score -= 15;
+    issues.push('文件过大');
+  } else if (lines_of_code > 300) {
+    score -= 5;
+    issues.push('文件偏大');
+  }
+
+  const functionCount = functions?.length || 0;
+  if (functionCount > 20) {
+    score -= 10;
+    issues.push('函数数量过多');
+  }
+
+  score = Math.max(0, Math.min(100, score));
+
+  let grade = 'A';
+  if (score >= 90) {
+    grade = 'A';
+  } else if (score >= 70) {
+    grade = 'B';
+  } else if (score >= 50) {
+    grade = 'C';
+  } else {
+    grade = 'D';
+  }
+
+  // 生成改进建议
+  const recommendations = [];
+  for (const issue of issues) {
+    switch (issue) {
+      case '平均圈复杂度过高':
+      case '平均圈复杂度偏高':
+        recommendations.push('考虑将复杂函数拆分为更小的函数');
+        break;
+      case '存在极高复杂度函数':
+      case '存在高复杂度函数':
+        recommendations.push('重构高复杂度函数，提取辅助函数');
+        break;
+      case '嵌套深度过大':
+      case '嵌套深度偏高':
+        recommendations.push('减少嵌套层级，使用提前返回或卫语句');
+        break;
+      case '文件过大':
+      case '文件偏大':
+        recommendations.push('将大文件拆分为多个模块');
+        break;
+      case '函数数量过多':
+        recommendations.push('考虑将相关函数组织到类或模块中');
+        break;
+    }
+  }
+
+  return {
+    score,
+    grade,
+    issues,
+    recommendations,
   };
 }
 

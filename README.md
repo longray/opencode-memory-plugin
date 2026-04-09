@@ -42,9 +42,10 @@
 - ✅ **Phase C: Trie Index** - 10x faster local search with prefix tree indexing
 - ✅ **Phase C: Autocomplete** - Smart search suggestions (<50ms)
 - ✅ **Phase C: Real-time Sync** - WebSocket live synchronization
-- ✅ **v3.0: Code Analysis** - Automatic AST analysis on file save (JavaScript, TypeScript)
+- ✅ **v3.0: Code Analysis** - Automatic AST analysis on file save (JavaScript, TypeScript, Python, Go, Rust, Java)
 - ✅ **v3.0: File Watcher** - 300ms debounce, batch upload, privacy filter
 - ✅ **v3.0: Project Health** - Code quality grading (A/B/C/D) and risk detection
+- ✅ **v3.0: Call Relations** - Function call graph tracking with memory_id caching
 - ✅ **v2.9: JSDoc Types** - IDE IntelliSense without TypeScript compilation
 
 ### Code Analysis Feature
@@ -63,12 +64,12 @@ node opencode-memory-plugin/cli/code-analyzer.cjs --project .
 
 **Features**:
 
-- 2 languages: JavaScript, TypeScript (with Oxc parser)
+- **6 languages**: JavaScript, TypeScript (完整支持), Python, Go, Rust, Java (基础支持)
 - 3 output formats: JSON, Table, Tree
 - Auto-save to memory system
 - Project health grading (A/B/C/D)
 - Complexity metrics (cyclomatic, nesting depth)
-- JSDoc extraction (description, params, returns)
+- JSDoc extraction (description, params, returns) - JS/TS only
 
 📖 **[Complete Guide](opencode-memory-plugin/CODE-ANALYSIS.md)** | 🚀 **[Quick Start](opencode-memory-plugin/QUICK_START_CODE_ANALYSIS.md)**
 
@@ -512,7 +513,7 @@ The plugin supports multiple external embedding services:
 
 ## 📚 Documentation
 
-### Current Version (v2.9.0)
+### Current Version (v3.0.0)
 
 - [Configuration Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
 - [Quick Start Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/QUICK_START.md) - Getting started

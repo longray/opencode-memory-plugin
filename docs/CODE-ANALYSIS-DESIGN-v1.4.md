@@ -110,14 +110,27 @@ interface InterfaceSymbol {
 | `GET /api/v1/memories/{id}/references`   | GET  | 查询谁调用了此函数 |
 | `GET /api/v1/memories/{id}/dependencies` | GET  | 查询此函数调用了谁 |
 
-### 3.3 Phase 3: 代码地图 API（⛔ 已推迟）
+### 3.3 Phase 3: 项目地图与统计 (BL-CA-23~25)
 
-> ⚠️ **注意**: BL-CA-23~25 已取消/无限期推迟，代码地图功能不再作为 v1.4 范围。
+**目标**: 实现项目级的代码结构可视化和健康度统计
 
-| 端点                              | 方法 | 说明         | 状态      |
-| --------------------------------- | ---- | ------------ | --------- |
-| `GET /api/v1/projects/{id}/map`   | GET  | 项目代码地图 | ⛔ 已取消 |
-| `GET /api/v1/projects/{id}/stats` | GET  | 项目统计     | ⛔ 已取消 |
+**核心功能**:
+
+- **项目地图 (Project Map)**:
+  - 获取项目文件树
+  - 提取模块间依赖关系
+  - 识别热点文件（复杂度最高/调用最频繁）
+- **项目统计 (Project Stats)**:
+  - 统计总文件数、函数数、类数
+  - 计算平均/最大圈复杂度
+  - 生成项目健康度评分
+
+**API 映射**:
+
+- `GET /api/v1/projects/{project_id}/map`
+- `GET /api/v1/projects/{project_id}/stats`
+
+**状态**: ✅ 已实现 (2026-04-09)
 
 ---
 

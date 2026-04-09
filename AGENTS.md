@@ -1,6 +1,6 @@
 # AGENTS.md - OpenCode Memory Plugin 开发指南
 
-**版本**: v2.9.0  
+**版本**: v3.0.0  
 **分支**: main  
 **更新时间**: 2026-04-07
 
@@ -27,11 +27,12 @@ D:/github/opencode-memory-plugin/
 │   │   ├── code-analyzer.js  # 代码 AST 分析（Oxc + Tree-sitter）
 │   │   ├── tree-sitter-parser.js # 多语言 AST 解析（Python/Go/Rust/Java）
 │   │   ├── project-analyzer.js   # 项目级分析（健康度评级）
-│   │   ├── code-analysis-formatter.js # 输出格式化（table/tree/json）
-│   │   ├── code-analysis-service.js # 批量分析队列
-│   │   ├── code-fingerprint.js # 变更检测
-│   │   ├── privacy-filter.js  # 敏感内容过滤
-│   │   └── file-watcher.js    # 文件系统监听
+│ │ ├── code-analysis-formatter.js # 输出格式化（table/tree/json）
+│ │ ├── code-analysis-service.js # 批量分析队列
+│ │ ├── code-fingerprint.js # 变更检测
+│ │ ├── privacy-filter.js # 敏感内容过滤
+│ │ ├── file-watcher.js # 文件系统监听
+│ │ └── memory-id-cache.js # Memory ID 缓存管理
 │   ├── tools/                # OpenCode 插件工具
 │   │   ├── core.js           # memory_write
 │   │   ├── search.js         # memory_search, memory_suggest

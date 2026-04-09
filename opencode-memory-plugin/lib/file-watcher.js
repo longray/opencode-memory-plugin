@@ -22,7 +22,7 @@ export class FileWatcher {
       return;
     }
 
-    const watchPattern = '**/*.{js,ts,mjs,cjs,mts,cts,tsx}';
+    const watchPattern = '**/*.{js,ts,mjs,cjs,mts,cts,tsx,py,go,rs,java}';
     const ignored = [
       '**/node_modules/**',
       '**/.git/**',
