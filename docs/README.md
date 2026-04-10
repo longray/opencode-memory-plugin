@@ -19,24 +19,31 @@
 
 ## 开发文档索引
 
+### 项目级文档
+
+| 项目                 | 产品文档                                                                | 开发文档                                                        | Backlog                                                                   |
+| -------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **插件端** (Node.js) | [opencode-memory-plugin/README.md](../opencode-memory-plugin/README.md) | [opencode-memory-plugin/docs/](../opencode-memory-plugin/docs/) | [opencode-memory-plugin/BACKLOG.md](../opencode-memory-plugin/BACKLOG.md) |
+| **后端** (Python)    | [embedding_service/README.md](../embedding_service/README.md)           | [embedding_service/docs/](../embedding_service/docs/)           | [embedding_service/BACKLOG.md](../embedding_service/BACKLOG.md)           |
+
 ### v3.2 架构文档（当前）
 
-| 文档 | 说明 | 状态 |
-|------|------|------|
-| [v3.2/UNIFIED-ARCHITECTURE-v3.2.md](./v3.2/UNIFIED-ARCHITECTURE-v3.2.md) | v3.2 统一架构设计 | ✅ 实施版 |
-| [v3.2/BACKEND-v3.2-IMPLEMENTATION.md](./v3.2/BACKEND-v3.2-IMPLEMENTATION.md) | 后端实施指南 | ✅ 实施版 |
-| [v3.2/BACKEND-v3.2-WEBSOCKET.md](./v3.2/BACKEND-v3.2-WEBSOCKET.md) | WebSocket 详细设计 | ✅ 实施版 |
-| [v3.2/BACKEND-v3.2-PRECOMPUTE.md](./v3.2/BACKEND-v3.2-PRECOMPUTE.md) | 预计算服务设计 | ✅ 实施版 |
-| [v3.2/BACKEND-v3.2-MIGRATION.md](./v3.2/BACKEND-v3.2-MIGRATION.md) | 迁移指南 | ✅ 实施版 |
-| [v3.2/PLUGIN-v3.2-IMPLEMENTATION.md](./v3.2/PLUGIN-v3.2-IMPLEMENTATION.md) | 插件端实施 | ✅ 实施版 |
-| [v3.2/PLUGIN-v3.2-API.md](./v3.2/PLUGIN-v3.2-API.md) | 插件端 API 规范 | ✅ 实施版 |
-| [v3.2/BACKEND-v3.2-MEILISEARCH.md](./v3.2/BACKEND-v3.2-MEILISEARCH.md) | Meilisearch 升级指南 | ✅ 实施版 |
-| [v3.2/DATABASE-v3.2-SCHEMA.md](./v3.2/DATABASE-v3.2-SCHEMA.md) | 数据库 Schema | ✅ 实施版 |
-| [v3.2/DEPLOYMENT-v3.2.md](./v3.2/DEPLOYMENT-v3.2.md) | 部署指南 | ✅ 实施版 |
-| [v3.2/DEVELOPMENT-v3.2.md](./v3.2/DEVELOPMENT-v3.2.md) | 开发指南 | ✅ 实施版 |
-| [v3.2/DEPENDENCY-VERSIONS.md](./v3.2/DEPENDENCY-VERSIONS.md) | 依赖版本锁定 | ✅ 实施版 |
-| [v3.2/EVALUATION-PROMPT.md](./v3.2/EVALUATION-PROMPT.md) | 文档评估模板 | ✅ 实施版 |
-| [v3.2/EVALUATION-REPORT.md](./v3.2/EVALUATION-REPORT.md) | 文档评估报告 | ✅ 实施版 |
+| 文档                                                                         | 说明                 | 状态      |
+| ---------------------------------------------------------------------------- | -------------------- | --------- |
+| [v3.2/UNIFIED-ARCHITECTURE-v3.2.md](./v3.2/UNIFIED-ARCHITECTURE-v3.2.md)     | v3.2 统一架构设计    | ✅ 实施版 |
+| [v3.2/BACKEND-v3.2-IMPLEMENTATION.md](./v3.2/BACKEND-v3.2-IMPLEMENTATION.md) | 后端实施指南         | ✅ 实施版 |
+| [v3.2/BACKEND-v3.2-WEBSOCKET.md](./v3.2/BACKEND-v3.2-WEBSOCKET.md)           | WebSocket 详细设计   | ✅ 实施版 |
+| [v3.2/BACKEND-v3.2-PRECOMPUTE.md](./v3.2/BACKEND-v3.2-PRECOMPUTE.md)         | 预计算服务设计       | ✅ 实施版 |
+| [v3.2/BACKEND-v3.2-MIGRATION.md](./v3.2/BACKEND-v3.2-MIGRATION.md)           | 迁移指南             | ✅ 实施版 |
+| [v3.2/PLUGIN-v3.2-IMPLEMENTATION.md](./v3.2/PLUGIN-v3.2-IMPLEMENTATION.md)   | 插件端实施           | ✅ 实施版 |
+| [v3.2/PLUGIN-v3.2-API.md](./v3.2/PLUGIN-v3.2-API.md)                         | 插件端 API 规范      | ✅ 实施版 |
+| [v3.2/BACKEND-v3.2-MEILISEARCH.md](./v3.2/BACKEND-v3.2-MEILISEARCH.md)       | Meilisearch 升级指南 | ✅ 实施版 |
+| [v3.2/DATABASE-v3.2-SCHEMA.md](./v3.2/DATABASE-v3.2-SCHEMA.md)               | 数据库 Schema        | ✅ 实施版 |
+| [v3.2/DEPLOYMENT-v3.2.md](./v3.2/DEPLOYMENT-v3.2.md)                         | 部署指南             | ✅ 实施版 |
+| [v3.2/DEVELOPMENT-v3.2.md](./v3.2/DEVELOPMENT-v3.2.md)                       | 开发指南             | ✅ 实施版 |
+| [v3.2/DEPENDENCY-VERSIONS.md](./v3.2/DEPENDENCY-VERSIONS.md)                 | 依赖版本锁定         | ✅ 实施版 |
+| [v3.2/EVALUATION-PROMPT.md](./v3.2/EVALUATION-PROMPT.md)                     | 文档评估模板         | ✅ 实施版 |
+| [v3.2/EVALUATION-REPORT.md](./v3.2/EVALUATION-REPORT.md)                     | 文档评估报告         | ✅ 实施版 |
 
 ### 核心开发文档
 
@@ -116,3 +123,29 @@
 - [产品文档](../README.md) - GitHub 首页
 - [Backlog](../BACKLOG.md) - 未完成任务
 - [CHANGELOG](../CHANGELOG.md) - 版本发布记录
+
+---
+
+## 文档分工说明
+
+### 三类文档的职责划分
+
+| 文档类型                 | 核心问题     | 目标读者           | 内容特点                  | 维护频率     |
+| ------------------------ | ------------ | ------------------ | ------------------------- | ------------ |
+| **产品文档** (README.md) | "怎么用？"   | 用户、新贡献者     | 安装、配置、使用示例、FAQ | 每个版本发布 |
+| **开发文档** (docs/)     | "怎么实现？" | 开发者、维护者     | 架构、API、开发指南、部署 | 架构变更时   |
+| **Backlog** (BACKLOG.md) | "做什么？"   | 项目管理者、贡献者 | 任务列表、优先级、里程碑  | 持续更新     |
+
+### 跨项目引用规范
+
+- **主项目 → 子项目**: 使用相对路径 `../opencode-memory-plugin/` 或 `../embedding_service/`
+- **子项目 → 主项目**: 使用相对路径 `../../docs/v3.2/`
+- **避免内容重复**: 详细设计留在主项目，子项目只保留实施相关的具体信息
+
+### 版本对应关系
+
+| 主项目版本 | 插件端版本 | 后端版本 | 状态      |
+| ---------- | ---------- | -------- | --------- |
+| v3.2.0     | v3.2.0     | v3.2.0   | 🚧 开发中 |
+| v3.0.0     | v3.0.0     | v2.4.0   | ✅ 已发布 |
+| v2.9.0     | v2.9.0     | v2.3.0   | ✅ 已发布 |
