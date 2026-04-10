@@ -16,7 +16,11 @@ describe('Memory Lookup API Integration Tests', () => {
   let uploadedMemoryId = null;
 
   beforeAll(async () => {
-    wrapperClient = new WrapperClient();
+    wrapperClient = new WrapperClient({
+      backend: {
+        tenant_id: 'default',
+      },
+    });
     memoryIdCache = new MemoryIdCache(projectId);
     await memoryIdCache.load();
   });
