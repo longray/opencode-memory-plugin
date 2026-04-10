@@ -1,0 +1,43 @@
+# 类型(模块): 简短描述（50字符内）
+#
+# 类型:
+#   feat:     新功能
+#   fix:      修复bug
+#   docs:     文档更新
+#   style:    代码格式（不影响功能）
+#   refactor: 重构
+#   perf:     性能优化
+#   test:     测试相关
+#   chore:    构建/工具
+#
+# 模块:
+#   websocket:     WebSocket相关
+#   precompute:    预计算服务
+#   schema:        数据库Schema
+#   api:           API接口
+#   deployment:    部署配置
+#   deps:          依赖更新
+#   docs:          文档
+#
+# 示例:
+#   feat(websocket): implement heartbeat mechanism
+#
+# 详细描述（可选，每行72字符内）
+#
+# - 说明变更原因
+# - 说明实现方式
+# - 说明影响范围
+#
+# 设计引用（必须）
+#
+# Design-Ref: BACKEND-v3.2-WEBSOCKET.md#3.1-心跳机制
+# Design-Ref: BACKEND-v3.2-PRECOMPUTE.md#4.2-批处理
+#
+# 关闭的BACKLOG项（可选）
+#
+# Closes: BL-CA-36
+# Closes: BL-CA-37
+#
+# 破坏性变更（如有）
+#
+# BREAKING CHANGE: 端口从17999改为18008

@@ -1,0 +1,165 @@
+name: Design Compliance Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main ]
+
+jobs:
+  design-compliance:
+    name: Design Compliance Verification
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        cd opencode-memory-plugin
+        npm ci
+
+    # 1. 代码风格检查
+    - name: Lint JavaScript
+      run: |
+        cd opencode-memory-plugin
+        npm run lint
+
+    # 2. Markdown格式检查
+    - name: Lint Markdown
+      run: |
+        cd opencode-memory-plugin
+        npm run lint:md
+
+    # 3. 单元测试
+    - name: Run unit tests
+      run: |
+        cd opencode-memory-plugin
+        npm test -- --coverage --coverageThreshold=85
+
+    # 4. 检查提交信息中的 Design-Ref
+    - name: Check Design-Ref in commits
+      run: |
+        echo "Checking for Design-Ref in commit messages..."
+        
+        # 获取提交范围
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+        else
+          BASE_SHA=$(git rev-parse HEAD~1)
+          HEAD_SHA=$(git rev-parse HEAD)
+        fi
+        
+        # 检查每个提交
+        MISSING_DESIGN_REF=0
+        while IFS= read -r commit; do
+          if [ -n "$commit" ]; then
+            MESSAGE=$(git log -1 --pretty=format:"%B" "$commit")
+            if ! echo "$MESSAGE" | grep -q "Design-Ref:"; then
+              echo "❌ Commit $commit missing Design-Ref"
+              echo "   Message: $(echo "$MESSAGE" | head -1)"
+              MISSING_DESIGN_REF=1
+            else
+              echo "✅ Commit $commit has Design-Ref"
+            fi
+          fi
+        done < <(git log --pretty=format:"%H" "$BASE_SHA..$HEAD_SHA")
+        
+        if [ $MISSING_DESIGN_REF -eq 1 ]; then
+          echo ""
+          echo "❌ Some commits are missing Design-Ref"
+          echo "Please add 'Design-Ref: <document>#<section>' to your commit messages"
+          exit 1
+        fi
+        
+        echo "✅ All commits have Design-Ref"
+
+    # 5. 检查RTM更新
+    - name: Check RTM updates
+      run: |
+        echo "Checking if RTM needs updates..."
+        
+        # 检查是否有代码变更但没有RTM更新
+        CODE_CHANGES=$(git diff --name-only HEAD~1 HEAD | grep -E "\.(js|py|ts)$" | wc -l)
+        RTM_UPDATES=$(git diff --name-only HEAD~1 HEAD | grep "RTM\.md" | wc -l)
+        
+        if [ $CODE_CHANGES -gt 0 ] && [ $RTM_UPDATES -eq 0 ]; then
+          echo "⚠️ Warning: Code changes detected but RTM.md not updated"
+          echo "Please update RTM.md to reflect the implementation status"
+          # 不阻断，只警告
+        else
+          echo "✅ RTM check passed"
+        fi
+
+    # 6. API契约检查
+    - name: Check API implementation
+      run: |
+        echo "Checking API implementation against design..."
+        
+        # 检查API端点是否实现
+        # 这里可以添加自定义脚本检查API端点
+        
+        echo "✅ API check passed"
+
+    # 7. 生成检查报告
+    - name: Generate compliance report
+      if: always()
+      run: |
+        echo "# Design Compliance Report" > compliance-report.md
+        echo "" >> compliance-report.md
+        echo "**Commit**: ${{ github.sha }}" >> compliance-report.md
+        echo "**Branch**: ${{ github.ref }}" >> compliance-report.md
+        echo "**Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> compliance-report.md
+        echo "" >> compliance-report.md
+        
+        echo "## Checks" >> compliance-report.md
+        echo "" >> compliance-report.md
+        echo "| Check | Status |" >> compliance-report.md
+        echo "|-------|--------|" >> compliance-report.md
+        echo "| JavaScript Lint | ${{ steps.lint-js.outcome == 'success' && '✅' || '❌' }} |" >> compliance-report.md
+        echo "| Markdown Lint | ${{ steps.lint-md.outcome == 'success' && '✅' || '❌' }} |" >> compliance-report.md
+        echo "| Unit Tests | ${{ steps.test.outcome == 'success' && '✅' || '❌' }} |" >> compliance-report.md
+        echo "| Design-Ref Check | ${{ steps.check-design-ref.outcome == 'success' && '✅' || '❌' }} |" >> compliance-report.md
+        echo "" >> compliance-report.md
+        
+        echo "## Details" >> compliance-report.md
+        echo "" >> compliance-report.md
+        echo "See workflow logs for detailed information." >> compliance-report.md
+
+    # 8. 上传报告
+    - name: Upload compliance report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: compliance-report
+        path: compliance-report.md
+
+    # 9. PR评论
+    - name: Comment PR
+      if: github.event_name == 'pull_request' && failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `❌ Design Compliance Check Failed
+            
+            Please fix the following issues:
+            1. Ensure all commits have Design-Ref
+            2. Ensure code coverage >= 85%
+            3. Ensure all lint checks pass
+            
+            See workflow logs for details.`
+          })

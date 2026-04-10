@@ -1,7 +1,7 @@
 # Development Documentation
 
-**版本**: v2.9.0  
-**最后更新**: 2026-04-01
+**版本**: v3.2.0  
+**最后更新**: 2026-04-10
 
 ---
 
@@ -18,6 +18,25 @@
 ---
 
 ## 开发文档索引
+
+### v3.2 架构文档（当前）
+
+| 文档 | 说明 | 状态 |
+|------|------|------|
+| [v3.2/UNIFIED-ARCHITECTURE-v3.2.md](./v3.2/UNIFIED-ARCHITECTURE-v3.2.md) | v3.2 统一架构设计 | ✅ 实施版 |
+| [v3.2/BACKEND-v3.2-IMPLEMENTATION.md](./v3.2/BACKEND-v3.2-IMPLEMENTATION.md) | 后端实施指南 | ✅ 实施版 |
+| [v3.2/BACKEND-v3.2-WEBSOCKET.md](./v3.2/BACKEND-v3.2-WEBSOCKET.md) | WebSocket 详细设计 | ✅ 实施版 |
+| [v3.2/BACKEND-v3.2-PRECOMPUTE.md](./v3.2/BACKEND-v3.2-PRECOMPUTE.md) | 预计算服务设计 | ✅ 实施版 |
+| [v3.2/BACKEND-v3.2-MIGRATION.md](./v3.2/BACKEND-v3.2-MIGRATION.md) | 迁移指南 | ✅ 实施版 |
+| [v3.2/PLUGIN-v3.2-IMPLEMENTATION.md](./v3.2/PLUGIN-v3.2-IMPLEMENTATION.md) | 插件端实施 | ✅ 实施版 |
+| [v3.2/PLUGIN-v3.2-API.md](./v3.2/PLUGIN-v3.2-API.md) | 插件端 API 规范 | ✅ 实施版 |
+| [v3.2/BACKEND-v3.2-MEILISEARCH.md](./v3.2/BACKEND-v3.2-MEILISEARCH.md) | Meilisearch 升级指南 | ✅ 实施版 |
+| [v3.2/DATABASE-v3.2-SCHEMA.md](./v3.2/DATABASE-v3.2-SCHEMA.md) | 数据库 Schema | ✅ 实施版 |
+| [v3.2/DEPLOYMENT-v3.2.md](./v3.2/DEPLOYMENT-v3.2.md) | 部署指南 | ✅ 实施版 |
+| [v3.2/DEVELOPMENT-v3.2.md](./v3.2/DEVELOPMENT-v3.2.md) | 开发指南 | ✅ 实施版 |
+| [v3.2/DEPENDENCY-VERSIONS.md](./v3.2/DEPENDENCY-VERSIONS.md) | 依赖版本锁定 | ✅ 实施版 |
+| [v3.2/EVALUATION-PROMPT.md](./v3.2/EVALUATION-PROMPT.md) | 文档评估模板 | ✅ 实施版 |
+| [v3.2/EVALUATION-REPORT.md](./v3.2/EVALUATION-REPORT.md) | 文档评估报告 | ✅ 实施版 |
 
 ### 核心开发文档
 

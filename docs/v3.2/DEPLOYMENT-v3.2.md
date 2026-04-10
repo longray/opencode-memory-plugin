@@ -91,7 +91,7 @@ RUN pip install poetry
 RUN poetry config virtualenvs.create false
 
 # 安装依赖（仅生产依赖）
-RUN poetry install --no-dev --no-interaction --no-ansi
+RUN poetry install --only main --no-interaction --no-ansi
 
 # -------------------------------------------------
 # Stage 2: Runtime
@@ -172,7 +172,7 @@ services:
 
       # WebSocket 配置
       - WS_HEARTBEAT_INTERVAL=30
-      - WS_RECONNECT_MAX_ATTEMPTS=5
+      - WS_RECONNECT_MAX_ATTEMPTS=10  # 最大重连次数（默认 10）
 
       # 预计算配置
       - PRECOMPUTE_BATCH_SIZE=100  # 批处理大小（默认 100，实时场景可设为 10）
@@ -291,7 +291,7 @@ MODELSCOPE_API_KEY=your-modelscope-api-key-here
 # WebSocket 配置
 # -----------------------------------------
 # WS_HEARTBEAT_INTERVAL=30
-# WS_RECONNECT_MAX_ATTEMPTS=5
+# WS_RECONNECT_MAX_ATTEMPTS=10  # 最大重连次数（默认 10）
 
 # -----------------------------------------
 # 预计算配置
