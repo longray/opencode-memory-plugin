@@ -74,6 +74,11 @@
     "lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
     "lint:md:fix": "markdownlint-cli2 --fix \"**/*.md\" \"#node_modules\"",
     "format": "prettier --write \"**/*.{js,mjs,cjs,json,md}\"",
-    "format:check": "prettier --check \"**/*.{js,mjs,cjs,json,md}\""
+    "format:check": "prettier --check \"**/*.{js,mjs,cjs,json,md}\"",
+    "rtm:update": "node ../scripts/update-rtm.js --all",
+    "rtm:check": "node ../scripts/update-rtm.js --check",
+    "design:verify": "node ../scripts/check-design-compliance.js --all",
+    "design:suggest": "node ../scripts/opencode-integration.js suggest-commit",
+    "weekly-check": "node ../scripts/update-rtm.js --check && node ../scripts/check-design-compliance.js --all"
   }
 }
