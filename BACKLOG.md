@@ -2,17 +2,17 @@
 
 > ⚠️ **创建新任务前必读**：
 >
-> 1. 检查当前最大编号：`grep "^### BL-" BACKLOG.md | tail -1` → **当前最大：BL-CA-32**
-> 2. 下一个可用编号：**BL-CA-33**
+> 1. 检查当前最大编号：`grep "^### BL-" BACKLOG.md | tail -1` → **当前最大：BL-CA-42**
+> 2. 下一个可用编号：**BL-CA-43**
 > 3. 规则：**永不复用、永不跳号**（详见 [`AGENTS.md#backlog-编号规则`](./AGENTS.md)）
-> 4. 如编号冲突，使用下一个可用编号（BL-CA-27, BL-CA-28, BL-CA-29...）
+> 4. 如编号冲突，使用下一个可用编号（BL-CA-43, BL-CA-44, BL-CA-45...）
 >
 > 未完成任务。已完成任务归档至 [`backlog_archive.md`](./backlog_archive.md)。
 > 已发布版本详见 [`CHANGELOG.md`](./CHANGELOG.md)。
 
-**更新时间**: 2026-04-08  
-**版本**: v2.9.2  
-**当前阶段**: 场景十 — 代码分析 v1.4 真实使用场景实施（进行中）
+**更新时间**: 2026-04-10  
+**版本**: v2.9.4  
+**当前阶段**: 场景十一 — v3.2 架构升级（新建）
 
 ---
 
@@ -1096,9 +1096,416 @@ BL-CA-21 (符号导航) ────────┘
 | BL-CA-30     | P1     | 中       | 中       | 0        | 2          |
 | BL-CA-31     | P1     | 中       | 中       | 0        | 3          |
 | BL-CA-32     | P2     | 中       | 高       | 0        | 4          |
+| BL-CA-33     | P0     | 高       | 中       | 0        | 1          |
+| BL-CA-34     | P0     | 高       | 中       | 0        | 1          |
+| **BL-CA-35** | **P0** | **高**   | **中**   | **0**    | **1**      |
+| **BL-CA-36** | **P0** | **高**   | **高**   | **1**    | **2**      |
+| **BL-CA-37** | **P0** | **高**   | **高**   | **1**    | **2**      |
+| **BL-CA-38** | **P0** | **高**   | **中**   | **1**    | **2**      |
+| **BL-CA-39** | **P0** | **高**   | **中**   | **3**    | **3**      |
+| **BL-CA-40** | **P1** | **中**   | **中**   | **2**    | **4**      |
+| **BL-CA-41** | **P1** | **中**   | **中**   | **1**    | **4**      |
+| **BL-CA-42** | **P2** | **低**   | **低**   | **1**    | **5**      |
 
 ---
 
-_文档版本: v2.9.3_  
-_更新时间: 2026-04-09_  
-_状态: 已完善所有任务定义_
+## 场景十一：v3.2 架构升级 — 统一架构实施
+
+> **背景**: 基于 v3.1 文档审核结果和代码库分析，需要实施 v3.2 架构升级，包括 WebSocket 重构、PrecomputeService 服务化、Meilisearch SDK 升级、服务端口迁移。
+>
+> **目标**: 完成后端服务从 17999 到 18008 的完全替换，实现完整的可靠性保障和性能优化。
+
+---
+
+### BL-CA-35 [P0] v3.2 架构升级 - 总体文档编写
+
+**目标**: 完成 v3.2 架构升级的所有 P0 核心文档编写，为后续开发提供完整的设计规范和实施指南
+
+**涉及范围**:
+
+1. `docs/v3.2/UNIFIED-ARCHITECTURE-v3.2.md` - 总体架构文档
+2. `docs/v3.2/BACKEND-v3.2-IMPLEMENTATION.md` - 后端实施总览
+3. `docs/v3.2/BACKEND-v3.2-WEBSOCKET.md` - WebSocket 详细设计
+4. `docs/v3.2/BACKEND-v3.2-PRECOMPUTE.md` - 预计算服务设计
+5. `docs/v3.2/BACKEND-v3.2-MIGRATION.md` - 迁移指南
+6. `docs/v3.2/PLUGIN-v3.2-IMPLEMENTATION.md` - 插件端实施指南
+
+**前置依赖**:
+
+- v3.1 文档审核完成（UNIFIED-ARCHITECTURE-v3.1-problems-confirm.md）
+- 技术栈确认（Python 3.10+, SurrealDB 3.0+, SDK 1.0.8）
+- 决策确认（WebSocket 重写、PrecomputeService 重构、Meilisearch SDK 升级）
+
+**完成标准**:
+
+1. 所有 P0 文档编写完成并通过审核
+2. 文档包含完整的目标、范围、前置依赖、完成标准、验证方式
+3. WebSocket 设计包含心跳、指数退避重连、消息确认、DIFF 模式
+4. PrecomputeService 设计包含批量处理、增量更新、性能监控
+5. 迁移指南包含 17999 → 18008 的详细步骤
+6. 插件端文档包含依赖升级（ws 8.20, pino, dotenv）
+
+**验证方式**:
+
+1. 文档评审：检查所有文档是否完整、一致、可实施
+2. 技术评审：后端团队确认设计可行性
+3. 架构评审：确认与现有系统的兼容性
+4. 检查清单：所有完成标准项逐一确认
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-36 [P0] v3.2 WebSocket 服务重构
+
+**目标**: 按 v3.2 设计完全重写 WebSocket 服务，实现完整的可靠性保障（心跳、指数退避重连、消息确认、DIFF 模式）
+
+**涉及范围**:
+
+1. `embedding_service/wrapper/src/routers/websocket.py` - 完全重写
+2. `embedding_service/wrapper/src/utils/websocket/` - 新增目录
+   - `reliable_client.py` - ReliableWebSocketClient 类
+   - `ack_system.py` - AcknowledgementSystem 类
+   - `state_recovery.py` - ConnectionStateRecovery 类
+   - `persistent_queue.py` - PersistentMessageQueue 类
+3. `embedding_service/wrapper/src/utils/diff/` - 新增 DIFF 模式支持
+   - `subscription.py` - DiffSubscription 类
+   - `patch_applier.py` - JSON Patch 应用器
+
+**前置依赖**:
+
+- BL-CA-35 完成（WebSocket 详细设计文档）
+- Python `websockets` 库调研完成
+- `fast-json-patch` 库确认可用
+
+**完成标准**:
+
+1. ReliableWebSocketClient 实现：
+   - 心跳机制（30s 间隔，2 次未响应触发重连）
+   - 指数退避重连（1s → 2s → 4s... 最大 300s）
+   - 连接状态恢复（session + offset）
+2. AcknowledgementSystem 实现：
+   - 消息发送等待确认
+   - 超时重试（5s 超时，3 次重试）
+   - 指数退避延迟
+
+3. DiffSubscription 实现：
+   - LIVE SELECT DIFF 订阅
+   - 本地缓存维护
+   - JSON Patch 应用
+
+4. PersistentMessageQueue 实现：
+   - 离线消息持久化
+   - 文件锁机制（portalocker）
+   - 7 天过期清理
+
+5. 所有功能单元测试通过
+
+**验证方式**:
+
+1. 单元测试：每个类独立测试
+2. 集成测试：完整 WebSocket 流程测试
+3. 压力测试：1000+ 并发连接测试
+4. 故障测试：断网、超时、重连场景测试
+5. 性能测试：DIFF 模式减少 90% 数据传输验证
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-37 [P0] v3.2 PrecomputeService 重构
+
+**目标**: 将现有代码分析重构为 PrecomputeService，实现服务化、批量处理、增量更新、性能监控
+
+**涉及范围**:
+
+1. `embedding_service/wrapper/src/services/` - 新增目录
+   - `precompute.py` - PrecomputeService 主类
+   - `performance_monitor.py` - 性能监控类
+   - `concurrency_control.py` - 并发控制类
+2. `embedding_service/wrapper/src/utils/code_analyzer.py` - 解耦，改为服务调用
+3. `embedding_service/wrapper/src/routers/code.py` - 新增预计算路由
+
+**前置依赖**:
+
+- BL-CA-35 完成（PrecomputeService 设计文档）
+- `tree-sitter` Python 绑定确认可用
+- `psutil` 库确认可用
+
+**完成标准**:
+
+1. PrecomputeService 实现：
+   - AST 解析（tree-sitter Query）
+   - 符号提取（函数、类、接口）
+   - 批量创建 Atoms（SurrealDB 批量插入）
+   - 创建 Entity（含双向引用）
+   - 创建 Relations（调用关系）
+
+2. 性能监控实现：
+   - 耗时监控（perf_counter）
+   - 内存监控（psutil）
+   - CPU 监控（psutil）
+   - 自动记录到 performance_log 表
+
+3. 增量更新实现：
+   - 文件指纹计算（SHA256）
+   - 变更检测
+   - 差异计算
+   - 只更新变更部分
+
+4. 并发控制实现：
+   - asyncio.Semaphore 限流（最大 5 并发）
+   - 去重机制（processing set）
+   - 队列管理
+
+5. 所有功能单元测试通过
+
+**验证方式**:
+
+1. 单元测试：每个方法独立测试
+2. 集成测试：完整预计算流程测试
+3. 性能测试：大文件（>1000 行）处理测试
+4. 增量测试：重复分析相同文件，验证跳过
+5. 并发测试：多文件同时分析测试
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-38 [P0] v3.2 Meilisearch SDK 升级
+
+**目标**: 将 Meilisearch 从 httpx 调用升级为 Python SDK 0.40，获得类型安全和更好的 API
+
+**涉及范围**:
+
+1. `embedding_service/pyproject.toml` - 新增依赖 `meilisearch>=0.40.0,<0.41.0`
+2. `embedding_service/wrapper/src/utils/meili_client.py` - 完全重写
+3. `embedding_service/wrapper/src/utils/memory_manager/meili_sync.py` - 适配新 SDK
+
+**前置依赖**:
+
+- BL-CA-35 完成（Meilisearch 升级指南文档）
+- Meilisearch SDK 0.40 发布确认
+- 向后兼容性确认
+
+**完成标准**:
+
+1. 依赖升级：
+   - 添加 `meilisearch>=0.40.0,<0.41.0` 到 pyproject.toml
+   - 移除 httpx 直接调用
+
+2. MeiliClient 重写：
+   - 使用 Meilisearch SDK 客户端
+   - 保持现有功能（索引管理、文档 CRUD、搜索）
+   - 添加类型注解
+
+3. 同步逻辑适配：
+   - 更新 MeiliSyncMixin
+   - 保持双写策略（SurrealDB + Meilisearch）
+
+4. 配置兼容：
+   - 环境变量配置保持不变
+   - 索引设置自动迁移
+
+5. 所有功能单元测试通过
+
+**验证方式**:
+
+1. 单元测试：MeiliClient 所有方法测试
+2. 集成测试：文档增删改查测试
+3. 搜索测试：全文搜索、过滤、排序测试
+4. 性能测试：与 httpx 版本性能对比
+5. 兼容性测试：现有索引无缝迁移
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-39 [P0] v3.2 服务端口迁移
+
+**目标**: 将服务端口从 17999 迁移到 18008，完成与现有服务的完全替换
+
+**涉及范围**:
+
+1. `embedding_service/wrapper/src/main.py` - 端口配置更新
+2. `embedding_service/wrapper/src/config.py` - 配置更新
+3. `embedding_service/docker-compose.yml` - 端口映射更新
+4. `opencode-memory-plugin/lib/wrapper-client.js` - 端口更新
+5. `opencode-memory-plugin/agents/` - 端口更新
+6. 文档更新
+
+**前置依赖**:
+
+- BL-CA-35 完成（迁移指南文档）
+- BL-CA-36、BL-CA-37、BL-CA-38 完成（新服务就绪）
+- 新服务测试通过
+
+**完成标准**:
+
+1. 后端端口更新：
+   - FastAPI 服务端口改为 18008
+   - WebSocket 端口改为 18008
+   - Docker 端口映射更新
+
+2. 插件端端口更新：
+   - wrapper-client.js 默认端口改为 18008
+   - 所有 agent 配置更新
+
+3. 文档更新：
+   - 所有文档中的端口引用更新
+   - API 文档更新
+
+4. 兼容性处理：
+   - 保留 17999 作为可选配置（向后兼容）
+   - 环境变量支持 PORT 配置
+
+5. 部署验证：
+   - Docker 部署测试通过
+   - 本地部署测试通过
+
+**验证方式**:
+
+1. 配置检查：全局搜索 17999，确认全部更新
+2. 单元测试：配置加载测试
+3. 集成测试：完整端到端测试
+4. 部署测试：Docker 部署验证
+5. 回归测试：现有功能全部正常
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-40 [P1] v3.2 插件端依赖升级
+
+**目标**: 升级插件端依赖（ws 8.20, pino, dotenv），支持 v3.2 新功能
+
+**涉及范围**:
+
+1. `opencode-memory-plugin/package.json` - 依赖更新
+2. `opencode-memory-plugin/lib/websocket-client.js` - 适配新 ws 版本
+3. `opencode-memory-plugin/lib/logger.js` - 新增（pino 封装）
+4. `opencode-memory-plugin/lib/config.js` - 新增（dotenv 封装）
+
+**前置依赖**:
+
+- BL-CA-35 完成（插件端实施指南文档）
+- BL-CA-36 完成（后端 WebSocket 就绪）
+
+**完成标准**:
+
+1. 依赖升级：
+   - ws: 8.19.0 → 8.20.0
+   - 新增 pino: ^9.5.0
+   - 新增 dotenv: ^16.4.5
+
+2. WebSocket 客户端适配：
+   - 使用 ws 8.20 新特性
+   - 适配后端 ReliableWebSocket
+
+3. 日志系统：
+   - pino 结构化日志
+   - 性能提升 5x
+   - 开发环境美化（pino-pretty）
+
+4. 配置管理：
+   - dotenv 环境变量加载
+   - 配置验证
+
+5. 所有功能测试通过
+
+**验证方式**:
+
+1. 依赖检查：package.json 验证
+2. 单元测试：logger、config 测试
+3. 集成测试：WebSocket 连接测试
+4. 性能测试：日志性能对比
+5. 回归测试：现有功能全部正常
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-41 [P1] v3.2 SurrealDB Schema 升级
+
+**目标**: 升级 SurrealDB Schema 到 3.0+，添加 tenant_id 预留字段，支持 v3.2 新特性
+
+**涉及范围**:
+
+1. `docs/v3.2/DATABASE-v3.2-SCHEMA.md` - Schema 文档
+2. `embedding_service/wrapper/src/db/migrations/` - 新增迁移脚本
+   - `v3.2_schema.sql` - Schema 定义
+   - `migrate_v2_to_v3.2.py` - 迁移脚本
+
+**前置依赖**:
+
+- BL-CA-35 完成（Schema 设计文档）
+- SurrealDB 3.0+ 确认可用
+
+**完成标准**:
+
+1. Schema 升级：
+   - 所有表添加 tenant_id 字段
+   - 添加复合索引（tenant_id + 其他字段）
+   - 添加辅助表（timeline, stats, project, config）
+   - 添加 DEFINE EVENT
+   - 添加 DEFINE FUNCTION
+   - 添加 ChangeFeed
+
+2. 数据迁移：
+   - 现有数据迁移脚本
+   - tenant_id 默认值为 "default"
+   - 零停机迁移
+
+3. 验证：
+   - Schema 创建成功
+   - 索引生效
+   - 事件触发正常
+
+**验证方式**:
+
+1. Schema 检查：所有表结构验证
+2. 索引检查：查询性能验证
+3. 事件测试：CREATE/UPDATE/DELETE 触发验证
+4. 迁移测试：现有数据迁移验证
+5. 回归测试：现有功能全部正常
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-42 [P2] v3.2 P1/P2 文档编写
+
+**目标**: 完成 v3.2 的 P1/P2 补充文档
+
+**涉及范围**:
+
+1. `docs/v3.2/BACKEND-v3.2-MEILISEARCH.md` - Meilisearch 详细指南
+2. `docs/v3.2/PLUGIN-v3.2-API.md` - 插件端 API 规范
+3. `docs/v3.2/DEPLOYMENT-v3.2.md` - 部署指南
+4. `docs/v3.2/DEVELOPMENT-v3.2.md` - 开发指南
+
+**前置依赖**:
+
+- BL-CA-35 完成（P0 文档）
+- 所有 P0 开发任务完成
+
+**完成标准**:
+
+1. 所有 P1/P2 文档编写完成
+2. 文档与实现保持一致
+3. 包含完整的示例代码
+4. 包含故障排除指南
+
+**验证方式**:
+
+1. 文档评审：检查完整性
+2. 技术评审：确认准确性
+3. 示例验证：所有代码可运行
+
+**状态**: 🆕 新建
+
+---
+
+_文档版本: v2.9.4_  
+_更新时间: 2026-04-10_  
+_状态: 已添加 v3.2 架构升级任务_
