@@ -215,9 +215,321 @@ export class ReliableWebSocketClient {
 
 ---
 
-## 4. 测试验证
+## 4. 错误处理
 
-### 4.1 依赖检查
+### 4.1 错误类型分类
+
+| 错误类型 | 代码 | 说明 | 处理策略 |
+| -------- | ---- | ---- | -------- |
+| **连接错误** | CONN_001 | WebSocket 连接失败 | 自动重试 + 指数退避 |
+| **连接错误** | CONN_002 | 服务不可用 | 切换到备份端点 |
+| **消息错误** | MSG_001 | 消息发送超时 | ACK 超时 + 重试 |
+| **消息错误** | MSG_002 | 消息格式错误 | 验证 + 拒绝 |
+| **消息错误** | MSG_003 | 消息处理失败 | 队列保留 + 人工处理 |
+| **认证错误** | AUTH_001 | API 密钥无效 | 提示用户检查配置 |
+| **认证错误** | AUTH_002 | Token 过期 | 刷新 token |
+| **重连错误** | RECN_001 | 达到最大重试次数 | 降级模式 |
+| **重连错误** | RECN_002 | 状态恢复失败 | 重新初始化 |
+
+### 4.2 连接失败处理
+
+```javascript
+// lib/websocket-client.js
+export class ReliableWebSocketClient {
+  constructor(url, options = {}) {
+    // ... 已有属性
+    
+    // 错误处理配置
+    this.errorHandlers = {
+      onConnectionFailed: options.onConnectionFailed || this._defaultConnFailed,
+      onMaxRetriesReached: options.onMaxRetriesReached || this._defaultMaxRetries,
+      onAuthError: options.onAuthError || this._defaultAuthError,
+    };
+  }
+
+  async connect() {
+    return new Promise((resolve, reject) => {
+      try {
+        this._connectInternal(resolve, reject);
+      } catch (error) {
+        this._handleError("CONN_001", error);
+        reject(error);
+      }
+    });
+  }
+
+  _handleError(code, error, context = {}) {
+    const errorInfo = {
+      code,
+      message: error.message,
+      timestamp: Date.now(),
+      context,
+      recoverable: this._isRecoverable(code),
+    };
+    
+    console.error(`[WebSocket Error] ${code}:`, errorInfo);
+    
+    // 触发回调
+    if (code === "CONN_001") {
+      this.errorHandlers.onConnectionFailed(errorInfo);
+    } else if (code.startsWith("AUTH")) {
+      this.errorHandlers.onAuthError(errorInfo);
+    }
+    
+    return errorInfo;
+  }
+
+  _isRecoverable(code) {
+    const recoverableCodes = ["CONN_001", "MSG_001", "RECN_002"];
+    return recoverableCodes.includes(code);
+  }
+
+  _defaultConnFailed(errorInfo) {
+    console.error("连接失败，触发自动重试...");
+    this.scheduleReconnect();
+  }
+
+  _defaultMaxRetries(errorInfo) {
+    console.error("已达到最大重试次数，切换到降级模式");
+    this.connected = false;
+    this.degradedMode = true;
+  }
+
+  _defaultAuthError(errorInfo) {
+    console.error("认证错误，请检查 API 密钥配置");
+    process.exit(1);
+  }
+}
+```
+
+### 4.3 消息超时处理
+
+```javascript
+// lib/acks.js
+export class AckManager {
+  constructor(options = {}) {
+    this.timeout = options.timeout || 5000;
+    this.pendingAcks = new Map();
+  }
+
+  async sendWithAck(messageId, sendFn, data) {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        this.pendingAcks.delete(messageId);
+        reject(new Error(`MSG_001: 消息 ${messageId} 超时`));
+      }, this.timeout);
+
+      this.pendingAcks.set(messageId, {
+        resolve,
+        reject,
+        timeoutId,
+        timestamp: Date.now(),
+      });
+
+      // 发送消息
+      sendFn(data).then((response) => {
+        // 收到响应，清除超时
+        clearTimeout(timeoutId);
+        this.pendingAcks.delete(messageId);
+        resolve(response);
+      }).catch((error) => {
+        clearTimeout(timeoutId);
+        this.pendingAcks.delete(messageId);
+        reject(error);
+      });
+    });
+  }
+
+  handleAck(messageId, response) {
+    const pending = this.pendingAcks.get(messageId);
+    if (pending) {
+      clearTimeout(pending.timeoutId);
+      pending.resolve(response);
+      this.pendingAcks.delete(messageId);
+    }
+  }
+
+  cancelPending(messageId) {
+    const pending = this.pendingAcks.get(messageId);
+    if (pending) {
+      clearTimeout(pending.timeoutId);
+      pending.reject(new Error("MSG_002: 消息已取消"));
+      this.pendingAcks.delete(messageId);
+    }
+  }
+}
+```
+
+### 4.4 重连失败处理
+
+```javascript
+// lib/reconnection.js
+export class ReconnectionManager {
+  constructor(options = {}) {
+    this.maxRetries = options.maxRetries || 10;
+    this.baseDelay = options.baseDelay || 1000;
+    this.maxDelay = options.maxDelay || 300000;
+    
+    this.retryCount = 0;
+    this.retryHistory = [];
+    this.state = "idle"; // idle, reconnecting, degraded, failed
+  }
+
+  async scheduleReconnect(onReconnect) {
+    if (this.retryCount >= this.maxRetries) {
+      this.state = "failed";
+      this._handleMaxRetries();
+      return;
+    }
+
+    this.state = "reconnecting";
+    
+    // 计算延迟（指数退避）
+    const delay = Math.min(
+      this.baseDelay * Math.pow(2, this.retryCount),
+      this.maxDelay
+    );
+    
+    this.retryCount++;
+    this.retryHistory.push({
+      attempt: this.retryCount,
+      delay,
+      timestamp: Date.now(),
+    });
+
+    console.log(`[Reconnect] 尝试 ${this.retryCount}/${this.maxRetries}，${delay}ms 后重试...`);
+    
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    
+    try {
+      await onReconnect();
+      this.retryCount = 0;
+      this.state = "idle";
+      console.log("[Reconnect] 连接恢复成功");
+    } catch (error) {
+      // 继续重试
+      await this.scheduleReconnect(onReconnect);
+    }
+  }
+
+  _handleMaxRetries() {
+    console.error("[Reconnect] 达到最大重试次数");
+    
+    // 检查降级模式是否启用
+    if (process.env.ENABLE_DEGRADED_MODE === "true") {
+      this.state = "degraded";
+      console.log("[Reconnect] 切换到降级模式（仅本地存储）");
+    } else {
+      throw new Error("RECN_001: 达到最大重试次数，无法自动恢复");
+    }
+  }
+
+  getStatus() {
+    return {
+      state: this.state,
+      retryCount: this.retryCount,
+      maxRetries: this.maxRetries,
+      retryHistory: this.retryHistory.slice(-10),
+    };
+  }
+}
+```
+
+### 4.5 故障排查指南
+
+#### 场景 1: 连接被拒绝
+
+```
+症状: Error: connect ECONNREFUSED 127.0.0.1:18008
+排查:
+1. 检查服务是否启动: docker-compose ps
+2. 检查端口占用: netstat -tlnp | grep 18008
+3. 检查防火墙: firewall-cmd --list-ports
+4. 检查服务日志: docker-compose logs api
+```
+
+#### 场景 2: 认证��败
+
+```
+症状: Error: AUTH_001 API 密钥无效
+排查:
+1. 检查环境变量: echo $WRAPPER_MEILI_API_KEY
+2. 检查配置文件: cat ~/.opencode/memory/memory-config.json
+3. 验证密钥格式: 应为 32 位字符串
+4. 检查后端日志: docker-compose logs api | grep auth
+```
+
+#### 场景 3: 消息超时
+
+```
+症状: Error: MSG_001 消息超时
+排查:
+1. 检查网络延迟: ping localhost
+2. 检查服务负载: docker stats
+3. 检查消息队列: curl localhost:18008/api/v1/queue/status
+4. 增加超时时间重试
+```
+
+#### 场景 4: WebSocket 断连
+
+```
+症状: WebSocket connection closed unexpectedly
+排查:
+1. 检查心跳配置: curl localhost:18008/api/v1/ws/config
+2. 检查连接数上限: ulimit -n
+3. 检查 Nginx 配置: proxy_read_timeout
+4. 查看断开原因: docker-compose logs api | grep "ws close"
+```
+
+#### 场景 5: 数据库连接失败
+
+```
+症状: Error: 连接 SurrealDB 失败
+排查:
+1. 检查 SurrealDB: docker-compose ps surrealdb
+2. 测试连接: curl http://localhost:8000/health
+3. 检查认证: SURREALDB_USER/SURREALDB_PASS
+4. 查看日志: docker-compose logs surrealdb
+```
+
+#### 场景 6: 搜索服务异常
+
+```
+症状: 搜索返回空结果
+排查:
+1. 检查 Meilisearch: curl http://localhost:7700/health
+2. 检查索引: curl http://localhost:7700/indexes
+3. 重建索引: curl -X POST localhost:18008/api/v1/reindex
+4. 检查权限: MEILISEARCH_API_KEY
+```
+
+#### 场景 7: 内存溢出
+
+```
+症状: JavaScript heap out of memory
+排查:
+1. 增加 Node 内存: NODE_OPTIONS="--max-old-space-size=4096"
+2. 检查大文件: ls -lh ~/.opencode/memory/
+3. 清理缓存: rm -rf ~/.opencode/memory/.cache
+4. 分批处理: 使用 limit/offset
+```
+
+#### 场景 8: 权限错误
+
+```
+症状: Error: EACCES permission denied
+排查:
+1. 检查文件权限: ls -la ~/.opencode/memory/
+2. 修复权限: chown -R $USER ~/.opencode/
+3. 检查 .npm 目录: ls -la ~/.npm
+4. 清除重新安装: npm cache clean -f
+```
+
+---
+
+## 5. 测试验证
+
+### 5.1 依赖检查
 
 ```bash
 # 检查版本
@@ -229,7 +541,7 @@ npm list ws pino dotenv
 # dotenv@16.4.5
 ```
 
-### 4.2 连接测试
+### 5.2 连接测试
 
 ```javascript
 // test-connection.js
@@ -249,7 +561,7 @@ await ws.connect();
 console.log("WebSocket connected");
 ```
 
-### 4.3 运行测试
+### 5.3 运行测试
 
 ```bash
 npm test

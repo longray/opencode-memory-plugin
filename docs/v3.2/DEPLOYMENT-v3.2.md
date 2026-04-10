@@ -175,7 +175,7 @@ services:
       - WS_RECONNECT_MAX_ATTEMPTS=5
 
       # 预计算配置
-      - PRECOMPUTE_BATCH_SIZE=10
+      - PRECOMPUTE_BATCH_SIZE=100  # 批处理大小（默认 100，实时场景可设为 10）
       - PRECOMPUTE_INTERVAL=300
     volumes:
       - ./wrapper/src:/app/src:ro
@@ -296,7 +296,7 @@ MODELSCOPE_API_KEY=your-modelscope-api-key-here
 # -----------------------------------------
 # 预计算配置
 # -----------------------------------------
-# PRECOMPUTE_BATCH_SIZE=10
+# PRECOMPUTE_BATCH_SIZE=100  # 批处理大小（默认 100，实时场景可设为 10）
 # PRECOMPUTE_INTERVAL=300
 ```
 
@@ -486,6 +486,403 @@ certbot --nginx -d memory.example.com
 certbot renew --dry-run
 ```
 
+### 4.5 Kubernetes 部署
+
+#### 4.5.1 Namespace 和基础资源
+
+```yaml
+# k8s/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opencode-memory
+  labels:
+    app: opencode-memory
+---
+# k8s/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opencode-memory-config
+  namespace: opencode-memory
+data:
+  PORT: "18008"
+  HOST: "0.0.0.0"
+  LOG_LEVEL: "INFO"
+  WORKERS: "4"
+  SURREALDB_URL: "ws://surrealdb:8000"
+  SURREALDB_NS: "opencode"
+  SURREALDB_DB: "memory"
+  MEILISEARCH_URL: "http://meilisearch:7700"
+  PRECOMPUTE_BATCH_SIZE: "100"
+  PRECOMPUTE_INTERVAL: "300"
+---
+# k8s/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: opencode-memory-secret
+  namespace: opencode-memory
+type: Opaque
+stringData:
+  surrealdb-user: root
+  surrealdb-pass: root
+  meilisearch-api-key: ${MEILISEARCH_API_KEY}
+  modelscope-api-key: ${MODELSCOPE_API_KEY}
+```
+
+#### 4.5.2 API Deployment
+
+```yaml
+# k8s/api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opencode-memory-api
+  namespace: opencode-memory
+  labels:
+    app: opencode-memory-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: opencode-memory-api
+  template:
+    metadata:
+      labels:
+        app: opencode-memory-api
+    spec:
+      containers:
+        - name: api
+          image: opencode-memory-api:v3.2.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 18008
+              name: http
+              protocol: TCP
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: opencode-memory-config
+                  key: PORT
+            - name: HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: opencode-memory-config
+                  key: HOST
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: opencode-memory-config
+                  key: LOG_LEVEL
+            - name: WORKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: opencode-memory-config
+                  key: WORKERS
+            - name: SURREALDB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: opencode-memory-config
+                  key: SURREALDB_URL
+            - name: SURREALDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-memory-secret
+                  key: surrealdb-user
+            - name: SURREALDB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-memory-secret
+                  key: surrealdb-pass
+            - name: MEILISEARCH_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: opencode-memory-config
+                  key: MEILISEARCH_URL
+            - name: MEILISEARCH_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-memory-secret
+                  key: meilisearch-api-key
+            - name: MODELSCOPE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-memory-secret
+                  key: modelscope-api-key
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 18008
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 18008
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+```
+
+#### 4.5.3 SurrealDB Deployment
+
+```yaml
+# k8s/surrealdb-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: surrealdb
+  namespace: opencode-memory
+spec:
+  serviceName: surrealdb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: surrealdb
+  template:
+    metadata:
+      labels:
+        app: surrealdb
+    spec:
+      containers:
+        - name: surrealdb
+          image: surrealdb/surrealdb:latest
+          args:
+            - start
+            - --log
+            - info
+            - --user
+            - root
+            - --pass
+            - root
+            - file:/data/surrealdb.db
+          ports:
+            - containerPort: 8000
+              name: http
+          volumeMounts:
+            - name: surrealdb-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+```
+
+#### 4.5.4 Meilisearch Deployment
+
+```yaml
+# k8s/meilisearch-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meilisearch
+  namespace: opencode-memory
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meilisearch
+  template:
+    metadata:
+      labels:
+        app: meilisearch
+    spec:
+      containers:
+        - name: meilisearch
+          image: getmeili/meilisearch:latest
+          ports:
+            - containerPort: 7700
+              name: http
+          env:
+            - name: MEILI_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-memory-secret
+                  key: meilisearch-api-key
+            - name: MEILI_HTTP_PAYLOAD_SIZE_LIMIT
+              value: "104857600"
+          volumeMounts:
+            - name: meilisearch-data
+              mountPath: /meili_data
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+```
+
+#### 4.5.5 Service 配置
+
+```yaml
+# k8s/services.yaml
+---
+# API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: opencode-memory-api
+  namespace: opencode-memory
+spec:
+  type: ClusterIP
+  ports:
+    - port: 18008
+      targetPort: 18008
+      protocol: TCP
+      name: http
+  selector:
+    app: opencode-memory-api
+---
+# SurrealDB Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: surrealdb
+  namespace: opencode-memory
+spec:
+  clusterIP: None
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app: surrealdb
+---
+# Meilisearch Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: meilisearch
+  namespace: opencode-memory
+spec:
+  type: ClusterIP
+  ports:
+    - port: 7700
+      targetPort: 7700
+      protocol: TCP
+      name: http
+  selector:
+    app: meilisearch
+```
+
+#### 4.5.6 HPA 自动扩缩容
+
+```yaml
+# k8s/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: opencode-memory-api-hpa
+  namespace: opencode-memory
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: opencode-memory-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+      selectPolicy: Max
+```
+
+#### 4.5.7 PVC 配置
+
+```yaml
+# k8s/pvc.yaml
+---
+# SurrealDB PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: surrealdb-data
+  namespace: opencode-memory
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Meilisearch PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: meilisearch-data
+  namespace: opencode-memory
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+```
+
+#### 4.5.8 K8s 部署命令
+
+```bash
+# 创建命名空间和基础资源
+kubectl apply -f k8s/namespace.yaml
+
+# 部署所有组件
+kubectl apply -f k8s/
+
+# 检查状态
+kubectl get all -n opencode-memory
+
+# 查看日志
+kubectl logs -n opencode-memory -l app=opencode-memory-api
+
+# 扩缩容
+kubectl scale deployment opencode-memory-api --replicas=5 -n opencode-memory
+
+# 删除
+kubectl delete -f k8s/ -n opencode-memory
+```
+
+---
+
 ### 4.4 系统服务配置（systemd）
 
 ```ini
@@ -513,6 +910,202 @@ WantedBy=multi-user.target
 sudo systemctl enable opencode-memory
 sudo systemctl start opencode-memory
 sudo systemctl status opencode-memory
+```
+
+### 4.6 SSL 自动续期
+
+#### 4.6.1 Certbot 配置（裸机）
+
+```bash
+# 安装 Certbot
+apt-get update
+apt-get install certbot python3-certbot-nginx
+
+# 获取证书
+certbot --nginx -d memory.example.com --non-interactive --agree-tos \
+  --email your-email@example.com
+
+# 测试续期
+certbot renew --dry-run
+
+# 添加 cron 任务（每天凌晨 2 点检查）
+crontab -e
+# 0 2 * * * certbot renew --quiet --deploy-hook "systemctl reload nginx"
+```
+
+#### 4.6.2 Certbot 配置（Docker）
+
+```dockerfile
+# Dockerfile.certbot
+FROM certbot/certbot as certbot
+
+# 获取证书
+certbot certonly --webroot \
+  -w /var/www/html \
+  -d memory.example.com \
+  --non-interactive \
+  --agree-tos \
+  --email your-email@example.com
+
+# 复制证书
+COPY /etc/letsencrypt/live/memory.example.com/fullchain.pem /etc/ssl/certs/
+COPY /etc/letsencrypt/live/memory.example.com/privkey.pem /etc/ssl/private/
+```
+
+```yaml
+# docker-compose.ssl.yml
+version: "3.8"
+
+services:
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot:/etc/letsencrypt
+      - ./www:/var/www/html
+    command: certonly --webroot -w /var/www/html -d memory.example.com --non-interactive --agree-tos --email your-email@example.com --keep-until-expiring
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./certbot/live:/etc/ssl/certs:ro
+      - ./certbot/private:/etc/ssl/private:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./www:/var/www/html:ro
+    depends_on:
+      - certbot
+```
+
+#### 4.6.3 Certbot 配置（Kubernetes）
+
+```yaml
+# k8s/cert.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: opencode-memory-tls
+  namespace: opencode-memory
+spec:
+  secretName: opencode-memory-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  dnsNames:
+    - memory.example.com
+  acme:
+    config:
+      - http01:
+          ingressClass: nginx
+        selector: {}
+---
+# k8s/cluster-issuer.yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: your-email@example.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+---
+# k8s/ingress.yaml (更新)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opencode-memory-ingress
+  namespace: opencode-memory
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - memory.example.com
+      secretName: opencode-memory-tls
+  rules:
+    - host: memory.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: opencode-memory-api
+                port:
+                  number: 18008
+```
+
+#### 4.6.4 自动续期 cron 任务
+
+```bash
+# /etc/cron.d/certbot-renew
+# 检查证书续期，每天凌晨 2 点
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# 续期检查
+0 2 * * * root certbot renew --quiet --deploy-hook "systemctl reload nginx" >> /var/log/certbot-renew.log 2>&1
+```
+
+#### 4.6.5 证书更新钩子
+
+```bash
+#!/bin/bash
+# /etc/letsencrypt/renewal-hooks/post/reload-nginx.sh
+
+echo "[$(date)] 证书已更新，重载 Nginx..."
+
+# ��载 Nginx
+systemctl reload nginx
+
+# 重启 Docker 容器（如需要）
+docker-compose -f /opt/opencode-memory-plugin/docker-compose.yml restart api
+
+# 发送通知（如使用 Slack/Webhook）
+if [ -n "$WEBHOOK_URL" ]; then
+  curl -X POST "$WEBHOOK_URL" \
+    -H 'Content-Type: application/json' \
+    -d "{\"text\": \"证书已更新 (memory.example.com)\"}"
+fi
+
+echo "[$(date)] 完成"
+```
+
+```yaml
+# GitLab CI 集成示例
+# .gitlab-ci.yml
+certbot:
+  script:
+    - certbot renew --non-interactive --deploy-hook "docker-compose restart api"
+  only:
+    schedules:
+      - cron: '0 2 * * *'
+```
+
+#### 4.6.6 续期监控
+
+```bash
+# 查看续期日志
+journalctl -u certbot -f
+
+# 查看证书状态
+certbot certificates
+
+# 测试续期流程
+certbot renew --dry-run --debug
+
+# 手动触发续期
+certbot renew --force-renewal
 ```
 
 ---

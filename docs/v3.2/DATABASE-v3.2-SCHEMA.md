@@ -247,6 +247,132 @@ DEFINE INDEX idx_unique_ref ON reference FIELDS in, out, type UNIQUE;
 
 ---
 
+## 2.4 ER 关系图
+
+### 实体关系图
+
+```mermaid
+erDiagram
+    atom ||--o{ reference : "from"
+    atom ||--o{ reference : "to"
+    entity ||--o{ reference : "from"
+    entity ||--o{ reference : "to"
+    entity ||--o{ timeline : "indexed_by"
+    
+    atom {
+        record id "ULID"
+        string tenant_id "default"
+        string type "function|class|..."
+        string content
+        string name
+        string signature
+        array params
+        string return_type
+        bool is_exported
+        bool is_async
+        int complexity
+        int max_nesting_depth
+        object docstring
+        int start_line
+        int end_line
+        object metadata
+        int version
+        datetime created_at
+        datetime updated_at
+    }
+    
+    entity {
+        record id "ULID"
+        string tenant_id "default"
+        string type "memory|backlog|wiki|code"
+        string abstract
+        object overview
+        array atoms
+        string title
+        array aliases
+        array outgoing_links
+        array incoming_links
+        string priority
+        string status
+        string scene
+        float estimated_hours
+        float actual_hours
+        string file_path
+        string language
+        object quality_score
+        object complexity_metrics
+        array tags
+        string project
+        string created_by
+        datetime created_at
+        datetime updated_at
+    }
+    
+    reference {
+        record id "ULID"
+        string tenant_id "default"
+        string type "depends_on|blocks|calls|..."
+        record in "from atom/entity"
+        record out "to atom/entity"
+        string file_path
+        int line
+        int column
+        object metadata
+        float weight
+        string created_by
+        datetime created_at
+    }
+    
+    timeline {
+        record id "ULID"
+        string tenant_id "default"
+        int year
+        int month
+        int day
+        record entity_id
+        string entity_type
+        datetime created_at
+    }
+```
+
+### 图关系模型
+
+```mermaid
+erDiagram
+    atom ||--o{ atom : "calls"
+    atom ||--o{ atom : "imports"
+    atom ||--o{ entity : "part_of"
+    entity ||--o{ entity : "wiki_link"
+    entity ||--o{ entity : "relates_to"
+    
+    atom {
+        record id
+        string type
+        string name
+    }
+    
+    entity {
+        record id
+        string type
+        string title
+    }
+```
+
+### 关系说明
+
+| 关系类型 | 从 | 到 | 说明 |
+|----------|-----|-----|------|
+| `calls` | atom (function) | atom (function) | 函数调用关系 |
+| `imports` | atom (file) | atom (module) | 模块导入关系 |
+| `depends_on` | atom/entity | atom/entity | 依赖关系 |
+| `blocks` | atom/entity | atom/entity | 阻塞关系 |
+| `implements` | entity (task) | entity (backlog) | 实现关系 |
+| `wiki_link` | entity | entity | Wiki 双向链接 |
+| `part_of` | atom | entity | 组成部分 |
+| `relates_to` | atom/entity | atom/entity | 一般关联 |
+
+---
+
 ## 3. 辅助表定义
 
 ### 3.1 Timeline 表

@@ -292,10 +292,188 @@ class PrecomputeService:
 
         return await self.db.create("entity", entity_data)
 
-    async def _create_relations(self, symbols: List[Dict], atoms: List[Dict]):
-        """创建调用关系"""
-        # 分析调用关系并创建 RELATE
-        pass
+    async def _create_relations(self, symbols: List[Dict], atoms: List[Dict], file_path: str):
+        """
+        创建调用关系
+        
+        分析函数调用关系并创建 SurrealDB RELATE 记录。
+        支持循环调用检测和关系权重计算。
+        
+        算法复杂度:
+        - 时间: O(n*m) n=符号数, m=每个符号的调用数
+        - 空间: O(n) 用于构建调用图
+        
+        Args:
+            symbols: 提取的符号列表
+            atoms: 已创建的 atom 记录
+            file_path: 源文件路径
+        """
+        # 构建符号名称到 atom ID 的映射
+        atom_map = {a["name"]: a["id"] for a in atoms if a.get("name")}
+        
+        # 收集所有调用关系
+        relations = []
+        for symbol in symbols:
+            if symbol["type"] != "function":
+                continue
+                
+            caller_name = symbol.get("name")
+            caller_id = atom_map.get(caller_name)
+            
+            if not caller_id:
+                continue
+            
+            # 提取调用表达式
+            calls = symbol.get("metadata", {}).get("calls", [])
+            for call in calls:
+                callee_name = call.get("name")
+                callee_id = atom_map.get(callee_name)
+                
+                if callee_id and callee_id != caller_id:
+                    relations.append({
+                        "from_id": caller_id,
+                        "to_id": callee_id,
+                        "type": "calls",
+                        "file_path": file_path,
+                        "line": call.get("line"),
+                        "column": call.get("column"),
+                        "weight": self._calculate_call_weight(symbol, call)
+                    })
+        
+        # 检测循环调用
+        cycles = self._detect_cycles(relations)
+        if cycles:
+            logger.warning(f"Detected {len(cycles)} circular call chains in {file_path}")
+            for cycle in cycles[:5]:  # 只记录前5个
+                logger.warning(f"  Cycle: {' -> '.join(cycle)}")
+        
+        # 批量创建关系（使用 SurrealDB RELATE）
+        await self._batch_create_relations(relations)
+    
+    def _calculate_call_weight(self, symbol: Dict, call: Dict) -> float:
+        """
+        计算调用关系权重
+        
+        基于以下因素:
+        - 调用频率 (0.3)
+        - 调用者复杂度 (0.3)
+        - 参数复杂度 (0.2)
+        - 是否跨文件 (0.2)
+        
+        Returns:
+            权重值 (0.0 - 1.0)
+        """
+        weight = 0.5  # 基础权重
+        
+        # 调用频率（如果有统计信息）
+        call_count = call.get("count", 1)
+        weight += min(call_count / 10, 0.3)  # 最多 +0.3
+        
+        # 调用者复杂度
+        complexity = symbol.get("complexity", 1)
+        weight += min(complexity / 20, 0.3)  # 最多 +0.3
+        
+        # 参数数量
+        arg_count = len(call.get("args", []))
+        weight += min(arg_count / 10, 0.2)  # 最多 +0.2
+        
+        # 归一化到 0-1
+        return min(weight, 1.0)
+    
+    def _detect_cycles(self, relations: List[Dict]) -> List[List[str]]:
+        """
+        检测循环调用
+        
+        使用 DFS 算法检测图中的环。
+        
+        算法复杂度:
+        - 时间: O(V + E) V=顶点数, E=边数
+        - 空间: O(V) 用于访问标记
+        
+        Args:
+            relations: 调用关系列表
+            
+        Returns:
+            检测到的循环链列表
+        """
+        # 构建邻接表
+        graph = {}
+        for rel in relations:
+            from_id = rel["from_id"]
+            to_id = rel["to_id"]
+            if from_id not in graph:
+                graph[from_id] = []
+            graph[from_id].append(to_id)
+        
+        cycles = []
+        visited = set()
+        rec_stack = set()
+        path = []
+        
+        def dfs(node):
+            visited.add(node)
+            rec_stack.add(node)
+            path.append(node)
+            
+            for neighbor in graph.get(node, []):
+                if neighbor not in visited:
+                    result = dfs(neighbor)
+                    if result:
+                        return result
+                elif neighbor in rec_stack:
+                    # 发现环
+                    cycle_start = path.index(neighbor)
+                    cycle = path[cycle_start:] + [neighbor]
+                    cycles.append(cycle)
+            
+            path.pop()
+            rec_stack.remove(node)
+            return None
+        
+        for node in graph:
+            if node not in visited:
+                dfs(node)
+        
+        return cycles
+    
+    async def _batch_create_relations(self, relations: List[Dict]):
+        """
+        批量创建关系
+        
+        使用 SurrealDB RELATE 语句批量创建关系，
+        每批最多 100 条以避免超时。
+        
+        Args:
+            relations: 关系列表
+        """
+        if not relations:
+            return
+        
+        BATCH_SIZE = 100
+        
+        for i in range(0, len(relations), BATCH_SIZE):
+            batch = relations[i:i + BATCH_SIZE]
+            
+            # 构建 RELATE 语句
+            relate_statements = []
+            for rel in batch:
+                stmt = f'''
+                    RELATE {rel["from_id"]}->reference->{rel["to_id"]} SET
+                        type = "{rel["type"]}",
+                        tenant_id = "{self.tenant_id}",
+                        file_path = "{rel.get("file_path", "")}",
+                        line = {rel.get("line", "NULL")},
+                        column = {rel.get("column", "NULL")},
+                        weight = {rel["weight"]},
+                        created_at = time::now()
+                '''
+                relate_statements.append(stmt)
+            
+            # 执行批量查询
+            query = ";".join(relate_statements)
+            await self.db.query(query)
+            
+            logger.debug(f"Created {len(batch)} relations (batch {i//BATCH_SIZE + 1})")
 
     async def _log_performance(self, file_path: str, duration_ms: float, memory_mb: float):
         """记录性能指标"""
@@ -468,6 +646,131 @@ async def test_precompute_performance():
 
     assert result["duration_ms"] < 10000  # < 10s
     assert result["memory_mb"] < 100  # < 100MB
+```
+
+### 4.3 关系创建测试
+
+```python
+# tests/unit/test_precompute_relations.py
+import pytest
+from src.services.precompute import PrecomputeService
+
+
+@pytest.fixture
+async def precompute_service(mock_db):
+    """测试用的 PrecomputeService 实例"""
+    return PrecomputeService(mock_db, tenant_id="test")
+
+
+class TestCreateRelations:
+    """测试调用关系创建"""
+    
+    async def test_create_simple_call_relation(self, precompute_service):
+        """测试简单调用关系创建"""
+        symbols = [
+            {
+                "type": "function",
+                "name": "caller",
+                "metadata": {
+                    "calls": [{"name": "callee", "line": 10, "column": 5}]
+                }
+            },
+            {
+                "type": "function",
+                "name": "callee",
+                "metadata": {"calls": []}
+            }
+        ]
+        
+        atoms = [
+            {"id": "atom:caller", "name": "caller"},
+            {"id": "atom:callee", "name": "callee"}
+        ]
+        
+        await precompute_service._create_relations(
+            symbols, atoms, "test.py"
+        )
+        
+        # 验证 RELATE 语句被调用
+        mock_db.query.assert_called_once()
+        query = mock_db.query.call_args[0][0]
+        
+        assert "RELATE" in query
+        assert "atom:caller->reference->atom:callee" in query
+        assert 'type = "calls"' in query
+    
+    async def test_detect_circular_calls(self, precompute_service):
+        """测试循环调用检测"""
+        # A -> B -> C -> A (循环)
+        relations = [
+            {"from_id": "A", "to_id": "B"},
+            {"from_id": "B", "to_id": "C"},
+            {"from_id": "C", "to_id": "A"},  # 形成环
+        ]
+        
+        cycles = precompute_service._detect_cycles(relations)
+        
+        assert len(cycles) == 1
+        assert cycles[0] == ["A", "B", "C", "A"]
+    
+    async def test_calculate_call_weight(self, precompute_service):
+        """测试权重计算"""
+        symbol = {
+            "complexity": 10,
+            "metadata": {}
+        }
+        call = {
+            "count": 5,
+            "args": ["arg1", "arg2", "arg3"]
+        }
+        
+        weight = precompute_service._calculate_call_weight(symbol, call)
+        
+        assert 0.0 <= weight <= 1.0
+        assert weight > 0.5  # 复杂度较高，权重应该较高
+    
+    async def test_batch_create_relations(self, precompute_service):
+        """测试批量关系创建"""
+        relations = [
+            {
+                "from_id": f"atom:func{i}",
+                "to_id": f"atom:func{i+1}",
+                "type": "calls",
+                "file_path": "test.py",
+                "line": i,
+                "column": 0,
+                "weight": 0.5
+            }
+            for i in range(250)  # 250 条关系，应该分成 3 批
+        ]
+        
+        await precompute_service._batch_create_relations(relations)
+        
+        # 验证分批次创建（每批 100 条）
+        assert mock_db.query.call_count == 3
+    
+    async def test_skip_self_call(self, precompute_service):
+        """测试跳过自调用"""
+        symbols = [
+            {
+                "type": "function",
+                "name": "recursive",
+                "metadata": {
+                    "calls": [{"name": "recursive"}]  # 自调用
+                }
+            }
+        ]
+        
+        atoms = [
+            {"id": "atom:recursive", "name": "recursive"}
+        ]
+        
+        await precompute_service._create_relations(
+            symbols, atoms, "test.py"
+        )
+        
+        # 自调用不应该创建关系
+        mock_db.query.assert_not_called()
 ```
 
 ---

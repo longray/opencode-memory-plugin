@@ -1506,7 +1506,7 @@ BL-CA-21 (符号导航) ────────┘
 
 ---
 
-### BL-CA-43 [P1] 补充 WebSocket 性能测试基准
+### BL-CA-43 [P1] 补充 WebSocket 性能测试基准 ✅
 
 **目标**: 在 PLUGIN-v3.2-API.md 中补充完整的 WebSocket 性能测试方案，确保 WebSocket 实现满足生产环境性能要求
 
