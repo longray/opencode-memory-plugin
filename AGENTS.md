@@ -516,8 +516,3 @@ wrapperClient = new WrapperClient({
   },
 });
 ```
-
-**相关文件**: 
-- `opencode-memory-plugin/tests/integration/lookup-api.integration.test.js`
-- `opencode-memory-plugin/lib/wrapper-client.js` (第 213-217 行)
-
