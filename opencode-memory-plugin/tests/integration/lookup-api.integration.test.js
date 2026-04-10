@@ -25,6 +25,10 @@ describe('Memory Lookup API Integration Tests', () => {
     await memoryIdCache.load();
   });
 
+  afterAll(() => {
+    memoryIdCache.cleanup();
+  });
+
   describe('Scenario 1: Upload and Lookup by source_id', () => {
     test('should upload code with source_id', async () => {
       const sourceCode = `

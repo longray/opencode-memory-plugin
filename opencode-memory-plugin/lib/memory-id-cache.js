@@ -550,6 +550,13 @@ export class MemoryIdCache {
 
     return rebuilt;
   }
+
+  cleanup() {
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+      this.saveTimeout = null;
+    }
+  }
 }
 
 export default MemoryIdCache;

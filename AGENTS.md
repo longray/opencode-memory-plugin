@@ -493,3 +493,31 @@ $ grep "### BL-26" BACKLOG.md
 | 下一个可用编号 | 最大编号 +1                            | `BL-26`     |
 | 编号是否被使用 | `grep "### BL-26" BACKLOG.md`          | 无结果      |
 | 编号连续性     | 检查 BL-1 到最大编号                   | 无跳号      |
+
+---
+
+## 测试注意事项
+
+### Windows 环境 tenant_id 问题
+
+**问题**: 在 Windows 上运行测试时，WrapperClient 默认使用 `process.env.USERNAME`（如 "Longray"）作为 tenant_id，但后端查询可能默认使用 "default"，导致 tenant_id 不匹配。
+
+**症状**: 
+- 上传成功（返回 memory_id）
+- 查询返回 `found: false`
+- 测试失败
+
+**解决方案**: 在测试中显式指定 tenant_id：
+
+```javascript
+wrapperClient = new WrapperClient({
+  backend: {
+    tenant_id: 'default', // 显式指定，避免使用 USERNAME
+  },
+});
+```
+
+**相关文件**: 
+- `opencode-memory-plugin/tests/integration/lookup-api.integration.test.js`
+- `opencode-memory-plugin/lib/wrapper-client.js` (第 213-217 行)
+
