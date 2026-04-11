@@ -2,17 +2,17 @@
 
 > ⚠️ **创建新任务前必读**：
 >
-> 1. 检查当前最大编号：`grep "^### BL-" BACKLOG.md | tail -1` → **当前最大：BL-CA-51**
-> 2. 下一个可用编号：**BL-CA-52**
+> 1. 检查当前最大编号：`grep "^### BL-" BACKLOG.md | tail -1` → **当前最大：BL-CA-60**
+> 2. 下一个可用编号：**BL-CA-61**
 > 3. 规则：**永不复用、永不跳号**（详见 [`AGENTS.md#backlog-编号规则`](./AGENTS.md)）
-> 4. 如编号冲突，使用下一个可用编号（BL-CA-52, BL-CA-53, BL-CA-54...）
+> 4. 如编号冲突，使用下一个可用编号（BL-CA-61, BL-CA-62, BL-CA-63...）
 >
 > 未完成任务。已完成任务归档至 [`backlog_archive.md`](./backlog_archive.md)。
 > 已发布版本详见 [`CHANGELOG.md`](./CHANGELOG.md)。
 
-**更新时间**: 2026-04-10  
+**更新时间**: 2026-04-11  
 **版本**: v2.9.6  
-**当前阶段**: 场景十一 — v3.2 架构升级（**开发准备就绪，非 v3.2 任务已清理**）
+**当前阶段**: 场景十一 — v3.2 架构升级（**已补充 9 个任务，覆盖度提升**）
 
 > **资源集中**: 所有非 v3.2 任务已取消（BL-8, BL-15, BL-CA-12/14/19/20/21），全力投入 v3.2 开发
 
@@ -1204,6 +1204,384 @@
 
 ---
 
+### BL-CA-52 [P1] Docker 多阶段构建实施
+
+**目标**: 实施 v3.2 Docker 多阶段构建方案，优化镜像大小和构建效率
+
+**涉及范围**:
+
+1. `embedding_service/wrapper/Dockerfile` - 多阶段构建配置
+   - 阶段 1: 依赖安装（builder）
+   - 阶段 2: 运行时镜像（runtime）
+   - 优化: 仅复制必要文件，减少镜像层
+
+2. `embedding_service/docker-compose.yml` - 服务编排更新
+   - 支持 v3.2 服务端口 18008
+   - 集成 WebSocket、PrecomputeService
+
+3. CI/CD 集成:
+   - GitHub Actions 构建流程
+   - 镜像推送至 Registry
+
+**前置依赖**:
+
+- BL-CA-35 完成（Docker 设计文档）
+- BL-CA-36 完成（WebSocket 服务）
+- BL-CA-37 完成（PrecomputeService）
+
+**完成标准**:
+
+1. Dockerfile 实现多阶段构建
+2. 镜像大小 < 500MB（优化前对比）
+3. 构建时间 < 5 分钟
+4. docker-compose 可一键启动所有服务
+5. CI/CD 自动构建并推送镜像
+
+**验证方式**:
+
+1. 构建测试: `docker build -t embedding-service:v3.2 .`
+2. 镜像大小检查: `docker images`
+3. 功能测试: `docker-compose up` 服务正常启动
+4. CI 流程验证: GitHub Actions 构建成功
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-53 [P1] API 接口规范实施
+
+**目标**: 实施 v3.2 API 接口规范，确保所有端点符合设计标准
+
+**涉及范围**:
+
+1. `embedding_service/wrapper/src/routers/` - API 路由实现
+   - memories.py - Memory CRUD 端点
+   - code.py - Code Analysis 端点
+   - websocket.py - WebSocket 端点
+   - sync.py - 同步端点
+   - health.py - 健康检查端点
+
+2. API 规范验证:
+   - 请求/响应格式符合 API_SPECIFICATION.md
+   - 错误处理统一
+   - 认证授权集成
+
+3. API 文档生成:
+   - 自动生成交互式文档
+   - 示例请求/响应
+
+**前置依赖**:
+
+- BL-CA-35 完成（API 设计文档）
+- BL-CA-41 完成（Schema 升级）
+- BL-CA-36 完成（WebSocket 服务）
+
+**完成标准**:
+
+1. 所有 19 个 API 端点实现完成
+2. 通过 API 规范测试（请求/响应格式）
+3. 错误处理覆盖率 100%
+4. API 文档自动生成并可访问
+5. 向后兼容 v2.x 端点（迁移期）
+
+**验证方式**:
+
+1. API 测试: 所有端点通过测试
+2. 文档验证: `/docs` 可访问且准确
+3. 兼容性测试: v2.x 客户端可正常调用
+4. 性能测试: API 响应时间符合标准
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-54 [P1] 数据模型实施
+
+**目标**: 实施 Atom/Entity/Relation 数据模型，确保数据一致性和完整性
+
+**涉及范围**:
+
+1. `embedding_service/wrapper/src/models/` - 数据模型定义
+   - atom.py - Atom 模型（原子单元）
+   - entity.py - Entity 模型（知识实体）
+   - relation.py - Relation 模型（关系）
+   - pydantic 类型验证
+
+2. 数据库映射:
+   - SurrealDB Schema 映射
+   - 索引优化
+   - 约束定义
+
+3. 序列化/反序列化:
+   - API 请求/响应模型
+   - 数据库记录转换
+
+**前置依赖**:
+
+- BL-CA-35 完成（数据模型设计）
+- BL-CA-41 完成（Schema 升级）
+
+**完成标准**:
+
+1. Atom/Entity/Relation 模型完整实现
+2. Pydantic 类型验证覆盖率 100%
+3. 数据库映射正确，所有测试通过
+4. API 序列化/反序列化正确
+5. 数据一致性约束生效
+
+**验证方式**:
+
+1. 模型测试: 所有模型通过单元测试
+2. 数据库测试: CRUD 操作正确
+3. API 测试: 请求/响应数据正确
+4. 一致性测试: 约束生效，异常数据被拒绝
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-55 [P1] 四层架构实施
+
+**目标**: 实施表示层/原子层/实体层/关系层四层架构
+
+**涉及范围**:
+
+1. 表示层 (Presentation):
+   - Markdown 输出格式化
+   - API 响应格式化
+
+2. 原子层 (Atomic Layer):
+   - Atom 管理服务
+   - Atom 关系管理
+
+3. 实体层 (Entity Layer):
+   - Entity 管理服务
+   - Entity 关系管理
+
+4. 关系层 (Relation Layer):
+   - Relation 管理服务
+   - 图遍历服务
+
+**前置依赖**:
+
+- BL-CA-35 完成（架构设计文档）
+- BL-CA-54 完成（数据模型）
+
+**完成标准**:
+
+1. 四层架构清晰划分
+2. 层间依赖关系正确（上层依赖下层）
+3. 每层服务独立可测试
+4. 符合依赖倒置原则
+
+**验证方式**:
+
+1. 架构审查: 代码分层清晰
+2. 依赖检查: 无循环依赖
+3. 单元测试: 每层独立测试通过
+4. 集成测试: 层间协作正常
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-56 [P1] 租户隔离方案实施
+
+**目标**: 实施单租户 + tenant_id 预留字段方案，支持未来多租户迁移
+
+**涉及范围**:
+
+1. Schema 设计:
+   - tenant_id 字段预留
+   - 索引设计（支持按租户查询）
+
+2. API 适配:
+   - 所有 API 支持 tenant_id 参数
+   - 默认租户处理
+
+3. 数据隔离:
+   - 查询自动过滤 tenant_id
+   - 跨租户访问控制
+
+**前置依赖**:
+
+- BL-CA-41 完成（Schema 升级）
+- BL-CA-53 完成（API 实施）
+
+**完成标准**:
+
+1. tenant_id 字段在所有表中预留
+2. API 支持 tenant_id 参数
+3. 默认租户（default）正常工作
+4. 查询自动按 tenant_id 过滤
+5. 未来可无缝迁移到物理隔离
+
+**验证方式**:
+
+1. Schema 验证: tenant_id 字段存在
+2. API 测试: tenant_id 参数生效
+3. 隔离测试: 租户 A 无法访问租户 B 数据
+4. 迁移测试: 数据可导出按 tenant_id 分组
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-57 [P2] Privacy Filter 保留与集成
+
+**目标**: 确认并实施 Privacy Filter 功能在 v3.2 中的保留方案
+
+**涉及范围**:
+
+1. 功能评估:
+   - 评估现有 `lib/privacy-filter.js`
+   - 确定集成到 PrecomputeService 或独立保留
+
+2. 实施决策:
+   - 方案 A: 集成到 PrecomputeService
+   - 方案 B: 作为独立服务保留
+   - 方案 C: 简化后保留核心功能
+
+3. 实施:
+   - 根据决策方案实施
+   - 更新相关文档
+
+**前置依赖**:
+
+- BL-CA-37 完成（PrecomputeService）
+
+**完成标准**:
+
+1. 明确 Privacy Filter 在 v3.2 中的定位
+2. 实施选定的方案
+3. 所有敏感文件类型被正确过滤
+4. 文档更新说明 Privacy Filter 行为
+
+**验证方式**:
+
+1. 功能测试: 敏感文件被正确过滤
+2. 集成测试: 与 PrecomputeService 协作正常
+3. 文档验证: 使用说明准确
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-58 [P2] JSDoc Extraction 保留确认
+
+**目标**: 确认 JSDoc 解析功能在 v3.2 中的保留方案
+
+**涉及范围**:
+
+1. 功能评估:
+   - 评估现有 JSDoc 提取功能
+   - 确定是否集成到 Code Analysis
+
+2. 实施决策:
+   - 方案 A: 保留并增强
+   - 方案 B: 简化实现
+   - 方案 C: 移至后端处理
+
+3. 实施:
+   - 根据决策方案实施
+
+**前置依赖**:
+
+- BL-CA-37 完成（PrecomputeService）
+
+**完成标准**:
+
+1. 明确 JSDoc 功能在 v3.2 中的定位
+2. 实施选定的方案
+3. JSDoc 信息正确提取和存储
+
+**验证方式**:
+
+1. 功能测试: JSDoc 正确提取
+2. 数据验证: 提取的信息准确完整
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-59 [P2] Multi-language Support 确认
+
+**目标**: 确认 v3.2 代码分析支持的语言范围
+
+**涉及范围**:
+
+1. 语言支持评估:
+   - JavaScript/TypeScript（已支持）
+   - Python（Tree-sitter 已集成）
+   - Go（Tree-sitter 已集成）
+   - Rust（Tree-sitter 已集成）
+   - Java（Tree-sitter 已集成）
+
+2. 实施决策:
+   - 方案 A: v3.2 仅支持 JS/TS
+   - 方案 B: v3.2 支持全语言
+   - 方案 C: 分阶段支持（JS/TS 优先）
+
+3. 实施:
+   - 根据决策配置 Tree-sitter
+   - 更新文档
+
+**前置依赖**:
+
+- BL-CA-37 完成（PrecomputeService）
+
+**完成标准**:
+
+1. 明确 v3.2 支持的语言列表
+2. Tree-sitter 正确配置
+3. 文档更新语言支持说明
+
+**验证方式**:
+
+1. 功能测试: 支持的语言正确解析
+2. 文档验证: 语言支持列表准确
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-60 [P2] Memory ID Cache 保留与重构
+
+**目标**: 确认 Memory ID Cache 在 v3.2 中的保留方案
+
+**涉及范围**:
+
+1. 功能评估:
+   - 评估现有 `lib/memory-id-cache.js`
+   - 评估 WebSocket DIFF 模式是否替代缓存
+
+2. 实施决策:
+   - 方案 A: 保留并优化
+   - 方案 B: 与 WebSocket 状态恢复合并
+   - 方案 C: 简化实现
+
+3. 实施:
+   - 根据决策方案实施
+
+**前置依赖**:
+
+- BL-CA-36 完成（WebSocket 服务）
+
+**完成标准**:
+
+1. 明确 Cache 在 v3.2 中的定位
+2. 实施选定的方案
+3. 缓存命中率 > 80%
+
+**验证方式**:
+
+1. 性能测试: 缓存提升查询性能
+2. 功能测试: 缓存数据一致性
+
+**状态**: 🆕 新建
+
+---
+
 _文档版本: v2.9.6_  
-_更新时间: 2026-04-10_  
-_状态: 已归档 29 个已完成/已取消任务至 backlog_archive.md_
+_更新时间: 2026-04-11_  
+_状态: 已补充 9 个新任务 (BL-CA-52 ~ BL-CA-60)_
