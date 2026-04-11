@@ -33,8 +33,11 @@
   "dependencies": {
     "@opencode-ai/plugin": "^1.0.0",
     "chokidar": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "fast-json-patch": "^3.1.1",
     "oxc-parser": "^0.121.0",
-    "ws": "^8.19.0"
+    "pino": "^9.5.0",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

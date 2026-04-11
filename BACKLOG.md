@@ -141,9 +141,6 @@
 - 当前基础调用关系功能（BL-CA-18）已满足基本需求
 
 ---
-4. 运行 `npm test`，验证无回归
-
----
 
 ### BL-CA-20 [P1] 场景4 - 项目质量趋势追踪
 
@@ -237,15 +234,15 @@
 
 > **说明**: 以下非 v3.2 任务已取消，资源集中投入 v3.2 架构升级
 
-| 任务 | 标题 | 优先级 | 状态 | 取消原因 |
-| ---- | ---- | ------ | ---- | -------- |
-| BL-8 | 隐式偏好发现端到端验证 | P1 | ⏸️ 已取消 | v3.2 架构升级优先 |
-| BL-15 | 后端增量同步对接 | P2 | ⏸️ 已取消 | v3.2 WebSocket DIFF 替代 |
-| BL-CA-12 | 函数元数据补齐 - 多语言 | P1 | ⏸️ 已取消 | v3.2 后再考虑 |
-| BL-CA-14 | 接口/特性提取 - 多语言 | P1 | ⏸️ 已取消 | v3.2 后再考虑 |
-| BL-CA-19 | 场景3 - 重构影响分析 | P1 | ⏸️ 已取消 | v3.2 PrecomputeService 替代 |
-| BL-CA-20 | 场景4 - 项目质量趋势追踪 | P1 | ⏸️ 已取消 | v3.2 后再考虑 |
-| BL-CA-21 | 场景5 - 符号导航支持 | P2 | ⏸️ 已取消 | v3.2 后再考虑 |
+| 任务     | 标题                     | 优先级 | 状态      | 取消原因                    |
+| -------- | ------------------------ | ------ | --------- | --------------------------- |
+| BL-8     | 隐式偏好发现端到端验证   | P1     | ⏸️ 已取消 | v3.2 架构升级优先           |
+| BL-15    | 后端增量同步对接         | P2     | ⏸️ 已取消 | v3.2 WebSocket DIFF 替代    |
+| BL-CA-12 | 函数元数据补齐 - 多语言  | P1     | ⏸️ 已取消 | v3.2 后再考虑               |
+| BL-CA-14 | 接口/特性提取 - 多语言   | P1     | ⏸️ 已取消 | v3.2 后再考虑               |
+| BL-CA-19 | 场景3 - 重构影响分析     | P1     | ⏸️ 已取消 | v3.2 PrecomputeService 替代 |
+| BL-CA-20 | 场景4 - 项目质量趋势追踪 | P1     | ⏸️ 已取消 | v3.2 后再考虑               |
+| BL-CA-21 | 场景5 - 符号导航支持     | P2     | ⏸️ 已取消 | v3.2 后再考虑               |
 
 ---
 
@@ -377,18 +374,20 @@
 
 ---
 
-### BL-CA-37 [P0] v3.2 PrecomputeService 重构
+### BL-CA-37-CLIENT [P0] v3.2 PrecomputeService 客户端适配
 
-**目标**: 将现有代码分析重构为 PrecomputeService，实现服务化、批量处理、增量更新、性能监控
+**目标**: 适配后端 PrecomputeService API，实现代码预计算客户端调用
 
 **涉及范围**:
 
-1. `embedding_service/wrapper/src/services/` - 新增目录
-   - `precompute.py` - PrecomputeService 主类
-   - `performance_monitor.py` - 性能监控类
-   - `concurrency_control.py` - 并发控制类
-2. `embedding_service/wrapper/src/utils/code_analyzer.py` - 解耦，改为服务调用
-3. `embedding_service/wrapper/src/routers/code.py` - 新增预计算路由
+1. `lib/precompute-client.js` - 新增 PrecomputeClient 类
+   - `callPrecomputeAPI()` - 调用后端预计算 API
+   - `handleBatchFiles()` - 批量文件处理
+   - `cacheFingerprints()` - 指纹缓存管理
+2. `lib/code-analyzer.js` - 适配，改为调用 PrecomputeClient
+3. `tools/code-analysis.js` - 更新为使用新客户端
+
+**工时**: 2 天
 
 **前置依赖**:
 
@@ -1582,6 +1581,56 @@
 
 ---
 
+### BL-P-X [P0] ACK 管理器实现
+
+**目标**: 实现消息确认机制
+
+**涉及范围**:
+
+1. `lib/ack-manager.js` — 新增 AckManager 类
+2. 消息发送等待 ACK 确认
+3. 超时重试（5s 超时，最多 3 次重试）
+
+**完成标准**:
+
+1. `sendWithAck(message, timeout=5000, maxRetries=3)`
+2. 收到 ACK 后 resolve Promise
+3. 超时后自动重试
+4. 达到最大重试次数后 reject
+
+**验证方式**:
+
+1. 单元测试：正常 ACK、超时重试、最大重试失败
+
+**工时**: 1 天
+
+**状态**: 🆕 新建
+
+---
+
+### BL-P-Y [P0] WebSocket 协议文档（客户端视角）
+
+**目标**: 从客户端角度完善协议文档
+
+**涉及范围**:
+
+1. 客户端状态机文档
+2. 消息类型处理流程
+3. 错误处理策略
+4. 重连策略详细说明
+
+**完成标准**:
+
+1. 文档位于 `docs/v3.2/WEBSOCKET-PROTOCOL-CLIENT.md`
+2. 包含状态转换图
+3. 包含所有消息类型的处理逻辑
+
+**工时**: 0.5 天
+
+**状态**: 🆕 新建
+
+---
+
 _文档版本: v2.9.6_  
 _更新时间: 2026-04-11_  
-_状态: 已补充 9 个新任务 (BL-CA-52 ~ BL-CA-60)_
+_状态: 已补充 9 个新任务 (BL-CA-52 ~ BL-CA-60) + 2 个插件端任务 (BL-P-X, BL-P-Y)_
