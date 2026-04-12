@@ -144,7 +144,7 @@ opencode-memory health
 
 ---
 
-## 配置
+## 详细配置
 
 详见 [CONFIGURATION.md](./CONFIGURATION.md)
 

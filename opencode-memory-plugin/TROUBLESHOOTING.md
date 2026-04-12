@@ -260,6 +260,88 @@ Verify that your embedding service adheres to the expected API contract:
 - Expects `input` field in the request body
 - Returns embeddings in one of the supported formats
 
+## v3.2 Migration FAQ
+
+### Issue: "Port 17999 connection refused after upgrade"
+
+**Symptoms:**
+
+- Plugin fails to connect to backend
+- Error messages mentioning port 17999
+
+**Cause:**
+
+v3.2 changed the default port from 17999 to 18008.
+
+**Solutions:**
+
+1. **Update your configuration** to use port 18008:
+
+   ```json
+   {
+     "backend": {
+       "url": "http://localhost:18008"
+     }
+   }
+   ```
+
+2. **Or set environment variable** to use old port:
+
+   ```bash
+   export API_PORT="17999"
+   ```
+
+3. **Or set full URL** via environment variable:
+
+   ```bash
+   export MEMORY_BACKEND_URL="http://localhost:17999"
+   ```
+
+### Issue: "WebSocket connection not established"
+
+**Symptoms:**
+
+- Real-time sync not working
+- WebSocket errors in logs
+
+**Solutions:**
+
+1. **Check WebSocket is enabled** (v3.2, default: true):
+
+   ```bash
+   export WS_ENABLED="true"
+   ```
+
+2. **Verify backend WebSocket endpoint** is accessible:
+
+   ```bash
+   curl http://localhost:18008/api/v1/health
+   ```
+
+3. **Check firewall** allows WebSocket connections on port 18008.
+
+### Issue: "Logs not showing with pino format"
+
+**Symptoms:**
+
+- No log output after v3.2 upgrade
+- Logs appear in JSON format instead of pretty format
+
+**Solutions:**
+
+1. **Enable pretty logging** in development:
+
+   ```bash
+   export LOG_PRETTY="true"
+   export LOG_LEVEL="debug"
+   ```
+
+2. **Check log level** is set correctly:
+
+   ```bash
+   export LOG_LEVEL="info"  # or "debug", "warn", "error"
+   ```
+
 ### Community Support
 
 For additional help:

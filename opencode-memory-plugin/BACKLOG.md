@@ -516,22 +516,28 @@
 
 **涉及范围**:
 
-1. `lib/tree-sitter-parser.js` — 多语言 return_type 分析
-2. Python `-> Type`、Go `func() Type`、Rust `-> Type`、Java `@return`
+1. ✅ `lib/tree-sitter-parser.js` — 多语言 return_type 分析
+2. ✅ Python `-> Type`、Go `func() Type`、Rust `-> Type`、Java `@return`
 
 **完成标准**:
 
-1. Python 函数提取 return_type, is_exported
-2. Go 函数提取 return_type, is_exported
-3. Rust 函数提取 return_type, is_exported
-4. Java 方法提取 return_type, is_exported
+1. ✅ Python 函数提取 return_type, is_exported
+2. ✅ Go 函数提取 return_type, is_exported
+3. ✅ Rust 函数提取 return_type, is_exported
+4. ✅ Java 方法提取 return_type, is_exported
 
 **验证方式**:
 
-1. 分析 Python/Go/Rust/Java 文件，验证元数据完整
-2. 运行 `npm test`，验证无回归
+1. ✅ 代码审查：所有语言已实现 return_type 和 is_exported 提取
+2. ✅ 运行 `npm test`，验证无回归
 
-**状态**: ⏳ 待执行
+**状态**: ✅ **已完成**
+
+**实现详情**:
+- Python: `extractPythonSymbols()` 第 420-427 行
+- Go: `extractGoSymbols()` 第 523-528 行
+- Rust: `extractRustSymbols()` 第 661-669 行
+- Java: `extractJavaSymbols()` 第 807-812 行
 
 ---
 

@@ -958,5 +958,38 @@ export EMBEDDING_ENDPOINT='http://localhost:18000/embeddings'
 
 ---
 
-**Last Updated**: 2026-03-23  
-**Version**: v2.9.0
+## Environment Variables (v3.2)
+
+### v3.2 New Configuration Options
+
+```bash
+# API Port (v3.2+, default: 18008)
+export API_PORT="18008"
+
+# Log Level (v3.2+, default: info)
+export LOG_LEVEL="info"
+
+# Pretty Print Logs (v3.2+, default: true in dev, false in production)
+export LOG_PRETTY="true"
+
+# WebSocket Configuration (v3.2+)
+export WS_ENABLED="true"
+export WS_HEARTBEAT_INTERVAL="30000"
+export WS_RECONNECT_MAX_ATTEMPTS="10"
+export WS_RECONNECT_BASE_DELAY="1000"
+
+# Sync Configuration (v3.2+)
+export AUTO_SYNC="true"
+export SYNC_INTERVAL="300000"
+```
+
+### Configuration Precedence
+
+1. Environment variables (highest priority)
+2. Config file (`memory-config.json`)
+3. Default values (lowest priority)
+
+---
+
+**Last Updated**: 2026-04-12  
+**Version**: v3.2.0
