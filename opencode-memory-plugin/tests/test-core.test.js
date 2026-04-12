@@ -33,6 +33,7 @@ jest.unstable_mockModule('@opencode-ai/plugin/tool', () => {
 
 jest.unstable_mockModule('../lib/memory-core.js', () => ({
   writeAndSyncMemory: jest.fn(),
+  readMemory: jest.fn(),
 }));
 
 jest.unstable_mockModule('../lib/storage.js', () => ({
