@@ -42,7 +42,7 @@ OpenCode Memory Plugin 采用 **后端优先（Backend-First）** 架构，将�
            ▼                          ▼
 ┌──────────────────┐    ┌──────────────────────────────────┐
 │   后端服务        │    │     本地存储 (~/.opencode/memory/) │
-│  localhost:17999 │    │  ┌─────────┐  ┌──────────────┐   │
+│  localhost:18008 │    │  ┌─────────┐  ┌──────────────┐   │
 │                  │    │  │ timeline/│  │ MEMORY.md    │   │
 │  • SurrealDB     │    │  │ YYYY/MM/ │  │ SOUL.md ...  │   │
 │  • Meilisearch   │    │  │   DD/    │  │ link-map.json│   │
@@ -200,7 +200,7 @@ readMemory({ entry_id, level })
 ```javascript
 class WrapperClient {
   constructor(options = {})
-  // 默认: localhost:17999, /api/v1
+  // 默认: localhost:18008, /api/v1
 
   async healthCheck()        // GET  /api/v1/health
   async search(params)       // POST /api/v1/memories/search
@@ -363,7 +363,7 @@ Plugin Startup
 ┌──────────────────────────────────────────┐
 │  lib/ws-client.js                        │
 │  SyncWebSocketClient.connect()           │
-│  → ws://localhost:17999/ws               │
+│  → ws://localhost:18008/ws               │
 └──────────────┬───────────────────────────┘
                │
                ▼

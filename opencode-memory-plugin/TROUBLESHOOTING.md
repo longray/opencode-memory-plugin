@@ -8,7 +8,7 @@ This guide provides instructions for deploying the OpenCode Memory Plugin with a
 
 1. **Node.js** (version 16 or higher)
 2. **OpenCode** installed and configured
-3. **Backend service** running at `http://localhost:17999` (required for semantic search)
+3. **Backend service** running at `http://localhost:18008` (v3.2+, previously 17999) (required for semantic search)
 4. **OR** use BM25 keyword-only mode (no backend required)
 5. Network access to the backend service endpoint
 
@@ -26,13 +26,13 @@ npm install @csuwl/opencode-memory-plugin
 
 #### 2. Configure the Backend Service
 
-By default, the plugin uses a backend-first architecture with the backend service at `http://localhost:17999`. You can customize this in the configuration file:
+By default, the plugin uses a backend-first architecture with the backend service at `http://localhost:18008` (v3.2+, previously 17999). You can customize this in the configuration file:
 
 ```json
 {
   "backend": {
     "enabled": true,
-    "endpoint": "http://localhost:17999"
+    "endpoint": "http://localhost:18008"
   },
   "embedding": {
     "provider": "external",
@@ -52,8 +52,8 @@ After installation, you can verify that everything is working correctly:
 1. **Start the backend service** (if using semantic search):
 
    ```bash
-   # Backend service should be running at http://localhost:17999
-   curl http://localhost:17999/health
+   # Backend service should be running at http://localhost:18008 (v3.2+, previously 17999)
+   curl http://localhost:18008/health
    ```
 
 2. **Launch OpenCode**
@@ -83,10 +83,10 @@ After installation, you can verify that everything is working correctly:
 
 **Causes and Solutions:**
 
-1. **Backend Service Not Running**: Verify the backend service is running at `http://localhost:17999`.
+1. **Backend Service Not Running**: Verify the backend service is running at `http://localhost:18008` (v3.2+, previously 17999).
 
    ```bash
-   curl http://localhost:17999/health
+   curl http://localhost:18008/health
    ```
 
    If not running, start the backend service first.

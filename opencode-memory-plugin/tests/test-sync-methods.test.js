@@ -30,7 +30,7 @@ describe('WrapperClient Sync Methods', () => {
     if (WrapperClient) {
       client = new WrapperClient({
         backend: {
-          url: 'http://localhost:17999',
+          url: 'http://localhost:18008',
           tenant_id: 'test-user',
         },
       });
@@ -217,7 +217,7 @@ describe('Sync Method Signatures', () => {
     }
 
     const testClient = new WrapperClient({
-      backend: { url: 'http://localhost:17999', tenant_id: 'test' },
+      backend: { url: 'http://localhost:18008', tenant_id: 'test' },
     });
 
     const requiredMethods = ['syncPreview', 'syncFull', 'getServerFingerprints', 'resolveConflict'];

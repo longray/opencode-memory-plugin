@@ -132,7 +132,7 @@ opencode-memory health
 | **WebSocket 重写**    | 可靠连接（心跳、重连、ACK） | 🔄 开发中 |
 | **PrecomputeService** | 代码预计算服务              | 🔄 开发中 |
 | **Meilisearch 升级**  | SDK 升级至 0.40             | 🔄 开发中 |
-| **端口迁移**          | 17999 → 18008               | 🔄 开发中 |
+| **端口迁移**          | 17999 → 18008               | ✅ 已完成 |
 | **依赖升级**          | tree-sitter 0.25.x          | 🔄 开发中 |
 
 ### 详细设计

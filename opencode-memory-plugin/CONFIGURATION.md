@@ -409,7 +409,7 @@ The plugin will automatically detect Bun and configure itself accordingly:
 
 - ⚠️ Local vector storage (plugin now uses backend service instead)
 
-**Note:** The plugin v2.1.0+ uses backend-first architecture. All vector operations are handled by the backend service at localhost:17999, eliminating Bun compatibility issues.
+**Note:** The plugin v2.1.0+ uses backend-first architecture. All vector operations are handled by the backend service at localhost:18008 (v3.2+, previously 17999), eliminating Bun compatibility issues.
 
 **Status:** See [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290) for implementation progress.
 
@@ -523,7 +523,7 @@ Controls connection to SurrealDB backend service.
 {
   "backend": {
     "enabled": true,
-    "url": "http://localhost:17999",
+    "url": "http://localhost:18008",
     "tenant_id": "auto",
     "project_id": "auto",
     "project_resolution": {
@@ -547,7 +547,7 @@ Controls connection to SurrealDB backend service.
 **Options:**
 
 - `enabled`: Enable/disable backend integration (default: true)
-- `url`: Backend service URL (default: `http://localhost:17999`)
+- `url`: Backend service URL (default: `http://localhost:18008`)
 - `tenant_id`: User/tenant identifier
   - `"auto"`: Use OS username
   - Custom string: Use provided value
@@ -643,7 +643,7 @@ Controls real-time sync with backend.
 {
   "websocket": {
     "enabled": true,
-    "url": "ws://localhost:17999/ws",
+    "url": "ws://localhost:18008/ws",
     "reconnect": {
       "enabled": true,
       "max_attempts": 10,
@@ -711,7 +711,7 @@ Controls local fast search index.
   },
   "backend": {
     "enabled": true,
-    "url": "http://localhost:17999",
+    "url": "http://localhost:18008",
     "tenant_id": "auto",
     "project_id": "auto",
     "sync": {
@@ -771,7 +771,7 @@ Controls local fast search index.
   },
   "backend": {
     "enabled": true,
-    "url": "http://localhost:17999",
+    "url": "http://localhost:18008",
     "sync": {
       "mode": "incremental",
       "batch_size": 100
@@ -819,7 +819,7 @@ v2.2 config:
   "version": "3.0",
   "search": { "mode": "hybrid" },
   "backend": {
-    "url": "http://localhost:17999"
+    "url": "http://localhost:18008"
   }
 }
 ```
@@ -831,7 +831,7 @@ v3.0 config (add new sections):
   "version": "3.0",
   "search": { "mode": "hybrid" },
   "backend": {
-    "url": "http://localhost:17999",
+    "url": "http://localhost:18008",
     "sync": { "mode": "incremental" }
   },
   "timeline": { "enabled": true },
@@ -858,8 +858,8 @@ v3.0 config (add new sections):
 **Backend Not Running:**
 
 ```bash
-# Check backend status
-curl http://localhost:17999/api/v1/health
+# Check backend status (v3.2+ uses port 18008, previously 17999)
+curl http://localhost:18008/api/v1/health
 
 # If not running, start it (see backend documentation)
 ```
@@ -934,8 +934,8 @@ Plugin will use HTTP polling instead.
 ### Backend Configuration
 
 ```bash
-# Backend URL
-export MEMORY_BACKEND_URL="http://localhost:17999"
+# Backend URL (v3.2+ default port is 18008)
+export MEMORY_BACKEND_URL="http://localhost:18008"
 
 # Tenant ID override
 export MEMORY_TENANT_ID="custom-tenant"

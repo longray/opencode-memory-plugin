@@ -15,7 +15,8 @@ const MEMORY_DIR = path.join(TEST_DIR, 'memory');
 const TIMELINE_DIR = path.join(MEMORY_DIR, 'timeline');
 
 // Backend service endpoints
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:17999';
+// v3.2: Default port changed from 17999 to 18008
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:18008';
 const EMBEDDING_URL = process.env.EMBEDDING_URL || 'http://localhost:18000';
 
 /**

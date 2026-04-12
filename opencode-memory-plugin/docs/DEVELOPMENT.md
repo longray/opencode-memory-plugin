@@ -70,7 +70,7 @@ npm list -g @csuwl/opencode-memory-plugin
 docker-compose -f docker-compose.yml up -d
 
 # 验证后端健康
-curl http://localhost:17999/api/v1/health
+curl http://localhost:18008/api/v1/health
 ```
 
 ### 1.5 环境变量
@@ -333,7 +333,7 @@ jest.mock('./wrapper-client.js');
 ```bash
 # tests/integration/ 目录
 # 运行前确保后端服务可用
-curl http://localhost:17999/api/v1/health
+curl http://localhost:18008/api/v1/health
 
 # 集成测试使用 default tenant
 # 项目 ID 使用 test-project

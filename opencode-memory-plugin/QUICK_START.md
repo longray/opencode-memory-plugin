@@ -31,7 +31,7 @@ The plugin detects Bun and configures itself:
 
 ### Limitations
 
-⚠️ **Backend-first Architecture**: All vector search is handled by the backend service (localhost:17999). The plugin works seamlessly in all runtimes including Bun.
+⚠️ **Backend-first Architecture**: All vector search is handled by the backend service (localhost:18008). The plugin works seamlessly in all runtimes including Bun.
 ⚠️ **Manual Indexing**: Index rebuild uses BM25 instead of embeddings
 
 **Recommendation**: Continue using the plugin - keyword search is fast and effective. Vector search will be automatically restored when Bun adds V8 C++ API support (see [GitHub Issue #4290](https://github.com/oven-sh/bun/issues/4290)).
