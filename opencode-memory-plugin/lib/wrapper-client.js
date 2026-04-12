@@ -208,8 +208,11 @@ async function withRetry(fn, maxRetries = 3, baseDelay = 1000) {
  */
 export class WrapperClient {
   constructor(config = {}) {
-    this.baseUrl =
-      config.backend?.url || process.env.MEMORY_BACKEND_URL || 'http://localhost:17999';
+    // v3.2: Default port changed from 17999 to 18008
+    // Backward compatible: Use API_PORT env var or MEMORY_BACKEND_URL to override
+    const apiPort = process.env.API_PORT || '18008';
+    const defaultUrl = `http://localhost:${apiPort}`;
+    this.baseUrl = config.backend?.url || process.env.MEMORY_BACKEND_URL || defaultUrl;
     this.tenantId =
       config.backend?.tenant_id ||
       process.env.MEMORY_TENANT_ID ||

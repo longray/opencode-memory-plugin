@@ -250,7 +250,10 @@ export async function initRealtimeSync(config, onSyncRequired, onConflictDetecte
     return null;
   }
 
-  const backendUrl = config?.backend?.url || 'http://localhost:17999';
+  // v3.2: Default port changed from 17999 to 18008
+  const apiPort = process.env.API_PORT || '18008';
+  const defaultUrl = `http://localhost:${apiPort}`;
+  const backendUrl = config?.backend?.url || defaultUrl;
   const wsUrl =
     backendUrl.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws/memories/live';
   const tenantId = config?.backend?.tenant_id || process.env.USERNAME || 'default';

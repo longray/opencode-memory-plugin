@@ -6,6 +6,7 @@
 import WebSocket from 'ws';
 import { StateManager, WebSocketState } from './state-manager.js';
 import { HeartbeatManager } from './heartbeat.js';
+import { AckManager } from './ack-manager.js';
 
 export class ReliableWebSocketClient {
   constructor(url, options = {}) {
@@ -26,6 +27,10 @@ export class ReliableWebSocketClient {
       interval: options.heartbeatInterval || 30000,
       timeout: options.heartbeatTimeout || 5000,
       maxMissed: options.heartbeatMaxMissed || 2,
+    });
+    this.ackManager = new AckManager({
+      timeout: options.ackTimeout || 5000,
+      maxRetries: options.ackMaxRetries || 3,
     });
 
     this.reconnectAttempts = 0;
@@ -109,6 +114,11 @@ export class ReliableWebSocketClient {
 
     if (message.type === 'pong') {
       this.heartbeatManager.onPongReceived();
+      return;
+    }
+
+    if (message.type === 'ack' && message._ackId) {
+      this.ackManager.onAckReceived(message._ackId);
       return;
     }
 
@@ -218,6 +228,14 @@ export class ReliableWebSocketClient {
     }
   }
 
+  sendWithAck(message, timeout, maxRetries) {
+    if (!this.stateManager.is(WebSocketState.CONNECTED) || !this.ws) {
+      return Promise.reject(new Error('WebSocket not connected'));
+    }
+
+    return this.ackManager.sendWithAck(this.ws, message, timeout, maxRetries);
+  }
+
   flushMessageQueue() {
     while (this.messageQueue.length > 0) {
       const message = this.messageQueue.shift();
@@ -253,6 +271,7 @@ export class ReliableWebSocketClient {
     }
 
     this.heartbeatManager.stop();
+    this.ackManager.clearAll();
 
     if (this.ws) {
       this.ws.close();

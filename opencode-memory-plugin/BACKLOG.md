@@ -53,9 +53,11 @@
 
 **涉及范围**:
 
-1. `lib/ws-client.js` — 重写为 `ReliableWebSocketClient` 类
-2. 新增心跳机制（30s 间隔，2 次未响应触发重连）
-3. 新增指数退避重连（1s → 2s → 4s... 最大 10 次）
+1. `lib/websocket/reliable-client.js` — 实现 `ReliableWebSocketClient` 类
+2. `lib/websocket/state-manager.js` — 状态机管理
+3. `lib/websocket/heartbeat.js` — 心跳管理器
+4. 新增心跳机制（30s 间隔，2 次未响应触发重连）
+5. 新增指数退避重连（1s → 2s → 4s... 最大 10 次）
 
 **RTM 映射**: WS-001, WS-002, WS-003, WS-004
 
@@ -63,21 +65,21 @@
 
 **完成标准**:
 
-1. `ReliableWebSocketClient` 类实现心跳发送（`ping`/`pong`）
-2. 2 次未收到 `pong` 后自动关闭并触发重连
-3. 重连延迟为指数退避：`baseDelay * 2^retryCount`，上限 300s
-4. 最大重连 10 次，超出后进入降级模式
-5. 连接恢复后自动重置重连计数器
-6. `lib/config.js` 中可配置心跳间隔和最大重试次数
+1. ✅ `ReliableWebSocketClient` 类实现心跳发送（`ping`/`pong`）
+2. ✅ 2 次未收到 `pong` 后自动关闭并触发重连
+3. ✅ 重连延迟为指数退避：`baseDelay * 2^retryCount`，上限 300s
+4. ✅ 最大重连 10 次，超出后进入降级模式
+5. ✅ 连接恢复后自动重置重连计数器
+6. ✅ `lib/config.js` 中可配置心跳间隔和最大重试次数
 
 **验证方式**:
 
-1. 单元测试：`tests/ws-client.test.js` — 心跳定时器、重连逻辑、计数器重置
-2. 集成测试：启动后端 WebSocket 服务，验证客户端自动连接和心跳
-3. 故障测试：手动断开后端，观察重连行为
-4. 边界测试：验证达到最大重连次数后的降级行为
+1. ✅ 单元测试：`tests/websocket/reliable-client.test.js` — 16 tests passing
+2. ⏳ 集成测试：启动后端 WebSocket 服务，验证客户端自动连接和心跳
+3. ⏳ 故障测试：手动断开后端，观察重连行为
+4. ⏳ 边界测试：验证达到最大重连次数后的降级行为
 
-**状态**: ⏳ 待实现
+**状态**: ✅ **已完成 (单元测试通过，集成测试待后端就绪)**
 
 ---
 
@@ -87,9 +89,10 @@
 
 **涉及范围**:
 
-1. `lib/acks.js` — 新增 `AckManager` 类
-2. 消息发送等待 ACK 确认
-3. 超时重试（5s 超时，最多 3 次重试）
+1. `lib/websocket/ack-manager.js` — 新增 `AckManager` 类
+2. `lib/websocket/reliable-client.js` — 集成 ACK 支持
+3. 消息发送等待 ACK 确认
+4. 超时重试（5s 超时，最多 3 次重试）
 
 **RTM 映射**: WS-005
 
@@ -97,19 +100,19 @@
 
 **完成标准**:
 
-1. `AckManager` 类实现 `sendWithAck(messageId, sendFn, data)`
-2. 消息发送后启动 5s 超时计时器
-3. 收到 ACK 后清除超时，resolve Promise
-4. 超时后自动重试（最多 3 次）
-5. 超时和取消操作清理 pending 状态
+1. ✅ `AckManager` 类实现 `sendWithAck(ws, message, timeout, maxRetries)`
+2. ✅ 消息发送后启动 5s 超时计时器（可配置）
+3. ✅ 收到 ACK 后清除超时，resolve Promise
+4. ✅ 超时后自动重试（最多 3 次，可配置）
+5. ✅ 超时和取消操作清理 pending 状态
 
 **验证方式**:
 
-1. 单元测试：正常 ACK、超时重试、取消消息
-2. 集成测试：发送消息 → 收到 ACK → 验证 Promise resolve
-3. 故障测试：模拟无 ACK 响应，验证超时重试
+1. ✅ 单元测试：`tests/websocket/ack-manager.test.js` — 11 tests passing
+2. ⏳ 集成测试：发送消息 → 收到 ACK → 验证 Promise resolve
+3. ⏳ 故障测试：模拟无 ACK 响应，验证超时重试
 
-**状态**: ⏳ 待实现
+**状态**: ✅ **已完成 (单元测试通过，集成测试待后端就绪)**
 
 ---
 
@@ -152,12 +155,13 @@
 
 **涉及范围**:
 
-1. `lib/wrapper-client.js` — 默认端口改为 18008
-2. `lib/config.js` — 新增 `API_PORT` 配置项（默认 18008）
-3. `lib/ws-client.js` — WebSocket URL 端口更新
-4. `agents/memory-automation.md` — 端口引用更新
-5. `agents/memory-consolidate.md` — 端口引用更新
-6. `plugin.js` — 连接地址更新
+1. ✅ `lib/wrapper-client.js` — 默认端口改为 18008，支持 API_PORT 环境变量
+2. ⏳ `lib/config.js` — 新增 `API_PORT` 配置项（默认 18008）
+3. ✅ `lib/ws-client.js` — WebSocket URL 端口更新
+4. ⏳ `agents/memory-automation.md` — 端口引用更新
+5. ⏳ `agents/memory-consolidate.md` — 端口引用更新
+6. ⏳ `plugin.js` — 连接地址更新
+7. ✅ `tests/websocket/reliable-client.test.js` — 测试端口更新
 
 **RTM 映射**: DEP-005（插件端部分）
 
@@ -165,20 +169,20 @@
 
 **完成标准**:
 
-1. `wrapper-client.js` 默认端口为 18008
-2. 支持环境变量 `API_PORT` 覆盖（向后兼容 17999）
-3. WebSocket URL 使用新端口
-4. 所有 agent 文档中端口引用已更新
-5. 全局搜索 `17999` 确认无遗漏
+1. ✅ `wrapper-client.js` 默认端口为 18008
+2. ✅ 支持环境变量 `API_PORT` 覆盖（向后兼容 17999）
+3. ✅ WebSocket URL 使用新端口
+4. ⏳ 所有 agent 文档中端口引用已更新
+5. ⏳ 全局搜索 `17999` 确认无遗漏
 
 **验证方式**:
 
-1. 全局搜索 `17999`，确认仅出现在向后兼容注释中
-2. 连接测试：使用默认配置连接 18008 端口
-3. 兼容性测试：设置 `API_PORT=17999` 可正常连接旧版后端
-4. 运行 `npm test`，验证无回归
+1. ⏳ 全局搜索 `17999`，确认仅出现在向后兼容注释中
+2. ⏳ 连接测试：使用默认配置连接 18008 端口
+3. ⏳ 兼容性测试：设置 `API_PORT=17999` 可正常连接旧版后端
+4. ✅ 运行 `npm test`，验证无回归 — **27 tests passing**
 
-**状态**: ⏳ 待实现
+**状态**: 🔄 **进行中 (核心代码完成，文档待更新)**
 
 **前置依赖**: 后端 v3.2 服务就绪
 

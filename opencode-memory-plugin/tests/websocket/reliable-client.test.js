@@ -10,7 +10,7 @@ describe('ReliableWebSocketClient', () => {
   let client;
 
   beforeEach(() => {
-    client = new ReliableWebSocketClient('ws://localhost:17999/ws/memories/live', {
+    client = new ReliableWebSocketClient('ws://localhost:18008/ws/memories/live', {
       tenantId: 'test-tenant',
       reconnectMaxAttempts: 3,
       reconnectBaseDelay: 100,
@@ -30,7 +30,7 @@ describe('ReliableWebSocketClient', () => {
     });
 
     it('should create instance with custom options', () => {
-      expect(client.url).toBe('ws://localhost:17999/ws/memories/live');
+      expect(client.url).toBe('ws://localhost:18008/ws/memories/live');
       expect(client.tenantId).toBe('test-tenant');
       expect(client.reconnectOptions.maxAttempts).toBe(3);
       expect(client.reconnectOptions.baseDelay).toBe(100);
