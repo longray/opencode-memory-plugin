@@ -1,6 +1,6 @@
 # OpenCode Memory Plugin
 
-> **版本**: v3.2.0  
+> **版本**: v3.2.0-beta.1  
 > **许可证**: MIT  
 > **Node.js**: 18+
 
@@ -77,8 +77,8 @@ opencode-memory health
 |          | `memory_graph`     | 遍历图谱     |
 | **同步** | `incremental_sync` | 增量同步     |
 |          | `full_sync`        | 完整同步     |
-| **代码** | `analyze_code`     | 代码分析     |
-|          | `code_search`      | 代码搜索     |
+| **代码** | `analyze_code` | 代码分析 (计划中) |
+|          | `code_search` | 代码搜索 (计划中) |
 
 ---
 
@@ -125,7 +125,7 @@ opencode-memory health
 
 ## v3.2 新特性（开发中）
 
-✅ **v3.2.0 已发布**
+🚧 **v3.2.0-beta.1 开发中**
 
 ### v3.2.0 主要更新
 
