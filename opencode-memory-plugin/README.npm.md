@@ -2,6 +2,11 @@
 
 > OpenClaw-style persistent memory system for OpenCode with semantic vector search and layered storage
 
+[![npm version](https://img.shields.io/npm/v/@csuwl/opencode-memory-plugin.svg)](https://www.npmjs.com/package/@csuwl/opencode-memory-plugin)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**Version**: v3.2.0 - WebSocket real-time sync, structured logging, and improved code analysis
+
 ## Installation
 
 ```bash
@@ -13,18 +18,20 @@ npm install -g @csuwl/opencode-memory-plugin
 
 ## Features
 
-- **15 Memory Tools** - Write, read, search, sync, graph relations, and more
+- **16 Memory Tools** - Write, read, search, sync, graph relations, and more
 - **L0/L1/L2 Layered Storage** - Abstract (≤100 chars), Overview (≤500 chars), Full content
 - **Semantic Search** - Vector + BM25 hybrid search via backend service
+- **WebSocket Real-Time Sync** - Reliable connection with heartbeat and ACK
 - **Dual-Mode Sync** - Incremental (fingerprint-based) + Full sync with resume
 - **Conflict Resolution** - Detect and resolve local/backend conflicts
 - **Graph Relations** - Connect memories with semantic relationships
 - **Memory Browsing** - Timeline browser and topic explorer
 - **Project Isolation** - Multi-tenant support with tenant_id and project_id
 - **Code Analysis** - Automatic AST analysis on file save (JavaScript, TypeScript, Python, Go, Rust, Java)
+- **Structured Logging** - Pino-based logging with JSON and pretty print modes
 - **Zero Configuration** - Just install and use
 
-## Available Tools (15)
+## Available Tools (16)
 
 ### Core Tools (9)
 
