@@ -7,6 +7,8 @@ import WebSocket from 'ws';
 import { StateManager, WebSocketState } from './state-manager.js';
 import { HeartbeatManager } from './heartbeat.js';
 import { AckManager } from './ack-manager.js';
+import { DiffSubscription } from './diff-subscription.js';
+
 
 export class ReliableWebSocketClient {
   constructor(url, options = {}) {
@@ -39,6 +41,8 @@ export class ReliableWebSocketClient {
     this.messageHandlers = new Map();
 
     this.sessionId = options.sessionId || this.generateSessionId();
+
+    this.diffSubscription = new DiffSubscription(this);
   }
 
   generateSessionId() {
