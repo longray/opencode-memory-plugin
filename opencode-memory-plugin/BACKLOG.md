@@ -122,9 +122,10 @@
 
 **涉及范围**:
 
-1. `lib/ws-client.js` — 扩展 `ReliableWebSocketClient` 支持 DIFF 订阅
-2. 本地缓存维护（内存）
-3. JSON Patch 应用
+1. ✅ `lib/websocket/diff-subscription.js` — 新增 `DiffSubscription` 类
+2. ✅ 本地缓存维护（内存）
+3. ✅ JSON Patch 应用
+4. ✅ 集成到 `ReliableWebSocketClient`
 
 **RTM 映射**: WS-006
 
@@ -132,18 +133,18 @@
 
 **完成标准**:
 
-1. 支持 `LIVE SELECT DIFF` 订阅模式
-2. 维护本地状态缓存
-3. 收到 JSON Patch 后正确应用到本地缓存
-4. 支持订阅取消和重新订阅
+1. ✅ 支持 `LIVE SELECT DIFF` 订阅模式
+2. ✅ 维护本地状态缓存
+3. ✅ 收到 JSON Patch 后正确应用到本地缓存
+4. ✅ 支持订阅取消和重新订阅
 
 **验证方式**:
 
-1. 单元测试：JSON Patch 应用逻辑
-2. 集成测试：订阅 → 修改后端数据 → 验证收到 DIFF
-3. 性能测试：DIFF 模式 vs 全量模式，数据量减少 ≥90%
+1. ✅ 单元测试：`tests/websocket/diff-subscription.test.js` — 20 tests passing
+2. ⏳ 集成测试：订阅 → 修改后端数据 → 验证收到 DIFF（待后端就绪）
+3. ⏳ 性能测试：DIFF 模式 vs 全量模式，数据量减少 ≥90%（待后端就绪）
 
-**状态**: ⏳ 待实现
+**状态**: ✅ **已完成 (单元测试通过，集成测试待后端就绪)**
 
 **前置依赖**: BL-P-1 完成（基础 WebSocket 客户端）
 
