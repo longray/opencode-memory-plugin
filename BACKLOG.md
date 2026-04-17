@@ -2085,19 +2085,181 @@
 
 ## 统计
 
-| 分类     | 任务数 | P0    | P1    | 总工时    |
-| -------- | ------ | ----- | ----- | --------- |
-| Phase 1  | 1      | 1     | 0     | 0.5 天 ✅ |
-| Phase 2  | 4      | 4     | 0     | 8 天 ✅   |
-| Phase 3  | 2      | 2     | 0     | 5 天 ✅   |
-| Phase 4  | 3      | 3     | 0     | 2 天 ✅   |
-| Phase 5  | 3      | 3     | 0     | 5.5 天 ✅ |
+| 分类     | 任务数 | P0     | P1    | 总工时    |
+| -------- | ------ | ------ | ----- | --------- |
+| Phase 1  | 1      | 1      | 0     | 0.5 天 ✅ |
+| Phase 2  | 4      | 4      | 0     | 8 天 ✅   |
+| Phase 3  | 2      | 2      | 0     | 5 天 ✅   |
+| Phase 4  | 3      | 3      | 0     | 2 天 ✅   |
+| Phase 5  | 3      | 3      | 0     | 5.5 天 ✅ |
 | **总计** | **13** | **13** | **0** | **21 天** |
 
 > **v3.2 完成度**: 100% — 所有 Phase 1-5 全部完成 (13/13 tasks)
 
 ---
 
-_文档版本: v3.2.0_  
+## Phase 6: WebSocket 接入（v3.2.1）
+
+> **目标**: 将后端已就绪的 WebSocket 实时推送接入插件端  
+> **依据**: 后端接入指南 `websocket-integration-guide.md` + 技术回复 `websocket-integration-reply-20260417.md`  
+> **策略**: 阶段 1 — 使用 `mode=full`，diff/subscribe/sync_request 等后端 v3.2.1 修复后再接入
+
+---
+
+### BL-P-14 [P0] 修复 WebSocket 协议映射
+
+**目标**: 修复 ReliableWebSocketClient 与后端实际 API 的协议不匹配，使客户端能正确处理后端消息
+
+**涉及范围**:
+
+1. `lib/websocket/reliable-client.js` — handleMessage 逻辑修改：
+   - 消息类型识别：`type === 'memory_change'` + 读 `message.action`（当前错误检查 `message.type === 'CREATE'`）
+   - ACK 字段：`seq`（当前错误使用 `_ackId`）
+   - 新增 `connected` 消息处理：保存 `session_id`
+   - 新增 `error` 消息处理：处理 `SESSION_EXPIRED`
+2. `lib/websocket/heartbeat.js` — 禁用主动 ping，改为被动回复后端 ping
+3. `lib/websocket/ack-manager.js` — ACK 字段 `_ackId` → `seq`，匹配后端格式
+
+**前置依赖**:
+
+- 后端 WebSocket 已就绪 ✅
+- 后端确认心跳由后端单方面发起 ✅
+- 后端确认使用 `mode=full`（diff 有 bug）✅
+
+**完成标准**:
+
+1. `connected` 消息正确保存 `session_id`
+2. `memory_change` 消息按 `msg.action` 分发（CREATE/UPDATE/DELETE）
+3. ACK 使用 `seq` 字段发送
+4. 心跳只回复 pong，不主动发 ping
+5. `error` 消息（SESSION_EXPIRED）正确处理
+
+**验证方式**:
+
+1. 单元测试：mock 后端消息，验证 handleMessage 行为
+2. 语法检查：`node -c reliable-client.js`
+
+**工时**: 2 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-P-15 [P0] WebSocket 接入 plugin.js 启动流程
+
+**目标**: 在 plugin.js 启动时自动建立 WebSocket 连接，接收实时变更通知
+
+**涉及范围**:
+
+1. `plugin.js` — 添加 WebSocket 初始化逻辑：
+   - 检查后端 enabled 配置
+   - 构建 WebSocket URL（`ws://localhost:18008/ws/memories/live`）
+   - 调用 ReliableWebSocketClient.connect()
+   - 注册 memory_change handler
+2. `lib/ws-client.js` — 评估是否保留旧版 SyncWebSocketClient 或统一使用新版 ReliableWebSocketClient
+
+**前置依赖**:
+
+- BL-P-14 完成（协议映射修复）
+
+**完成标准**:
+
+1. plugin.js 启动时自动连接后端 WebSocket
+2. 连接成功后日志输出 `[WebSocket] Connected`
+3. 后端不可用时优雅降级（不阻塞插件启动）
+4. 收到 memory_change 通知时触发 link-map 更新
+
+**验证方式**:
+
+1. 启动插件后检查 WebSocket 连接状态
+2. 通过 HTTP API 上传记忆，验证 WebSocket 收到通知
+3. 后端不可用时插件正常启动（不报错）
+
+**工时**: 2 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-P-16 [P1] WebSocket 集成测试
+
+**目标**: 编写端到端测试验证 WebSocket 接入完整流程
+
+**涉及范围**:
+
+1. `tests/websocket/test-integration.js` — 新增集成测试：
+   - 连接 → 收到 connected 消息
+   - 心跳 pong 回复
+   - memory_change 消息处理 + ACK 回复
+   - 断线重连（携带 session_id）
+   - 后端不可用时降级
+2. 复用 `tests/e2e/test-backend-api.test.js` 中的后端健康检查
+
+**前置依赖**:
+
+- BL-P-14 完成
+- BL-P-15 完成
+- 后端服务运行
+
+**完成标准**:
+
+1. 连接测试通过（connected + session_id）
+2. 心跳测试通过（ping → pong）
+3. 变更通知测试通过（memory_change → ACK）
+4. 重连测试通过（断线 → 重连成功）
+5. 降级测试通过（后端不可用不阻塞）
+
+**验证方式**:
+
+1. `npx vitest run tests/websocket/test-integration.js` 全部通过
+2. 或 `node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/websocket/`
+
+**工时**: 2 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-P-17 [P2] 文档更新 — WebSocket 接入说明
+
+**目标**: 更新产品文档和开发文档，反映 WebSocket 接入状态
+
+**涉及范围**:
+
+1. `README.md` — 更新实时同步状态（从 "library modules not yet wired" → 接入状态）
+2. `CHANGELOG.md` — 补充 WebSocket 接入条目
+3. `opencode-memory-plugin/CONFIGURATION.md` — 添加 WebSocket 环境变量说明
+4. `AGENTS.md` — 更新模块映射表
+
+**前置依赖**:
+
+- BL-P-15 完成（接入确认可用）
+
+**完成标准**:
+
+1. README 准确反映 WebSocket 接入状态
+2. CONFIGURATION.md 包含 WS\_\* 环境变量
+3. CHANGELOG 记录接入变更
+
+**验证方式**:
+
+1. `npm run lint:md` 通过
+2. 人工审阅内容准确性
+
+**工时**: 1 小时
+
+**状态**: 🆕 新建
+
+---
+
+### Phase 6 统计
+
+| Phase   | 任务数 | 完成数 | 进行中 | 预计工时 |
+| ------- | ------ | ------ | ------ | -------- |
+| Phase 6 | 4      | 0      | 4      | 7 小时   |
+
+---
+
+_文档版本: v3.2.1_  
 _更新时间: 2026-04-17_  
-_状态: ✅ v3.2 插件端全部完成_
+_状态: Phase 6 已规划，待执行_
