@@ -1,5 +1,48 @@
 # Changelog
 
+## [3.2.0] - 2026-04-17
+
+### v3.2 - Infrastructure Upgrade & Precompute API
+
+#### 🏗️ Infrastructure
+
+- **Dependency Upgrade (BL-P-1)**: pino structured logging, dotenv env config, ws@8.20.0, fast-json-patch
+- **Port Migration (BL-P-8)**: Backend port 17999 → 18008 across all modules and docs
+- **Config Management (BL-P-10)**: dotenv-based env config (API_PORT, LOG_LEVEL, WS_*)
+- **Structured Logging (BL-P-9)**: pino logger with JSON/pretty modes
+
+#### 🔌 WebSocket (Library Modules - Not Yet Wired)
+
+- **ReliableWebSocketClient (BL-P-2)**: 4-state machine (DISCONNECTED/CONNECTING/CONNECTED/RECONNECTING)
+- **ACK Manager (BL-P-3)**: Message confirmation with 5s timeout, 3 retries
+- **DIFF Mode (BL-P-4)**: JSON Patch-based incremental updates via WebSocket
+- **Heartbeat**: 30s keepalive with automatic reconnect
+
+> **Note**: WebSocket modules are implemented as library code but not yet wired into plugin.js startup. They are available for programmatic use and tested with 47 unit tests.
+
+#### 🧮 Precompute Service
+
+- **PrecomputeClient (BL-P-6)**: uploadAnalysis, checkFingerprints, searchSymbols
+- **BatchProcessor**: Automatic batch splitting with concurrency control
+- **FingerprintCache**: SHA-256 content hash + symbol hash for incremental detection
+- **Code Analysis Adaptation (BL-P-7)**: code-analysis-service.js uses Precompute API with backward compat
+
+#### 🧪 Testing
+
+- **E2E Integration Tests (BL-P-13)**: 11 tests verifying all backend APIs (health, CRUD, fingerprint, precompute, symbols, graph, sync)
+- **Precompute Unit Tests (BL-P-12)**: 24 tests for client, batch processor, fingerprint cache
+- **WebSocket Unit Tests (BL-P-11)**: 47 tests for reliable client, ACK, DIFF, heartbeat
+- **Test Framework Unified**: All tests converted from vitest to Jest (35 tests migrated)
+
+#### 📊 Test Results
+
+```
+Test Suites: 29 passed, 29 total
+Tests:       335 passed, 10 skipped, 345 total
+```
+
+---
+
 ## [3.0.0] - 2026-04-07
 
 ### Code Analysis v3.0 - Complete Feature Set (BL-44 ~ BL-48)

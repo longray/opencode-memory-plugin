@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/@csuwl/opencode-memory-plugin.svg)](https://www.npmjs.com/package/@csuwl/opencode-memory-plugin)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Version**: v3.2.0 - WebSocket real-time sync, structured logging, and improved code analysis
+**Version**: v3.2.0 - Precompute API, structured logging, and improved code analysis
 
 ## Installation
 
@@ -21,7 +21,7 @@ npm install -g @csuwl/opencode-memory-plugin
 - **16 Memory Tools** - Write, read, search, sync, graph relations, and more
 - **L0/L1/L2 Layered Storage** - Abstract (≤100 chars), Overview (≤500 chars), Full content
 - **Semantic Search** - Vector + BM25 hybrid search via backend service
-- **WebSocket Real-Time Sync** - Reliable connection with heartbeat and ACK
+- **WebSocket Library** - Reliable connection modules with heartbeat and ACK (library code, not yet wired into plugin startup)
 - **Dual-Mode Sync** - Incremental (fingerprint-based) + Full sync with resume
 - **Conflict Resolution** - Detect and resolve local/backend conflicts
 - **Graph Relations** - Connect memories with semantic relationships

@@ -41,7 +41,7 @@
 - ✅ **OpenClaw-Style Memory** - Complete 9 core memory files (SOUL, AGENTS, USER, IDENTITY, TOOLS, MEMORY, HEARTBEAT, BOOT, BOOTSTRAP)
 - ✅ **Phase C: Trie Index** - 10x faster local search with prefix tree indexing
 - ✅ **Phase C: Autocomplete** - Smart search suggestions (<50ms)
-- ✅ **Phase C: Real-time Sync** - WebSocket live synchronization
+- 📦 **Phase C: Real-time Sync** - WebSocket library modules (heartbeat, ACK, DIFF) — not yet wired into plugin startup
 - ✅ **v3.0: Code Analysis** - Automatic AST analysis on file save (JavaScript, TypeScript, Python, Go, Rust, Java)
 - ✅ **v3.0: File Watcher** - 300ms debounce, batch upload, privacy filter
 - ✅ **v3.0: Project Health** - Code quality grading (A/B/C/D) and risk detection
@@ -396,7 +396,19 @@ opencode-memory-plugin/
 │   ├── trie-index.js      # Trie index manager
 │   ├── wrapper-client.js  # Backend API client
 │   ├── project-resolver.js # Project ID detection
-│   ├── ws-client.js       # WebSocket client
+│   ├── config.js           # Environment config (dotenv)
+│   ├── logger.js           # Structured logging (pino)
+│   ├── ws-client.js        # WebSocket client (legacy)
+│   ├── websocket/          # WebSocket modules (library, not yet wired)
+│   │   ├── reliable-client.js  # Reliable WebSocket with reconnect
+│   │   ├── state-manager.js    # Connection state machine
+│   │   ├── heartbeat.js        # Keepalive manager
+│   │   ├── ack-manager.js      # Message confirmation
+│   │   └── diff-subscription.js # JSON Patch updates
+│   ├── precompute/         # Precompute service client
+│   │   ├── client.js           # API client (upload, fingerprints, symbols)
+│   │   ├── batch-processor.js  # Auto batch splitting
+│   │   └── fingerprint-cache.js # SHA-256 change detection
 │   ├── code-analyzer.js   # Code AST analysis (Oxc)
 │   ├── code-analysis-service.js # Batch analysis queue
 │   ├── code-fingerprint.js # Change detection
