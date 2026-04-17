@@ -1,5 +1,7 @@
 import { codeAnalyzer } from './code-analyzer.js';
 import { WrapperClient } from './wrapper-client.js';
+import { getPrecomputeClient } from './precompute/client.js';
+import { FingerprintCache } from './precompute/fingerprint-cache.js';
 import { resolveProjectId } from './project-resolver.js';
 import { shouldSkipFile } from './privacy-filter.js';
 import { getConfig } from './storage.js';
@@ -40,8 +42,11 @@ export class AnalysisQueue {
     this.batchTimer = null;
     this.debounceTimer = null;
     this.wrapperClient = new WrapperClient();
+    this.precomputeClient = getPrecomputeClient();
     this.concurrentCount = 0;
     this.memoryIdCache = null;
+    this.fingerprintCache = null;
+    this.usePrecompute = CODE_ANALYSIS_CONFIG.use_precompute !== false;
   }
 
   async initCache() {
@@ -49,6 +54,10 @@ export class AnalysisQueue {
       const projectId = resolveProjectId({});
       this.memoryIdCache = new MemoryIdCache(projectId);
       await this.memoryIdCache.load();
+    }
+    if (!this.fingerprintCache && this.usePrecompute) {
+      const projectRoot = process.cwd();
+      this.fingerprintCache = new FingerprintCache(projectRoot);
     }
   }
 
@@ -134,6 +143,8 @@ export class AnalysisQueue {
     this.concurrentCount++;
 
     try {
+      await this.initCache();
+
       const content = readFileSync(item.filePath, 'utf-8');
 
       const contentCheck = shouldSkipFile(item.filePath, content);
@@ -142,7 +153,23 @@ export class AnalysisQueue {
         return;
       }
 
+      if (this.usePrecompute && this.fingerprintCache) {
+        const fpCheck = this.fingerprintCache.hasChanged(item.relativePath, content, null);
+        if (!fpCheck.changed) {
+          console.log(`[CodeAnalysis] File unchanged (fingerprint): ${item.relativePath}`);
+          return;
+        }
+      }
+
       const result = await codeAnalyzer.analyze(item.filePath, content);
+
+      if (this.usePrecompute && this.fingerprintCache) {
+        const fpCheck = this.fingerprintCache.hasChanged(item.relativePath, content, result);
+        if (!fpCheck.changed) {
+          console.log(`[CodeAnalysis] File unchanged (symbols): ${item.relativePath}`);
+          return;
+        }
+      }
 
       this.addToBatch(item, result, content);
     } catch (error) {
@@ -235,25 +262,109 @@ export class AnalysisQueue {
     try {
       await this.initCache();
 
-      const memoryItems = batchToSend.map(item => item.memoryItem);
-      console.log(`[CodeAnalysis] Uploading ${memoryItems.length} code memories...`);
-      const result = await this.wrapperClient.uploadMemories(memoryItems);
-      console.log(`[CodeAnalysis] Upload complete: ${result.success}/${result.total} success`);
-
-      if (result.memory_ids && result.memory_ids.length > 0) {
-        for (let i = 0; i < result.memory_ids.length; i++) {
-          const memoryId = result.memory_ids[i];
-          const batchItem = batchToSend[i];
-          if (batchItem && memoryId) {
-            await this.memoryIdCache.set(batchItem.filePath, batchItem.sourceId, memoryId, {
-              contentHash: batchItem.contentHash,
-            });
-            console.log(`[CodeAnalysis] Cached memory_id for ${batchItem.filePath}: ${memoryId}`);
-          }
-        }
+      if (this.usePrecompute) {
+        await this.flushBatchPrecompute(batchToSend);
+      } else {
+        await this.flushBatchLegacy(batchToSend);
       }
     } catch (error) {
       console.error('[CodeAnalysis] Upload failed:', error.message);
+    }
+  }
+
+  async flushBatchPrecompute(batchToSend) {
+    const projectId = resolveProjectId({});
+
+    const analysisResults = batchToSend.map(item => {
+      const meta = item.memoryItem.metadata;
+      return {
+        file_path: item.filePath,
+        content: item.memoryItem.content,
+        ...meta.code_analysis,
+        call_relations: meta.code_analysis.call_relations || [],
+      };
+    });
+
+    console.log(`[CodeAnalysis] Uploading ${analysisResults.length} files via Precompute API...`);
+    const result = await this.precomputeClient.uploadAnalysisBatch({
+      project_id: projectId,
+      files: analysisResults.map(r => ({ path: r.file_path, content: r.content })),
+      symbols: analysisResults.flatMap(r => [
+        ...(r.functions || []).map(f => ({
+          name: f.name,
+          type: 'function',
+          line: f.start,
+          file_path: r.file_path,
+        })),
+        ...(r.classes || []).map(c => ({
+          name: c.name,
+          type: 'class',
+          line: c.start,
+          file_path: r.file_path,
+        })),
+        ...(r.interfaces || []).map(i => ({
+          name: i.name,
+          type: 'interface',
+          line: i.start,
+          file_path: r.file_path,
+        })),
+      ]),
+      relations: analysisResults.flatMap(r =>
+        (r.call_relations || []).map(rel => ({
+          from_symbol: rel.from,
+          to_symbol: rel.to,
+          type: rel.type || 'calls',
+          line: rel.line,
+          file_path: r.file_path,
+          from_file: r.file_path,
+        }))
+      ),
+    });
+
+    console.log(`[CodeAnalysis] Precompute complete: ${result.success}/${result.total} success`);
+
+    if (result.memory_ids) {
+      for (const [filePath, memoryId] of Object.entries(result.memory_ids)) {
+        if (memoryId) {
+          const batchItem = batchToSend.find(b => b.filePath === filePath);
+          if (batchItem) {
+            await this.memoryIdCache.set(filePath, batchItem.sourceId, memoryId, {
+              contentHash: batchItem.contentHash,
+            });
+          }
+        }
+      }
+    }
+
+    if (this.fingerprintCache) {
+      for (const item of batchToSend) {
+        this.fingerprintCache.set(item.filePath, {
+          content_hash: item.contentHash,
+          symbols_hash: this.fingerprintCache.getSymbolsHash(
+            item.memoryItem.metadata?.code_analysis
+          ),
+        });
+      }
+    }
+  }
+
+  async flushBatchLegacy(batchToSend) {
+    const memoryItems = batchToSend.map(item => item.memoryItem);
+    console.log(`[CodeAnalysis] Uploading ${memoryItems.length} code memories (legacy)...`);
+    const result = await this.wrapperClient.uploadMemories(memoryItems);
+    console.log(`[CodeAnalysis] Upload complete: ${result.success}/${result.total} success`);
+
+    if (result.memory_ids && result.memory_ids.length > 0) {
+      for (let i = 0; i < result.memory_ids.length; i++) {
+        const memoryId = result.memory_ids[i];
+        const batchItem = batchToSend[i];
+        if (batchItem && memoryId) {
+          await this.memoryIdCache.set(batchItem.filePath, batchItem.sourceId, memoryId, {
+            contentHash: batchItem.contentHash,
+          });
+          console.log(`[CodeAnalysis] Cached memory_id for ${batchItem.filePath}: ${memoryId}`);
+        }
+      }
     }
   }
 
