@@ -18,6 +18,10 @@ import { getConfig } from './lib/storage.js';
 import { getWebSocketUrl } from './lib/config.js';
 import { ReliableWebSocketClient } from './lib/websocket/reliable-client.js';
 
+let _wsClient = null;
+
+export const getWebSocketClient = () => _wsClient;
+
 const memory_read = tool({
   description: 'Read from a memory file with level support',
   args: {
@@ -70,7 +74,7 @@ export const MemoryPlugin = async ctx => {
 
   if (wsEnabled && wsUrl) {
     try {
-      const wsClient = new ReliableWebSocketClient(wsUrl, {
+      _wsClient = new ReliableWebSocketClient(wsUrl, {
         tenantId: config.backend?.tenant_id || 'default',
         token: apiKey,
         heartbeatInterval: config.websocket?.heartbeatInterval || 30000,
@@ -78,25 +82,25 @@ export const MemoryPlugin = async ctx => {
         reconnectBaseDelay: config.websocket?.reconnectBaseDelay || 1000,
       });
 
-      wsClient.on('connected', data => {
+      _wsClient.on('connected', data => {
         console.log(`[MemoryPlugin] WebSocket connected, session: ${data.sessionId}`);
       });
 
-      wsClient.on('memory_changed', data => {
+      _wsClient.on('memory_changed', data => {
         console.log(
           `[MemoryPlugin] Memory changed: ${data.action} (${data.memoryId || 'unknown'})`
         );
       });
 
-      wsClient.on('disconnected', data => {
+      _wsClient.on('disconnected', data => {
         console.log(`[MemoryPlugin] WebSocket disconnected: ${data.code}`);
       });
 
-      wsClient.on('error', data => {
+      _wsClient.on('error', data => {
         console.error(`[MemoryPlugin] WebSocket error: ${data.error}`);
       });
 
-      wsClient.connect();
+      _wsClient.connect();
       console.log(`[MemoryPlugin] WebSocket connecting to ${wsUrl}...`);
     } catch (err) {
       console.error('[MemoryPlugin] WebSocket init failed:', err.message);

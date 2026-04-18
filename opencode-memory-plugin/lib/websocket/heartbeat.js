@@ -7,7 +7,6 @@
 export class HeartbeatManager {
   constructor(options = {}) {
     this.interval = options.interval || 30000;
-    this.timeout = options.timeout || 5000;
     this.maxMissed = options.maxMissed || 2;
 
     this.missedCount = 0;
@@ -54,7 +53,7 @@ export class HeartbeatManager {
       clearTimeout(this.monitorTimer);
     }
 
-    const checkInterval = this.interval * (this.maxMissed + 1);
+    const checkInterval = this.interval * this.maxMissed;
     this.monitorTimer = setTimeout(() => {
       this.missedCount++;
       if (this.missedCount >= this.maxMissed) {
@@ -72,7 +71,6 @@ export class HeartbeatManager {
       missedCount: this.missedCount,
       lastPingTime: this.lastPingTime,
       interval: this.interval,
-      timeout: this.timeout,
     };
   }
 }

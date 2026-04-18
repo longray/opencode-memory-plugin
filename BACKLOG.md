@@ -2246,12 +2246,161 @@
 
 ---
 
-| Phase   | 任务数 | 完成数 | 进行中 | 预计工时 |
-| ------- | ------ | ------ | ------ | -------- |
-| Phase 6 | 4      | 4      | 0      | 7 小时   |
+| Phase 7 | 4 | 4 | 0 | 3.5 小时 |
 
 ---
 
-_文档版本: v3.2.1_  
+_文档版本: v3.2.2_  
 _更新时间: 2026-04-18_  
-_状态: Phase 6 全部完成 ✅_
+_状态: Phase 7 全部完成 ✅_
+
+---
+
+## Phase 7: 代码质量修复（v3.2.2）
+
+> **目标**: 修复 Phase 6 code review 发现的问题  
+> **依据**: Phase 6 全量代码 review 报告  
+> **策略**: 按优先级修复，先 🔴 必须修复，再 🟡 建议修复
+
+---
+
+### BL-P-18 [P0] 修复 pong 缺少 timestamp + 心跳检测窗口过长
+
+**目标**: 修复 pong 消息未携带 timestamp 导致后端可能无法匹配 ping-pong 对，同时缩短心跳检测窗口
+
+**涉及范围**:
+
+1. `lib/websocket/reliable-client.js` 第 118 行：
+   - `this.send({ type: 'pong' })` → `this.send({ type: 'pong', timestamp: message.timestamp })`
+   - 匹配后端接入指南要求
+2. `lib/websocket/heartbeat.js` 第 57 行：
+   - `checkInterval = this.interval * (this.maxMissed + 1)` → `this.interval * this.maxMissed`
+   - 当前 30000 × 3 = 90s 太长，改为 30000 × 2 = 60s
+3. `lib/websocket/heartbeat.js`：
+   - 移除未使用的 `this.timeout` 字段（旧版主动 ping 遗留）
+   - `getStats()` 中移除 `timeout` 返回值
+
+**前置依赖**:
+
+- 无
+
+**完成标准**:
+
+1. pong 消息包含 `timestamp` 字段，值与收到的 ping 一致
+2. 心跳检测窗口 ≤ 60s（interval × maxMissed）
+3. `HeartbeatManager` 不再暴露未使用的 `timeout` 字段
+4. 现有 47 个 WebSocket 单元测试 + 7 个集成测试全部通过
+
+**验证方式**:
+
+1. 单元测试：`npx jest --testPathPattern="websocket" --no-coverage`
+2. 集成测试：`npx jest --testPathPattern="websocket.integration" --no-coverage`
+3. 语法检查：`node -c reliable-client.js && node -c heartbeat.js`
+
+**工时**: 0.5 小时
+
+**状态**: ✅ 已完成 (2026-04-18) — pong 携带 timestamp，检测窗口 60s，移除 timeout 字段
+
+**目标**: 修复 DiffSubscription 中的 2 个 bug（属性访问错误、双重 stringify），并评估是否应移除该死代码
+
+**涉及范围**:
+
+1. `lib/websocket/diff-subscription.js`：
+   - 第 13/30 行：`this.client.state` → `this.client.getState()`
+   - 第 13/30 行：`'CONNECTED'` → `'connected'`（状态值是小写字符串）
+   - 第 24/39 行：`this.client.send(JSON.stringify(...))` → `this.client.send(...)`（send 内部已 stringify）
+2. `lib/websocket/reliable-client.js` 第 44 行：
+   - 评估 `this.diffSubscription = new DiffSubscription(this)` 是否应保留
+   - 如果保留：确保 DiffSubscription 依赖修复
+   - 如果移除：移除 import 和构造，减少不必要的 `fast-json-patch` 依赖加载
+
+**前置依赖**:
+
+- 无
+
+**完成标准**:
+
+1. DiffSubscription 属性访问正确（使用 `getState()` + 小写状态值）
+2. 不再双重 stringify（send 内部处理序列化）
+3. 如果保留 DiffSubscription：现有 DiffSubscription 单元测试通过
+4. 如果移除 DiffSubscription：移除 import、构造、相关测试文件
+5. 全量单元测试通过
+
+**验证方式**:
+
+1. 单元测试：`npx jest --testPathPattern="websocket" --no-coverage`
+2. 如果移除：确认 `diff-subscription.js` 和 `tests/websocket/diff-subscription.test.js` 已删除
+
+**工时**: 1 小时
+
+**状态**: ✅ 已完成 (2026-04-18) — 移除 DiffSubscription 死代码及 import
+
+**目标**: 让 WebSocket 实例可被外部访问（关闭、状态查询），并在连接 URL 中显式指定 `mode=full`
+
+**涉及范围**:
+
+1. `plugin.js` 第 73 行：
+   - 将 `wsClient` 存储到模块级变量或挂载到返回对象上
+   - 提供 `getWebSocketClient()` 方法或暴露在返回值中
+2. `lib/websocket/reliable-client.js` 第 72-80 行 `buildUrl()`：
+   - 添加 `mode` 参数支持：`url.searchParams.set('mode', this.mode || 'full')`
+   - 构造函数接受 `options.mode`，默认 `'full'`
+
+**前置依赖**:
+
+- 无
+
+**完成标准**:
+
+1. `wsClient` 实例可通过返回对象或导出方法访问
+2. WebSocket 连接 URL 包含 `mode=full` 参数
+3. 插件启动时日志显示完整 URL（含 mode 参数）
+4. 全量测试通过
+
+**验证方式**:
+
+1. 单元测试通过
+2. 手动检查 plugin.js 导出的 WebSocket 实例
+3. 检查连接 URL 包含 `mode=full`
+
+**工时**: 1 小时
+
+**状态**: ✅ 已完成 (2026-04-18) — wsClient 存储到模块变量，buildUrl 添加 mode=full
+
+**目标**: 修复集成测试后端不可用时静默通过的问题，对齐 ack-manager API 与后端协议
+
+**涉及范围**:
+
+1. `tests/integration/websocket.integration.test.js`：
+   - 所有 `if (!backendUp) return;` → 改为动态 skip（使用 `it.skip()` 或 `describe.skip()`）
+   - 确保 Jest 报告正确的 skip 数量
+2. `lib/websocket/ack-manager.js`：
+   - `sendWithAck` 的 `_msgId` + `_requiresAck` 标记为内部协议（添加注释说明）
+   - 或更新为支持 `seq` 字段（匹配后端协议）
+   - 评估 `sendWithAck` 是否应该被废弃（当前未被生产代码使用）
+
+**前置依赖**:
+
+- 无
+
+**完成标准**:
+
+1. 后端不可用时测试显示为 `skipped` 而非 `passed`
+2. ack-manager API 文档或注释说明其与后端协议的关系
+3. 全量测试通过
+
+**验证方式**:
+
+1. 停止后端后运行测试，确认 skip 数量正确
+2. `npx jest --testPathPattern="websocket" --no-coverage`
+
+**工时**: 1 小时
+
+**状态**: ✅ 已完成 (2026-04-18) — 集成测试动态 skip，ack-manager 添加协议说明
+
+| 任务    | 优先级 | 工时 | 类型              |
+| ------- | ------ | ---- | ----------------- |
+| BL-P-18 | P0     | 0.5h | 🔴 Bug fix        |
+| BL-P-19 | P0     | 1h   | 🔴 Bug fix + 清理 |
+| BL-P-20 | P1     | 1h   | 🟡 改进           |
+| BL-P-21 | P2     | 1h   | 🟢 优化           |

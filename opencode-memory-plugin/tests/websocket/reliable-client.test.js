@@ -127,18 +127,15 @@ describe('HeartbeatManager', () => {
   it('should initialize with default options', () => {
     const hb = new HeartbeatManager();
     expect(hb.interval).toBe(30000);
-    expect(hb.timeout).toBe(5000);
     expect(hb.maxMissed).toBe(2);
   });
 
   it('should accept custom options', () => {
     const hb = new HeartbeatManager({
       interval: 10000,
-      timeout: 3000,
       maxMissed: 3,
     });
     expect(hb.interval).toBe(10000);
-    expect(hb.timeout).toBe(3000);
     expect(hb.maxMissed).toBe(3);
   });
 });

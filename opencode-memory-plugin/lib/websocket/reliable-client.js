@@ -7,7 +7,6 @@ import WebSocket from 'ws';
 import { StateManager, WebSocketState } from './state-manager.js';
 import { HeartbeatManager } from './heartbeat.js';
 import { AckManager } from './ack-manager.js';
-import { DiffSubscription } from './diff-subscription.js';
 
 export class ReliableWebSocketClient {
   constructor(url, options = {}) {
@@ -21,6 +20,7 @@ export class ReliableWebSocketClient {
       maxAttempts: options.reconnectMaxAttempts || 10,
       jitter: options.reconnectJitter !== false,
     };
+    this.mode = options.mode || 'full';
 
     this.ws = null;
     this.stateManager = new StateManager();
@@ -40,8 +40,6 @@ export class ReliableWebSocketClient {
     this.messageHandlers = new Map();
 
     this.sessionId = options.sessionId || this.generateSessionId();
-
-    this.diffSubscription = new DiffSubscription(this);
   }
 
   generateSessionId() {
@@ -73,6 +71,7 @@ export class ReliableWebSocketClient {
     const url = new URL(this.url);
     url.searchParams.set('tenant_id', this.tenantId);
     url.searchParams.set('session_id', this.sessionId);
+    url.searchParams.set('mode', this.mode || 'full');
     if (this.token) {
       url.searchParams.set('token', this.token);
     }
@@ -115,7 +114,7 @@ export class ReliableWebSocketClient {
 
     // M3: Server sends ping, client replies pong (passive heartbeat)
     if (type === 'ping') {
-      this.send({ type: 'pong' });
+      this.send({ type: 'pong', timestamp: message.timestamp });
       this.heartbeatManager.onServerPing();
       return;
     }

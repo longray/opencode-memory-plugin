@@ -26,12 +26,18 @@ describe('WebSocket Integration Tests', () => {
     }
   }, 5000);
 
+  const itIfBackend = (name, fn) => {
+    if (!backendUp) {
+      it.skip(`${name} (backend unavailable)`, fn);
+    } else {
+      it(name, fn);
+    }
+  };
+
   describe('Connection', () => {
-    it(
+    itIfBackend(
       'should connect and receive connected message',
       async () => {
-        if (!backendUp) return;
-
         const result = await new Promise((resolve, reject) => {
           const ws = new WebSocket(`${BACKEND_WS}?tenant_id=${TENANT_ID}`);
           const messages = [];
@@ -67,11 +73,9 @@ describe('WebSocket Integration Tests', () => {
       TEST_TIMEOUT
     );
 
-    it(
+    itIfBackend(
       'should receive session_id in connected message',
       async () => {
-        if (!backendUp) return;
-
         const sessionId = await new Promise((resolve, reject) => {
           const ws = new WebSocket(`${BACKEND_WS}?tenant_id=${TENANT_ID}`);
           const timer = setTimeout(() => {
@@ -105,11 +109,9 @@ describe('WebSocket Integration Tests', () => {
   });
 
   describe('Heartbeat', () => {
-    it(
+    itIfBackend(
       'should receive ping from server',
       async () => {
-        if (!backendUp) return;
-
         const hasPing = await new Promise((resolve, reject) => {
           const ws = new WebSocket(`${BACKEND_WS}?tenant_id=${TENANT_ID}`);
           const timer = setTimeout(() => {
@@ -137,11 +139,9 @@ describe('WebSocket Integration Tests', () => {
       TEST_TIMEOUT
     );
 
-    it(
+    itIfBackend(
       'should keep connection alive by replying pong',
       async () => {
-        if (!backendUp) return;
-
         const pingCount = await new Promise((resolve, reject) => {
           const ws = new WebSocket(`${BACKEND_WS}?tenant_id=${TENANT_ID}`);
           let pings = 0;
@@ -171,11 +171,9 @@ describe('WebSocket Integration Tests', () => {
   });
 
   describe('Protocol', () => {
-    it(
+    itIfBackend(
       'should handle error messages gracefully',
       async () => {
-        if (!backendUp) return;
-
         const messages = await new Promise((resolve, reject) => {
           const ws = new WebSocket(
             `${BACKEND_WS}?tenant_id=${TENANT_ID}&session_id=invalid-expired-session`
@@ -209,11 +207,9 @@ describe('WebSocket Integration Tests', () => {
   });
 
   describe('ReliableWebSocketClient', () => {
-    it(
+    itIfBackend(
       'should connect using our client library',
       async () => {
-        if (!backendUp) return;
-
         const { ReliableWebSocketClient } = await import('../../lib/websocket/reliable-client.js');
 
         const client = new ReliableWebSocketClient(BACKEND_WS, {
@@ -248,11 +244,9 @@ describe('WebSocket Integration Tests', () => {
       TEST_TIMEOUT
     );
 
-    it(
+    itIfBackend(
       'should track connection state correctly',
       async () => {
-        if (!backendUp) return;
-
         const { ReliableWebSocketClient } = await import('../../lib/websocket/reliable-client.js');
         const { WebSocketState } = await import('../../lib/websocket/state-manager.js');
 

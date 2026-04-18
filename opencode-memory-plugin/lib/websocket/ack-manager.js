@@ -8,6 +8,8 @@ export class AckManager {
     this.retryTimers = new Map();
   }
 
+  // NOTE: sendWithAck uses internal _msgId protocol for client-initiated messages.
+  // Server-initiated change messages use seq-based ACK (handled in reliable-client.js handleMessage).
   sendWithAck(ws, message, timeout = this.defaultTimeout, maxRetries = this.defaultMaxRetries) {
     return new Promise((resolve, reject) => {
       const msgId = randomUUID();
