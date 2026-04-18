@@ -1,5 +1,36 @@
 # Changelog
 
+## [3.2.1] - 2026-04-18
+
+### Phase 6 - WebSocket Real-time Sync Integration
+
+#### 🔌 WebSocket Protocol Fix (BL-P-14)
+
+- **M1**: Message type mapping — `type: "change"` with `action` field and `result` data
+- **M2**: ACK using `seq` (integer) instead of `_ackId` (UUID), auto-ack on receive
+- **M3**: Passive heartbeat — server sends ping, client replies pong (no client-initiated ping)
+
+#### 🔌 Plugin Integration (BL-P-15)
+
+- WebSocket auto-connects on plugin startup via `plugin.js`
+- Configurable via `memory-config.json` (`websocket.enabled`, `heartbeatInterval`, etc.)
+- Graceful degradation — plugin works normally if WebSocket unavailable
+
+#### 🧪 Integration Tests (BL-P-16)
+
+- 7 integration tests against live backend WebSocket endpoint
+- Connection, session_id, heartbeat, error handling, client library state tracking
+
+#### 📊 Test Results
+
+```
+Test Suites: 28 passed, 28 total
+Tests:       324 passed, 10 skipped, 334 total
+WebSocket Integration: 7 passed
+```
+
+---
+
 ## [3.2.0] - 2026-04-17
 
 ### v3.2 - Infrastructure Upgrade & Precompute API
@@ -8,7 +39,7 @@
 
 - **Dependency Upgrade (BL-P-1)**: pino structured logging, dotenv env config, ws@8.20.0, fast-json-patch
 - **Port Migration (BL-P-8)**: Backend port 17999 → 18008 across all modules and docs
-- **Config Management (BL-P-10)**: dotenv-based env config (API_PORT, LOG_LEVEL, WS_*)
+- **Config Management (BL-P-10)**: dotenv-based env config (API*PORT, LOG_LEVEL, WS*\*)
 - **Structured Logging (BL-P-9)**: pino logger with JSON/pretty modes
 
 #### 🔌 WebSocket (Library Modules - Not Yet Wired)

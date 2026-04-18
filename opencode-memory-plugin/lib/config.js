@@ -8,11 +8,7 @@ const __dirname = dirname(__filename);
 
 const rootDir = join(__dirname, '..');
 
-const envPaths = [
-  join(rootDir, '.env'),
-  join(rootDir, '.env.local'),
-  join(process.cwd(), '.env'),
-];
+const envPaths = [join(rootDir, '.env'), join(rootDir, '.env.local'), join(process.cwd(), '.env')];
 
 for (const envPath of envPaths) {
   if (fs.existsSync(envPath)) {
@@ -49,7 +45,7 @@ export const getApiUrl = () => config.api.url;
 
 export const getWebSocketUrl = () => {
   const { host, port } = config.api;
-  return `ws://${host}:${port}/ws`;
+  return `ws://${host}:${port}/ws/memories/live`;
 };
 
 export default config;

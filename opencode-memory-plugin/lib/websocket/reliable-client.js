@@ -9,7 +9,6 @@ import { HeartbeatManager } from './heartbeat.js';
 import { AckManager } from './ack-manager.js';
 import { DiffSubscription } from './diff-subscription.js';
 
-
 export class ReliableWebSocketClient {
   constructor(url, options = {}) {
     this.url = url;
@@ -82,13 +81,9 @@ export class ReliableWebSocketClient {
 
   setupEventHandlers() {
     this.ws.on('open', () => {
-      console.log('[ReliableWebSocket] Connected successfully');
-      this.stateManager.transition(WebSocketState.CONNECTED, 'websocket open');
+      console.log('[ReliableWebSocket] Transport open, waiting for connected message...');
+      this.stateManager.transition(WebSocketState.CONNECTING, 'websocket open');
       this.reconnectAttempts = 0;
-
-      this.startHeartbeat();
-      this.flushMessageQueue();
-      this.triggerHandler('connected', { tenantId: this.tenantId, sessionId: this.sessionId });
     });
 
     this.ws.on('message', data => {
@@ -116,53 +111,72 @@ export class ReliableWebSocketClient {
       return;
     }
 
-    if (message.type === 'pong') {
-      this.heartbeatManager.onPongReceived();
-      return;
-    }
-
-    if (message.type === 'ack' && message._ackId) {
-      this.ackManager.onAckReceived(message._ackId);
-      return;
-    }
-
-    this.triggerHandler('message', message);
-
     const { type, action } = message;
 
-    if (type === 'CREATE' || type === 'UPDATE' || type === 'DELETE') {
-      this.triggerHandler('memory_changed', {
-        action: type.toLowerCase(),
-        memoryId: message.data?.id,
-        data: message.data,
-      });
+    // M3: Server sends ping, client replies pong (passive heartbeat)
+    if (type === 'ping') {
+      this.send({ type: 'pong' });
+      this.heartbeatManager.onServerPing();
+      return;
     }
 
-    switch (action) {
-      case 'sync_required':
-        this.triggerHandler('sync_required', message.data);
-        break;
-      case 'conflict_detected':
-        this.triggerHandler('conflict_detected', message.data);
-        break;
+    // Server-initiated connected message (actual protocol: server sends session_id)
+    if (type === 'connected') {
+      if (message.session_id) {
+        this.sessionId = message.session_id;
+      }
+      console.log('[ReliableWebSocket] Connected, session:', this.sessionId);
+      this.stateManager.transition(WebSocketState.CONNECTED, 'server confirmed');
+      this.startHeartbeat();
+      this.flushMessageQueue();
+      this.triggerHandler('connected', {
+        tenantId: this.tenantId,
+        sessionId: this.sessionId,
+      });
+      return;
     }
+
+    // M2: ACK using seq (server confirms our ack, or we process server seq)
+    if (type === 'ack' && message.seq !== undefined) {
+      this.ackManager.onAckReceived(String(message.seq));
+      return;
+    }
+
+    // Server error message
+    if (type === 'error') {
+      console.error('[ReliableWebSocket] Server error:', message.message);
+      this.triggerHandler('error', { error: message.message });
+      return;
+    }
+
+    // M1: change message from server (action: CREATE/UPDATE/DELETE, data in result field)
+    if (type === 'change' && action) {
+      if (message.seq !== undefined) {
+        this.send({ type: 'ack', seq: message.seq });
+      }
+
+      this.triggerHandler('message', message);
+      this.triggerHandler('memory_changed', {
+        action: action.toLowerCase(),
+        memoryId: message.result?.id,
+        data: message.result,
+        seq: message.seq,
+      });
+      return;
+    }
+
+    // Fallback: pass through unhandled messages
+    this.triggerHandler('message', message);
   }
 
   startHeartbeat() {
-    this.heartbeatManager.start(
-      () => this.sendPing(),
-      () => this.handlePongTimeout()
-    );
+    this.heartbeatManager.start(null, () => this.handleHeartbeatTimeout());
   }
 
-  sendPing() {
-    this.send({ type: 'ping', timestamp: Date.now() });
-  }
-
-  handlePongTimeout() {
-    console.log('[ReliableWebSocket] Pong timeout, reconnecting...');
+  handleHeartbeatTimeout() {
+    console.log('[ReliableWebSocket] No server ping received, reconnecting...');
     this.ws?.terminate();
-    this.handleDisconnect(1001, 'pong timeout');
+    this.handleDisconnect(1001, 'server ping timeout');
   }
 
   handleDisconnect(code, reason) {

@@ -15,6 +15,8 @@ import {
 import { onFileSaved } from './lib/code-analysis-service.js';
 import { startFileWatcher } from './lib/file-watcher.js';
 import { getConfig } from './lib/storage.js';
+import { getWebSocketUrl } from './lib/config.js';
+import { ReliableWebSocketClient } from './lib/websocket/reliable-client.js';
 
 const memory_read = tool({
   description: 'Read from a memory file with level support',
@@ -59,6 +61,48 @@ export const MemoryPlugin = async ctx => {
     }
   } else {
     console.log('[MemoryPlugin] Code analysis auto-trigger disabled');
+  }
+
+  // WebSocket real-time sync
+  const wsUrl = getWebSocketUrl();
+  const apiKey = process.env.WRAPPER_MEILI_API_KEY || config.apiKey || null;
+  const wsEnabled = config.websocket?.enabled !== false;
+
+  if (wsEnabled && wsUrl) {
+    try {
+      const wsClient = new ReliableWebSocketClient(wsUrl, {
+        tenantId: config.backend?.tenant_id || 'default',
+        token: apiKey,
+        heartbeatInterval: config.websocket?.heartbeatInterval || 30000,
+        reconnectMaxAttempts: config.websocket?.reconnectMaxAttempts || 10,
+        reconnectBaseDelay: config.websocket?.reconnectBaseDelay || 1000,
+      });
+
+      wsClient.on('connected', data => {
+        console.log(`[MemoryPlugin] WebSocket connected, session: ${data.sessionId}`);
+      });
+
+      wsClient.on('memory_changed', data => {
+        console.log(
+          `[MemoryPlugin] Memory changed: ${data.action} (${data.memoryId || 'unknown'})`
+        );
+      });
+
+      wsClient.on('disconnected', data => {
+        console.log(`[MemoryPlugin] WebSocket disconnected: ${data.code}`);
+      });
+
+      wsClient.on('error', data => {
+        console.error(`[MemoryPlugin] WebSocket error: ${data.error}`);
+      });
+
+      wsClient.connect();
+      console.log(`[MemoryPlugin] WebSocket connecting to ${wsUrl}...`);
+    } catch (err) {
+      console.error('[MemoryPlugin] WebSocket init failed:', err.message);
+    }
+  } else {
+    console.log('[MemoryPlugin] WebSocket disabled');
   }
 
   return {

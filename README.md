@@ -41,7 +41,7 @@
 - ✅ **OpenClaw-Style Memory** - Complete 9 core memory files (SOUL, AGENTS, USER, IDENTITY, TOOLS, MEMORY, HEARTBEAT, BOOT, BOOTSTRAP)
 - ✅ **Phase C: Trie Index** - 10x faster local search with prefix tree indexing
 - ✅ **Phase C: Autocomplete** - Smart search suggestions (<50ms)
-- 📦 **Phase C: Real-time Sync** - WebSocket library modules (heartbeat, ACK, DIFF) — not yet wired into plugin startup
+- ✅ **Phase C: Real-time Sync** - WebSocket with passive heartbeat, auto-reconnect, and ACK
 - ✅ **v3.0: Code Analysis** - Automatic AST analysis on file save (JavaScript, TypeScript, Python, Go, Rust, Java)
 - ✅ **v3.0: File Watcher** - 300ms debounce, batch upload, privacy filter
 - ✅ **v3.0: Project Health** - Code quality grading (A/B/C/D) and risk detection
@@ -399,7 +399,7 @@ opencode-memory-plugin/
 │   ├── config.js           # Environment config (dotenv)
 │   ├── logger.js           # Structured logging (pino)
 │   ├── ws-client.js        # WebSocket client (legacy)
-│   ├── websocket/          # WebSocket modules (library, not yet wired)
+│   ├── websocket/          # WebSocket real-time sync
 │   │   ├── reliable-client.js  # Reliable WebSocket with reconnect
 │   │   ├── state-manager.js    # Connection state machine
 │   │   ├── heartbeat.js        # Keepalive manager

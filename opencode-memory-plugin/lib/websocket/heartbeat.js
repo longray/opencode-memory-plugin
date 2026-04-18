@@ -1,6 +1,7 @@
 /**
  * WebSocket Heartbeat Manager
- * Manages ping/pong heartbeat mechanism
+ * Passive mode: monitors server pings instead of sending client pings.
+ * If no server ping received within timeout × maxMissed, triggers reconnect.
  */
 
 export class HeartbeatManager {
@@ -9,96 +10,67 @@ export class HeartbeatManager {
     this.timeout = options.timeout || 5000;
     this.maxMissed = options.maxMissed || 2;
 
-    this.pingTimer = null;
-    this.pongTimer = null;
     this.missedCount = 0;
     this.isRunning = false;
-    this.lastPongTime = null;
+    this.lastPingTime = null;
+    this.monitorTimer = null;
 
-    this.onPing = null;
     this.onPongTimeout = null;
   }
 
-  start(onPing, onPongTimeout) {
+  start(_onPing, onPongTimeout) {
     if (this.isRunning) {
       return;
     }
 
-    this.onPing = onPing;
     this.onPongTimeout = onPongTimeout;
     this.isRunning = true;
     this.missedCount = 0;
 
-    this.schedulePing();
+    this.scheduleMonitor();
   }
 
   stop() {
     this.isRunning = false;
-    this.clearTimers();
-    this.onPing = null;
+    if (this.monitorTimer) {
+      clearTimeout(this.monitorTimer);
+      this.monitorTimer = null;
+    }
     this.onPongTimeout = null;
   }
 
-  schedulePing() {
-    if (!this.isRunning) {
-      return;
-    }
-
-    this.pingTimer = setTimeout(() => {
-      this.sendPing();
-    }, this.interval);
-  }
-
-  sendPing() {
-    if (!this.isRunning) {
-      return;
-    }
-
-    this.onPing?.();
-
-    this.pongTimer = setTimeout(() => {
-      this.handlePongTimeout();
-    }, this.timeout);
-  }
-
-  handlePongTimeout() {
-    this.missedCount++;
-
-    if (this.missedCount >= this.maxMissed) {
-      this.onPongTimeout?.();
-      this.stop();
-    } else {
-      this.schedulePing();
-    }
-  }
-
-  onPongReceived() {
-    this.clearPongTimer();
+  onServerPing() {
     this.missedCount = 0;
-    this.lastPongTime = Date.now();
-    this.schedulePing();
+    this.lastPingTime = Date.now();
+    this.scheduleMonitor();
   }
 
-  clearTimers() {
-    if (this.pingTimer) {
-      clearTimeout(this.pingTimer);
-      this.pingTimer = null;
+  scheduleMonitor() {
+    if (!this.isRunning) {
+      return;
     }
-    this.clearPongTimer();
-  }
 
-  clearPongTimer() {
-    if (this.pongTimer) {
-      clearTimeout(this.pongTimer);
-      this.pongTimer = null;
+    if (this.monitorTimer) {
+      clearTimeout(this.monitorTimer);
     }
+
+    const checkInterval = this.interval * (this.maxMissed + 1);
+    this.monitorTimer = setTimeout(() => {
+      this.missedCount++;
+      if (this.missedCount >= this.maxMissed) {
+        this.onPongTimeout?.();
+        this.stop();
+      } else {
+        this.scheduleMonitor();
+      }
+    }, checkInterval);
   }
 
   getStats() {
     return {
       isRunning: this.isRunning,
       missedCount: this.missedCount,
-      lastPongTime: this.lastPongTime,
+      lastPingTime: this.lastPingTime,
       interval: this.interval,
       timeout: this.timeout,
     };
