@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.2.2] - 2026-04-18
+
+### Phase 7 - Code Quality Fixes (Code Review)
+
+- **BL-P-18**: Fix pong missing timestamp (heartbeat may fail), shorten detection window to 60s, remove unused `timeout` field
+- **BL-P-19**: Remove dead DiffSubscription code (module had bugs, backend doesn't support subscribe)
+- **BL-P-20**: Store wsClient instance for external access, add `mode=full` to WebSocket URL
+- **BL-P-21**: Integration tests correctly show `skipped` when backend unavailable, ack-manager protocol docs
+
+### Phase 8 - Cleanup
+
+- Remove orphaned `diff-subscription.test.js` (20 tests for deleted module)
+- Sync backlog status for BL-P-2~13 (marked done but showed 🆕)
+
+---
+
 ## [3.2.1] - 2026-04-18
 
 ### Phase 6 - WebSocket Real-time Sync Integration

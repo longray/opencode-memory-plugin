@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/@csuwl/opencode-memory-plugin.svg)](https://www.npmjs.com/package/@csuwl/opencode-memory-plugin)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Version**: v3.2.0 - Precompute API, structured logging, and improved code analysis
+**Version**: v3.2.2 - WebSocket reliable connection, protocol fixes, code quality improvements
 
 ## Installation
 
