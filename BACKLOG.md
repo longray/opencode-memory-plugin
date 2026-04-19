@@ -749,3 +749,212 @@ _状态: Phase 7 全部完成 ✅_
 **工时**: 0.5 小时
 
 **状态**: 🔄 进行中（待聚焦测试验证）
+
+---
+
+## 场景十二：v3.2 架构修复 - Atom/Entity/Reference 实现
+
+> **背景**: v3.2 架构设计已完成，但实际实现存在差距：Atom/Entity/Reference API 缺失、Schema 不一致、Tree-sitter Query API 未使用
+>
+> **目标**: 实现完整的 Atom/Entity/Reference 架构，提升代码分析性能 3.32x
+>
+> **策略**: 开发期间新旧系统并行运行，不强制迁移
+>
+> **文档**: 详见 [`docs/v3.2/IMPLEMENTATION-PLAN-v3.2.md`](./docs/v3.2/IMPLEMENTATION-PLAN-v3.2.md)
+
+---
+
+### BL-CA-39 [P0] 插件端 Tree-sitter Query 实现
+
+**目标**: 使用 Tree-sitter Query API 替代树遍历，提升代码分析性能 3.32x
+
+**涉及范围**:
+
+1. **Query 文件创建**:
+   - `lib/queries/javascript.scm` - JS/TS 查询模式
+   - `lib/queries/python.scm` - Python 查询模式
+   - `lib/queries/go.scm` - Go 查询模式
+   - `lib/queries/rust.scm` - Rust 查询模式
+   - `lib/queries/java.scm` - Java 查询模式
+
+2. **Query 内容定义**:
+   - 函数定义匹配：`(function_declaration name: (identifier) @func.name)`
+   - 类定义匹配：`(class_definition name: (identifier) @class.name)`
+   - 导入匹配：`(import_statement source: (string) @import.source)`
+   - 调用匹配：`(call_expression function: (identifier) @call.name)`
+
+3. **tree-sitter-parser.js 更新**:
+   - 加载 Query 文件到内存
+   - 使用 `Parser.Query` 执行模式匹配
+   - 提取 captures 生成符号列表
+   - 保留树遍历作为 fallback
+
+**前置依赖**:
+
+- Tree-sitter WASM 已加载
+- 各语言 grammar 已加载（tree-sitter-javascript 等）
+- Query 语法已验证正确
+
+**完成标准**:
+
+1. 5 种语言的 Query 文件（.scm）完成
+2. `analyzeWithQuery()` 函数实现完成
+3. 性能提升 > 2x（对比现有树遍历）
+4. fallback 机制工作正常（Query 失败自动降级）
+5. 所有现有测试通过（结果与树遍历一致）
+
+**验证方式**:
+
+1. **性能测试**: 对比大文件分析时间
+
+   ```javascript
+   console.time("query");
+   await analyzeWithQuery(source, "javascript");
+   console.timeEnd("query"); // 应 < 树遍历时间/2
+   ```
+
+2. **功能测试**: 提取的符号与树遍历结果一致
+3. **Fallback 测试**: Query 失败时自动降级到树遍历
+4. **多语言测试**: JS/Python/Go 等语言都能正确提取符号
+
+**工时**: 4 天
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-40 [P0] 插件端 WrapperClient 扩展
+
+**目标**: 扩展 WrapperClient 支持 Atom/Entity/Reference API，同时保留旧 API 兼容
+
+**涉及范围**:
+
+1. **Atom API 方法**:
+   - `createAtom(atomData)` - POST /api/v1/atoms
+   - `getAtom(atomId, tenant_id)` - GET /api/v1/atoms/{id}
+   - `listAtoms({ type, project, limit })` - GET /api/v1/atoms
+   - `updateAtom(atomId, updates)` - PUT /api/v1/atoms/{id}
+   - `deleteAtom(atomId, tenant_id)` - DELETE /api/v1/atoms/{id}
+
+2. **Entity API 方法**:
+   - `createEntity(entityData)` - POST /api/v1/entities
+   - `getEntity(entityId, level, tenant_id)` - GET /api/v1/entities/{id}?level=
+   - `listEntities({ type, project, status, limit })` - GET /api/v1/entities
+
+3. **Reference API 方法**:
+   - `createReference(from_id, to_id, type, weight, metadata)` - POST /api/v1/references
+   - `queryReferences({ from_id, to_id, type, limit })` - GET /api/v1/references
+   - `deleteReference(referenceId, tenant_id)` - DELETE /api/v1/references/{id}
+
+4. **保留旧 API（兼容）**:
+   - `uploadMemory(memory)` - 保留兼容
+   - `createRelation(...)` - 保留兼容
+
+**前置依赖**:
+
+- 后端 Atom/Entity/Reference API 已完成（BL-CA-36~38）
+- HTTP client 已配置
+- 后端服务运行在 localhost:18008
+
+**完成标准**:
+
+1. 所有新 API 方法实现完成（15+ 个方法）
+2. 旧 API 仍然可用（向后兼容）
+3. 错误处理完善（401, 403, 404, 500）
+4. JSDoc 注释完整
+5. 单元测试覆盖所有新方法
+
+**验证方式**:
+
+1. **单元测试**: Jest 测试每个方法
+
+   ```javascript
+   test("createAtom", async () => {
+     const atom = await client.createAtom({ type: "function", name: "test" });
+     expect(atom.id).toBeDefined();
+   });
+   ```
+
+2. **集成测试**: 实际调用后端 API
+3. **兼容性测试**: 旧代码使用 uploadMemory 仍然工作
+4. **错误处理测试**: 模拟 404/500 响应正确处理
+
+**工时**: 2 天
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-41 [P0] 插件端 Code Analysis Service 重构
+
+**目标**: 重构代码分析服务，使用新 API 创建 Atom + Entity + Reference
+
+**涉及范围**:
+
+1. **onFileSaved 重构**:
+   - 调用 `analyzeWithQuery()` 分析代码
+   - 为每个函数创建 Atom（type: 'function'）
+   - 为每个类创建 Atom（type: 'class'）
+   - 为每个导入创建 Atom（type: 'import'）
+   - 创建 Entity（type: 'code'）关联所有 Atoms
+   - 创建 Reference（type: 'calls'）记录调用关系
+
+2. **数据流**:
+
+   ```
+   文件保存 → analyzeWithQuery() → 提取符号
+     → createAtom() × N → atom IDs
+     → createEntity({ atoms: [...] })
+     → createReference() × M（调用关系）
+   ```
+
+3. **错误处理**:
+   - Atom 创建失败时回滚
+   - Entity 创建失败时清理已创建 Atoms
+   - 记录分析日志到 memory.log
+
+**前置依赖**:
+
+- BL-CA-39 完成（Tree-sitter Query）
+- BL-CA-40 完成（WrapperClient 扩展）
+- 后端 API 可访问
+
+**完成标准**:
+
+1. 代码保存自动触发完整分析流程
+2. 正确创建 Atom + Entity + Reference
+3. 调用关系正确建立（Reference）
+4. 性能监控日志记录
+5. 失败时正确回滚（无孤立数据）
+
+**验证方式**:
+
+1. **端到端测试**: 保存文件后检查数据库
+
+   ```javascript
+   await onFileSaved("test.js", "/project");
+   const atoms = await listAtoms({ project: "test" });
+   expect(atoms.length).toBeGreaterThan(0);
+   ```
+
+2. **调用关系测试**: 验证 Reference 正确创建
+3. **回滚测试**: 模拟失败时清理已创建数据
+4. **性能测试**: 大文件分析时间 < 1秒
+
+**工时**: 3 天
+
+**状态**: 🆕 新建
+
+---
+
+## 场景十二汇总
+
+| 编号     | 任务                   | 优先级 | 端   | 工时 | 状态 |
+| -------- | ---------------------- | ------ | ---- | ---- | ---- |
+| BL-CA-39 | Tree-sitter Query 实现 | P0     | 插件 | 4天  | 🆕   |
+| BL-CA-40 | WrapperClient 扩展     | P0     | 插件 | 2天  | 🆕   |
+| BL-CA-41 | Code Analysis 重构     | P0     | 插件 | 3天  | 🆕   |
+
+**小计**: 3 个任务，9 天
+
+---
