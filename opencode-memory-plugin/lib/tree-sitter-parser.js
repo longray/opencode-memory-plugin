@@ -1401,3 +1401,191 @@ function findFunctionNode(node, funcName, startLine) {
 
   return null;
 }
+
+// ===== Tree-sitter Query API Implementation (BL-CA-39) =====
+
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Query 缓存
+const queryCache = new Map();
+
+/**
+ * 加载语言的 Query 文件
+ * @param {string} language - 语言名称
+ * @returns {Parser.Query|null} Query 对象或 null
+ */
+function loadQuery(language) {
+  if (queryCache.has(language)) {
+    return queryCache.get(language);
+  }
+
+  try {
+    const queryPath = join(__dirname, 'queries', `${language}.scm`);
+    const querySource = readFileSync(queryPath, 'utf-8');
+    return querySource;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 使用 Tree-sitter Query API 分析代码
+ * @param {string} filePath - 文件路径
+ * @param {string} sourceCode - 源代码
+ * @param {string} language - 语言名称
+ * @returns {Object} 分析结果
+ */
+export async function analyzeWithQuery(filePath, sourceCode, language) {
+  const startTime = performance.now();
+
+  try {
+    const lang = await loadLanguage(language);
+    const parser = new Parser();
+    parser.setLanguage(lang);
+
+    const tree = parser.parse(sourceCode);
+    const rootNode = tree.rootNode;
+
+    // 加载 Query
+    const querySource = loadQuery(language);
+    if (!querySource) {
+      // Fallback 到树遍历
+      return await analyzeWithTreeSitter(filePath, sourceCode, language);
+    }
+
+    const query = lang.query(querySource);
+    const matches = query.matches(rootNode);
+
+    const functions = [];
+    const classes = [];
+    const interfaces = [];
+    const imports = [];
+    const exports = [];
+    const calls = [];
+
+    // 处理 Query 结果
+    for (const match of matches) {
+      for (const capture of match.captures) {
+        const node = capture.node;
+        const captureName = capture.name;
+
+        switch (captureName) {
+          case 'function.name':
+          case 'method.name': {
+            const funcDef = match.captures.find(
+              c => c.name === 'function.def' || c.name === 'method.def'
+            );
+            if (funcDef) {
+              const funcNode = funcDef.node;
+              const isAsync = match.captures.some(c => c.name === 'function.async');
+
+              functions.push({
+                name: node.text,
+                line: funcNode.startPosition.row + 1,
+                column: funcNode.startPosition.column,
+                type: captureName === 'method.name' ? 'method' : 'function',
+                is_async: isAsync,
+                is_exported: true,
+              });
+            }
+            break;
+          }
+
+          case 'class.name': {
+            const classDef = match.captures.find(c => c.name === 'class.def');
+            if (classDef) {
+              classes.push({
+                name: node.text,
+                line: classDef.node.startPosition.row + 1,
+                methods: [],
+                properties: [],
+              });
+            }
+            break;
+          }
+
+          case 'interface.name': {
+            const interfaceDef = match.captures.find(c => c.name === 'interface.def');
+            if (interfaceDef) {
+              interfaces.push({
+                name: node.text,
+                line: interfaceDef.node.startPosition.row + 1,
+                methods: [],
+              });
+            }
+            break;
+          }
+
+          case 'import.source':
+          case 'import.module': {
+            const importStmt = match.captures.find(
+              c => c.name === 'import.stmt' || c.name === 'import.from' || c.name === 'import.spec'
+            );
+            if (importStmt) {
+              imports.push({
+                source: node.text.replace(/["']/g, ''),
+                line: importStmt.node.startPosition.row + 1,
+              });
+            }
+            break;
+          }
+
+          case 'export.name': {
+            exports.push({
+              name: node.text,
+              line: node.startPosition.row + 1,
+              type: 'function',
+            });
+            break;
+          }
+
+          case 'call.name':
+          case 'call.method': {
+            const callExpr = match.captures.find(
+              c => c.name === 'call.direct' || c.name === 'call.method'
+            );
+            if (callExpr) {
+              calls.push({
+                target: node.text,
+                file_path: filePath,
+                line: callExpr.node.startPosition.row + 1,
+                column: callExpr.node.startPosition.column,
+              });
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    const complexityMetrics = calculateBasicComplexity(functions, classes, sourceCode, rootNode);
+    const qualityScore = calculateFileQualityScore(complexityMetrics, functions, classes);
+    const classifiedDeps = classifyDependencies(imports, language);
+    const duration = performance.now() - startTime;
+
+    return {
+      language,
+      analyzer: 'tree-sitter-query',
+      analyzed_at: new Date().toISOString(),
+      analyzer_version: '0.26.7',
+      functions,
+      classes,
+      interfaces,
+      imports,
+      exports,
+      calls,
+      complexity_metrics: complexityMetrics,
+      quality_score: qualityScore,
+      dependencies: classifiedDeps,
+      analysis_duration_ms: duration,
+    };
+  } catch (_error) {
+    // Fallback 到树遍历
+    return await analyzeWithTreeSitter(filePath, sourceCode, language);
+  }
+}

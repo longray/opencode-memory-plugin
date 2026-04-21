@@ -635,6 +635,292 @@ export class WrapperClient {
       this.maxRetries
     );
   }
+
+  // ===== Atom/Entity/Reference API (BL-CA-40) =====
+
+  /**
+   * 创建 Atom
+   * @param {Object} atomData - Atom 数据
+   * @param {string} atomData.type - Atom 类型 (function, class, interface, import, goal, scope, task, note)
+   * @param {string} atomData.content - 内容
+   * @param {string} [atomData.name] - 名称
+   * @param {string} [atomData.tenant_id] - 租户 ID
+   * @returns {Promise<{id: string, type: string, content: string}>}
+   */
+  async createAtom(atomData) {
+    logInfo('ATOM', 'createAtom called', { type: atomData.type, name: atomData.name });
+
+    const requestBody = {
+      type: atomData.type,
+      content: atomData.content,
+      tenant_id: atomData.tenant_id || this.tenantId,
+    };
+
+    // 可选字段
+    if (atomData.name) requestBody.name = atomData.name;
+    if (atomData.signature) requestBody.signature = atomData.signature;
+    if (atomData.params) requestBody.params = atomData.params;
+    if (atomData.return_type) requestBody.return_type = atomData.return_type;
+    if (atomData.is_exported !== undefined) requestBody.is_exported = atomData.is_exported;
+    if (atomData.is_async !== undefined) requestBody.is_async = atomData.is_async;
+    if (atomData.complexity !== undefined) requestBody.complexity = atomData.complexity;
+    if (atomData.max_nesting_depth !== undefined)
+      requestBody.max_nesting_depth = atomData.max_nesting_depth;
+    if (atomData.docstring) requestBody.docstring = atomData.docstring;
+    if (atomData.start_line !== undefined) requestBody.start_line = atomData.start_line;
+    if (atomData.end_line !== undefined) requestBody.end_line = atomData.end_line;
+    if (atomData.status) requestBody.status = atomData.status;
+    if (atomData.metadata) requestBody.metadata = atomData.metadata;
+    if (atomData.project) requestBody.project = atomData.project;
+
+    const result = await withRetry(
+      () => this.http.post('/api/v1/atoms', requestBody),
+      this.maxRetries
+    );
+
+    logInfo('ATOM', 'createAtom success', { id: result.id });
+    return result;
+  }
+
+  /**
+   * 获取 Atom
+   * @param {string} atomId - Atom ID
+   * @param {string} [tenant_id] - 租户 ID
+   * @returns {Promise<Object>}
+   */
+  async getAtom(atomId, tenant_id) {
+    const params = new URLSearchParams();
+    params.append('tenant_id', tenant_id || this.tenantId);
+
+    return await withRetry(
+      () => this.http.get(`/api/v1/atoms/${atomId}?${params.toString()}`),
+      this.maxRetries
+    );
+  }
+
+  /**
+   * 列出 Atoms
+   * @param {Object} filters - 过滤条件
+   * @param {string} [filters.type] - Atom 类型
+   * @param {string} [filters.project] - 项目 ID
+   * @param {number} [filters.limit] - 数量限制
+   * @param {string} [filters.tenant_id] - 租户 ID
+   * @returns {Promise<{atoms: Array, total: number}>}
+   */
+  async listAtoms({ type, project, limit, tenant_id } = {}) {
+    const params = new URLSearchParams();
+    params.append('tenant_id', tenant_id || this.tenantId);
+    if (type) params.append('type', type);
+    if (project) params.append('project', project);
+    if (limit) params.append('limit', limit.toString());
+
+    return await withRetry(
+      () => this.http.get(`/api/v1/atoms?${params.toString()}`),
+      this.maxRetries
+    );
+  }
+
+  /**
+   * 更新 Atom
+   * @param {string} atomId - Atom ID
+   * @param {Object} updates - 更新字段
+   * @param {string} [updates.tenant_id] - 租户 ID
+   * @returns {Promise<Object>}
+   */
+  async updateAtom(atomId, updates) {
+    const requestBody = { ...updates };
+    if (!requestBody.tenant_id) {
+      requestBody.tenant_id = this.tenantId;
+    }
+
+    return await withRetry(
+      () => this.http.post(`/api/v1/atoms/${atomId}`, requestBody),
+      this.maxRetries
+    );
+  }
+
+  /**
+   * 删除 Atom
+   * @param {string} atomId - Atom ID
+   * @param {string} [tenant_id] - 租户 ID
+   * @returns {Promise<{success: boolean}>}
+   */
+  async deleteAtom(atomId, tenant_id) {
+    const params = new URLSearchParams();
+    params.append('tenant_id', tenant_id || this.tenantId);
+
+    return await withRetry(
+      () => this.http.delete(`/api/v1/atoms/${atomId}?${params.toString()}`),
+      this.maxRetries
+    );
+  }
+
+  /**
+   * 创建 Entity
+   * @param {Object} entityData - Entity 数据
+   * @param {string} entityData.type - Entity 类型 (memory, backlog, wiki, code)
+   * @param {string} entityData.abstract - 摘要
+   * @param {string[]} [entityData.atoms] - 关联的 Atom IDs
+   * @param {string} [entityData.tenant_id] - 租户 ID
+   * @returns {Promise<{id: string, type: string, abstract: string}>}
+   */
+  async createEntity(entityData) {
+    logInfo('ENTITY', 'createEntity called', {
+      type: entityData.type,
+      abstract: entityData.abstract?.substring(0, 50),
+    });
+
+    const requestBody = {
+      type: entityData.type,
+      abstract: entityData.abstract,
+      tenant_id: entityData.tenant_id || this.tenantId,
+    };
+
+    if (entityData.overview) requestBody.overview = entityData.overview;
+    if (entityData.atoms) requestBody.atoms = entityData.atoms;
+    if (entityData.tags) requestBody.tags = entityData.tags;
+    if (entityData.project) requestBody.project = entityData.project;
+    if (entityData.created_by) requestBody.created_by = entityData.created_by;
+
+    // 类型特定字段
+    if (entityData.title) requestBody.title = entityData.title;
+    if (entityData.aliases) requestBody.aliases = entityData.aliases;
+    if (entityData.priority) requestBody.priority = entityData.priority;
+    if (entityData.status) requestBody.status = entityData.status;
+    if (entityData.scene) requestBody.scene = entityData.scene;
+    if (entityData.estimated_hours !== undefined)
+      requestBody.estimated_hours = entityData.estimated_hours;
+    if (entityData.actual_hours !== undefined) requestBody.actual_hours = entityData.actual_hours;
+    if (entityData.file_path) requestBody.file_path = entityData.file_path;
+    if (entityData.language) requestBody.language = entityData.language;
+    if (entityData.quality_score !== undefined)
+      requestBody.quality_score = entityData.quality_score;
+    if (entityData.complexity_metrics)
+      requestBody.complexity_metrics = entityData.complexity_metrics;
+
+    const result = await withRetry(
+      () => this.http.post('/api/v1/entities', requestBody),
+      this.maxRetries
+    );
+
+    logInfo('ENTITY', 'createEntity success', { id: result.id });
+    return result;
+  }
+
+  /**
+   * 获取 Entity
+   * @param {string} entityId - Entity ID
+   * @param {number} [level=2] - 返回层级 (0=abstract, 1=overview, 2=full)
+   * @param {string} [tenant_id] - 租户 ID
+   * @returns {Promise<Object>}
+   */
+  async getEntity(entityId, level = 2, tenant_id) {
+    const params = new URLSearchParams();
+    params.append('tenant_id', tenant_id || this.tenantId);
+    params.append('level', level.toString());
+
+    return await withRetry(
+      () => this.http.get(`/api/v1/entities/${entityId}?${params.toString()}`),
+      this.maxRetries
+    );
+  }
+
+  /**
+   * 列出 Entities
+   * @param {Object} filters - 过滤条件
+   * @param {string} [filters.type] - Entity 类型
+   * @param {string} [filters.project] - 项目 ID
+   * @param {string} [filters.status] - 状态
+   * @param {number} [filters.limit] - 数量限制
+   * @param {string} [filters.tenant_id] - 租户 ID
+   * @returns {Promise<{entities: Array, total: number}>}
+   */
+  async listEntities({ type, project, status, limit, tenant_id } = {}) {
+    const params = new URLSearchParams();
+    params.append('tenant_id', tenant_id || this.tenantId);
+    if (type) params.append('type', type);
+    if (project) params.append('project', project);
+    if (status) params.append('status', status);
+    if (limit) params.append('limit', limit.toString());
+
+    return await withRetry(
+      () => this.http.get(`/api/v1/entities?${params.toString()}`),
+      this.maxRetries
+    );
+  }
+
+  /**
+   * 创建 Reference（关系）
+   * @param {Object} params - 关系参数
+   * @param {string} params.from_id - 源 ID
+   * @param {string} params.to_id - 目标 ID
+   * @param {string} params.type - 关系类型 (calls, imports, extends, implements, related)
+   * @param {number} [params.weight=0.5] - 权重
+   * @param {Object} [params.metadata] - 元数据
+   * @param {string} [params.tenant_id] - 租户 ID
+   * @returns {Promise<{id: string, from_id: string, to_id: string, type: string}>}
+   */
+  async createReference({ from_id, to_id, type, weight = 0.5, metadata, tenant_id }) {
+    logInfo('REFERENCE', 'createReference called', { from_id, to_id, type });
+
+    const requestBody = {
+      from_id,
+      to_id,
+      type,
+      weight,
+      tenant_id: tenant_id || this.tenantId,
+    };
+
+    if (metadata) requestBody.metadata = metadata;
+
+    const result = await withRetry(
+      () => this.http.post('/api/v1/references', requestBody),
+      this.maxRetries
+    );
+
+    logInfo('REFERENCE', 'createReference success', { id: result.id });
+    return result;
+  }
+
+  /**
+   * 查询 References
+   * @param {Object} filters - 过滤条件
+   * @param {string} [filters.from_id] - 源 ID
+   * @param {string} [filters.to_id] - 目标 ID
+   * @param {string} [filters.type] - 关系类型
+   * @param {number} [filters.limit] - 数量限制
+   * @param {string} [filters.tenant_id] - 租户 ID
+   * @returns {Promise<{references: Array, total: number}>}
+   */
+  async queryReferences({ from_id, to_id, type, limit, tenant_id } = {}) {
+    const params = new URLSearchParams();
+    params.append('tenant_id', tenant_id || this.tenantId);
+    if (from_id) params.append('from_id', from_id);
+    if (to_id) params.append('to_id', to_id);
+    if (type) params.append('type', type);
+    if (limit) params.append('limit', limit.toString());
+
+    return await withRetry(
+      () => this.http.get(`/api/v1/references?${params.toString()}`),
+      this.maxRetries
+    );
+  }
+
+  /**
+   * 删除 Reference
+   * @param {string} referenceId - Reference ID
+   * @param {string} [tenant_id] - 租户 ID
+   * @returns {Promise<{success: boolean}>}
+   */
+  async deleteReference(referenceId, tenant_id) {
+    const params = new URLSearchParams();
+    params.append('tenant_id', tenant_id || this.tenantId);
+
+    return await withRetry(
+      () => this.http.delete(`/api/v1/references/${referenceId}?${params.toString()}`),
+      this.maxRetries
+    );
+  }
 }
 
 let wrapperClientInstance = null;

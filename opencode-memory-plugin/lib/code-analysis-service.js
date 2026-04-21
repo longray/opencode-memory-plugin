@@ -9,6 +9,7 @@ import { MemoryIdCache } from './memory-id-cache.js';
 import { readFileSync } from 'fs';
 import { extname, relative, basename } from 'path';
 import { createHash } from 'crypto';
+import { analyzeWithQuery } from './tree-sitter-parser.js';
 
 const userConfig = getConfig();
 const CODE_ANALYSIS_CONFIG = userConfig.code_analysis || {};
@@ -33,6 +34,9 @@ const BATCH_MAX_SIZE = CODE_ANALYSIS_CONFIG.batch_max_size || 10;
 const MAX_CONCURRENT = CODE_ANALYSIS_CONFIG.max_concurrent || 2;
 const QUEUE_TIMEOUT_MS = CODE_ANALYSIS_CONFIG.queue_timeout_ms || 5000;
 const MAX_QUEUE_SIZE = CODE_ANALYSIS_CONFIG.max_queue_size || 10;
+
+// BL-CA-41: Enable new Atom/Entity/Reference API
+const _USE_ATOM_ENTITY_API = CODE_ANALYSIS_CONFIG.use_atom_entity_api !== false;
 
 export class AnalysisQueue {
   constructor() {
@@ -346,6 +350,217 @@ export class AnalysisQueue {
         });
       }
     }
+  }
+
+  // ===== BL-CA-41: Atom/Entity/Reference API Implementation =====
+
+  /**
+   * 使用新的 Atom/Entity/Reference API 分析文件
+   * @param {string} filePath - 文件路径
+   * @param {string} content - 文件内容
+   * @param {string} projectRoot - 项目根目录
+   */
+  async analyzeWithAtomEntity(filePath, content, projectRoot) {
+    const startTime = performance.now();
+    const relativePath = relative(projectRoot, filePath);
+    const projectId = resolveProjectId({ projectRoot });
+    const language = this.detectLanguage(filePath);
+
+    console.log(`[CodeAnalysis] Analyzing with Atom/Entity API: ${relativePath}`);
+
+    try {
+      // Step 1: 使用 Query API 分析代码
+      const analysisResult = await analyzeWithQuery(filePath, content, language);
+
+      // Step 2: 创建 Atoms（函数、类、导入）
+      const createdAtoms = [];
+      const atomIds = [];
+
+      // 创建函数 Atoms
+      for (const func of analysisResult.functions || []) {
+        try {
+          const atom = await this.wrapperClient.createAtom({
+            type: 'function',
+            name: func.name,
+            content: `${func.name}(${func.params?.join(', ') || ''})`,
+            signature: func.signature,
+            params: func.params,
+            return_type: func.return_type,
+            is_exported: func.is_exported,
+            is_async: func.is_async,
+            complexity: func.complexity,
+            max_nesting_depth: func.max_nesting_depth,
+            docstring: func.docstring,
+            start_line: func.line,
+            end_line: func.end_line,
+            project: projectId,
+            tenant_id: this.wrapperClient.tenantId,
+          });
+          createdAtoms.push(atom);
+          atomIds.push(atom.id);
+          console.log(`[CodeAnalysis] Created atom: ${atom.id} (${func.name})`);
+        } catch (error) {
+          console.error(
+            `[CodeAnalysis] Failed to create atom for function ${func.name}:`,
+            error.message
+          );
+          // 继续处理其他函数
+        }
+      }
+
+      // 创建类 Atoms
+      for (const cls of analysisResult.classes || []) {
+        try {
+          const atom = await this.wrapperClient.createAtom({
+            type: 'class',
+            name: cls.name,
+            content: `class ${cls.name}`,
+            start_line: cls.line,
+            project: projectId,
+            tenant_id: this.wrapperClient.tenantId,
+          });
+          createdAtoms.push(atom);
+          atomIds.push(atom.id);
+          console.log(`[CodeAnalysis] Created atom: ${atom.id} (${cls.name})`);
+        } catch (error) {
+          console.error(
+            `[CodeAnalysis] Failed to create atom for class ${cls.name}:`,
+            error.message
+          );
+        }
+      }
+
+      // 创建导入 Atoms
+      for (const imp of analysisResult.imports || []) {
+        try {
+          const atom = await this.wrapperClient.createAtom({
+            type: 'import',
+            name: imp.source,
+            content: `import ${imp.source}`,
+            start_line: imp.line,
+            project: projectId,
+            tenant_id: this.wrapperClient.tenantId,
+          });
+          createdAtoms.push(atom);
+          atomIds.push(atom.id);
+          console.log(`[CodeAnalysis] Created atom: ${atom.id} (import ${imp.source})`);
+        } catch (error) {
+          console.error(
+            `[CodeAnalysis] Failed to create atom for import ${imp.source}:`,
+            error.message
+          );
+        }
+      }
+
+      // Step 3: 创建 Entity（代码文件）
+      let entity = null;
+      if (atomIds.length > 0) {
+        try {
+          entity = await this.wrapperClient.createEntity({
+            type: 'code',
+            abstract: this.generateAbstract(relativePath, analysisResult),
+            overview: this.generateOverview(relativePath, analysisResult),
+            atoms: atomIds,
+            tags: [language, 'code-analysis'],
+            project: projectId,
+            file_path: relativePath,
+            tenant_id: this.wrapperClient.tenantId,
+          });
+          console.log(`[CodeAnalysis] Created entity: ${entity.id} (${relativePath})`);
+        } catch (error) {
+          console.error(
+            `[CodeAnalysis] Failed to create entity for ${relativePath}:`,
+            error.message
+          );
+          // Entity 创建失败，清理已创建的 Atoms
+          await this.rollbackAtoms(createdAtoms);
+          throw error;
+        }
+      }
+
+      // Step 4: 创建 References（调用关系）
+      const createdReferences = [];
+      for (const call of analysisResult.calls || []) {
+        try {
+          // 查找目标函数的 Atom ID
+          const targetAtom = createdAtoms.find(a => a.name === call.target);
+          if (targetAtom && entity) {
+            const reference = await this.wrapperClient.createReference({
+              from_id: entity.id,
+              to_id: targetAtom.id,
+              type: 'calls',
+              weight: 0.5,
+              metadata: {
+                line: call.line,
+                column: call.column,
+                file_path: call.file_path,
+              },
+              tenant_id: this.wrapperClient.tenantId,
+            });
+            createdReferences.push(reference);
+          }
+        } catch (error) {
+          console.error(
+            `[CodeAnalysis] Failed to create reference for call ${call.target}:`,
+            error.message
+          );
+        }
+      }
+
+      const duration = performance.now() - startTime;
+      console.log(
+        `[CodeAnalysis] Analysis complete: ${createdAtoms.length} atoms, ${createdReferences.length} references in ${duration.toFixed(2)}ms`
+      );
+
+      return {
+        atoms: createdAtoms,
+        entity,
+        references: createdReferences,
+        duration,
+      };
+    } catch (error) {
+      console.error(`[CodeAnalysis] Analysis failed for ${relativePath}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * 回滚已创建的 Atoms
+   * @param {Array} atoms - 已创建的 Atom 列表
+   */
+  async rollbackAtoms(atoms) {
+    console.log(`[CodeAnalysis] Rolling back ${atoms.length} atoms...`);
+    for (const atom of atoms) {
+      try {
+        await this.wrapperClient.deleteAtom(atom.id);
+        console.log(`[CodeAnalysis] Rolled back atom: ${atom.id}`);
+      } catch (error) {
+        console.error(`[CodeAnalysis] Failed to rollback atom ${atom.id}:`, error.message);
+      }
+    }
+  }
+
+  /**
+   * 检测文件语言
+   * @param {string} filePath - 文件路径
+   * @returns {string} 语言名称
+   */
+  detectLanguage(filePath) {
+    const ext = extname(filePath).toLowerCase();
+    const languageMap = {
+      '.js': 'javascript',
+      '.mjs': 'javascript',
+      '.cjs': 'javascript',
+      '.ts': 'typescript',
+      '.mts': 'typescript',
+      '.cts': 'typescript',
+      '.tsx': 'typescript',
+      '.py': 'python',
+      '.go': 'go',
+      '.rs': 'rust',
+      '.java': 'java',
+    };
+    return languageMap[ext] || 'unknown';
   }
 
   async flushBatchLegacy(batchToSend) {
