@@ -173,6 +173,10 @@ class HTTPClient {
     return this.request('POST', endpoint, body);
   }
 
+  async put(endpoint, body) {
+    return this.request('PUT', endpoint, body);
+  }
+
   async delete(endpoint) {
     return this.request('DELETE', endpoint);
   }
@@ -734,7 +738,7 @@ export class WrapperClient {
     }
 
     return await withRetry(
-      () => this.http.post(`/api/v1/atoms/${atomId}`, requestBody),
+      () => this.http.put(`/api/v1/atoms/${atomId}`, requestBody),
       this.maxRetries
     );
   }

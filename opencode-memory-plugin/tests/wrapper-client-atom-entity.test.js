@@ -117,7 +117,7 @@ describe('WrapperClient Atom/Entity/Reference API', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:18008/api/v1/atoms/atom:test123',
         expect.objectContaining({
-          method: 'POST',
+          method: 'PUT',
         })
       );
     });
