@@ -53,6 +53,58 @@ describe('WrapperClient Atom/Entity/Reference API', () => {
       );
     });
 
+    test('createAtom should convert docstring string to object format (BL-CA-48)', async () => {
+      const mockResponse = {
+        id: 'atom:test123',
+        type: 'function',
+        name: 'testFunc',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      });
+
+      await client.createAtom({
+        type: 'function',
+        name: 'testFunc',
+        content: 'function testFunc() {}',
+        docstring: 'This is a test function',
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const requestBody = JSON.parse(callArgs[1].body);
+
+      expect(requestBody.docstring).toEqual({ text: 'This is a test function' });
+    });
+
+    test('createAtom should preserve docstring object format (BL-CA-48)', async () => {
+      const mockResponse = {
+        id: 'atom:test123',
+        type: 'function',
+        name: 'testFunc',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      });
+
+      await client.createAtom({
+        type: 'function',
+        name: 'testFunc',
+        content: 'function testFunc() {}',
+        docstring: { text: 'This is a test', author: 'developer' },
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const requestBody = JSON.parse(callArgs[1].body);
+
+      expect(requestBody.docstring).toEqual({ text: 'This is a test', author: 'developer' });
+    });
+
     test('getAtom should retrieve an atom by ID', async () => {
       const mockResponse = {
         id: 'atom:test123',
@@ -168,6 +220,83 @@ describe('WrapperClient Atom/Entity/Reference API', () => {
           method: 'POST',
         })
       );
+    });
+
+    test('createEntity should convert overview string to object format (BL-CA-48)', async () => {
+      const mockResponse = {
+        id: 'entity:test456',
+        type: 'code',
+        abstract: 'Test entity',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      });
+
+      await client.createEntity({
+        type: 'code',
+        abstract: 'Test entity',
+        overview: 'Overview text',
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const requestBody = JSON.parse(callArgs[1].body);
+
+      expect(requestBody.overview).toEqual({ text: 'Overview text' });
+    });
+
+    test('createEntity should convert quality_score number to object format (BL-CA-48)', async () => {
+      const mockResponse = {
+        id: 'entity:test456',
+        type: 'code',
+        abstract: 'Test entity',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      });
+
+      await client.createEntity({
+        type: 'code',
+        abstract: 'Test entity',
+        quality_score: 85,
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const requestBody = JSON.parse(callArgs[1].body);
+
+      expect(requestBody.quality_score).toEqual({ score: 85 });
+    });
+
+    test('createEntity should preserve overview and quality_score object format (BL-CA-48)', async () => {
+      const mockResponse = {
+        id: 'entity:test456',
+        type: 'code',
+        abstract: 'Test entity',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      });
+
+      await client.createEntity({
+        type: 'code',
+        abstract: 'Test entity',
+        overview: { text: 'Overview', language: 'zh' },
+        quality_score: { score: 85, complexity: 5 },
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const requestBody = JSON.parse(callArgs[1].body);
+
+      expect(requestBody.overview).toEqual({ text: 'Overview', language: 'zh' });
+      expect(requestBody.quality_score).toEqual({ score: 85, complexity: 5 });
     });
 
     test('getEntity should retrieve an entity by ID', async () => {

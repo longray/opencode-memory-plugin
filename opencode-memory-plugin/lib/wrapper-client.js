@@ -670,7 +670,10 @@ export class WrapperClient {
     if (atomData.complexity !== undefined) requestBody.complexity = atomData.complexity;
     if (atomData.max_nesting_depth !== undefined)
       requestBody.max_nesting_depth = atomData.max_nesting_depth;
-    if (atomData.docstring) requestBody.docstring = atomData.docstring;
+    if (atomData.docstring) {
+      requestBody.docstring =
+        typeof atomData.docstring === 'string' ? { text: atomData.docstring } : atomData.docstring;
+    }
     if (atomData.start_line !== undefined) requestBody.start_line = atomData.start_line;
     if (atomData.end_line !== undefined) requestBody.end_line = atomData.end_line;
     if (atomData.status) requestBody.status = atomData.status;
@@ -780,7 +783,12 @@ export class WrapperClient {
       tenant_id: entityData.tenant_id || this.tenantId,
     };
 
-    if (entityData.overview) requestBody.overview = entityData.overview;
+    if (entityData.overview) {
+      requestBody.overview =
+        typeof entityData.overview === 'string'
+          ? { text: entityData.overview }
+          : entityData.overview;
+    }
     if (entityData.atoms) requestBody.atoms = entityData.atoms;
     if (entityData.tags) requestBody.tags = entityData.tags;
     if (entityData.project) requestBody.project = entityData.project;
@@ -797,8 +805,12 @@ export class WrapperClient {
     if (entityData.actual_hours !== undefined) requestBody.actual_hours = entityData.actual_hours;
     if (entityData.file_path) requestBody.file_path = entityData.file_path;
     if (entityData.language) requestBody.language = entityData.language;
-    if (entityData.quality_score !== undefined)
-      requestBody.quality_score = entityData.quality_score;
+    if (entityData.quality_score !== undefined) {
+      requestBody.quality_score =
+        typeof entityData.quality_score === 'number'
+          ? { score: entityData.quality_score }
+          : entityData.quality_score;
+    }
     if (entityData.complexity_metrics)
       requestBody.complexity_metrics = entityData.complexity_metrics;
 

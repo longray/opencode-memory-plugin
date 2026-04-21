@@ -270,8 +270,15 @@ function classifyDependencies(imports, language) {
 async function initParser() {
   if (parserInitialized) return;
 
-  await Parser.init();
-  parserInitialized = true;
+  try {
+    await Parser.init();
+    parserInitialized = true;
+  } catch (error) {
+    throw new Error(
+      `Tree-sitter WASM initialization failed: ${error.message}. ` +
+        `Multi-language AST analysis (Python/Go/Rust/Java) is unavailable.`
+    );
+  }
 }
 
 /**
@@ -306,7 +313,13 @@ async function loadLanguage(languageName) {
     throw new Error(`Failed to load ${languageName} grammar: ${error.message}`);
   }
 
-  const language = await Parser.Language.load(langModule.default);
+  let language;
+  try {
+    language = await Parser.Language.load(langModule.default);
+  } catch (error) {
+    throw new Error(`Failed to load ${languageName} language from WASM: ${error.message}`);
+  }
+
   languageCache.set(languageName, language);
   return language;
 }
@@ -320,10 +333,11 @@ async function loadLanguage(languageName) {
  */
 export async function analyzeWithTreeSitter(filePath, sourceCode, language) {
   const startTime = performance.now();
+  let parser = null;
 
   try {
     const lang = await loadLanguage(language);
-    const parser = new Parser();
+    parser = new Parser();
     parser.setLanguage(lang);
 
     const tree = parser.parse(sourceCode);
@@ -373,14 +387,18 @@ export async function analyzeWithTreeSitter(filePath, sourceCode, language) {
           `Please use JavaScript or TypeScript files for full AST analysis.`
       );
     }
-    throw new Error(`Tree-sitter analysis failed: ${error.message}`);
+    throw new Error(`Tree-sitter analysis failed for ${filePath}: ${error.message}`);
+  } finally {
+    if (parser) {
+      parser.delete();
+    }
   }
 }
 
 /**
  * 从 AST 提取符号
  */
-function extractSymbols(node, _sourceCode, language, collectors) {
+function extractSymbols(node, sourceCode, language, collectors) {
   const {
     functions: _functions,
     classes: _classes,
@@ -408,7 +426,7 @@ function extractSymbols(node, _sourceCode, language, collectors) {
 /**
  * 提取 Python 符号
  */
-function extractPythonSymbols(node, sourceCode, collectors) {
+function extractPythonSymbols(node, _sourceCode, collectors) {
   const { functions, classes, imports, exports } = collectors;
 
   if (node.type === 'function_definition') {
@@ -513,7 +531,7 @@ function extractPythonSymbols(node, sourceCode, collectors) {
 /**
  * 提取 Go 符号
  */
-function extractGoSymbols(node, sourceCode, collectors) {
+function extractGoSymbols(node, _sourceCode, collectors) {
   const { functions, classes, imports, exports, interfaces } = collectors;
 
   if (node.type === 'function_declaration') {
@@ -652,7 +670,7 @@ function extractGoSymbols(node, sourceCode, collectors) {
 /**
  * 提取 Rust 符号
  */
-function extractRustSymbols(node, sourceCode, collectors) {
+function extractRustSymbols(node, _sourceCode, collectors) {
   const { functions, classes, imports, exports } = collectors;
 
   if (node.type === 'function_item') {
@@ -796,7 +814,7 @@ function extractRustSymbols(node, sourceCode, collectors) {
 /**
  * 提取 Java 符号
  */
-function extractJavaSymbols(node, sourceCode, collectors) {
+function extractJavaSymbols(node, _sourceCode, collectors) {
   const { functions, classes, imports, exports } = collectors;
 
   if (node.type === 'method_declaration') {
@@ -962,7 +980,7 @@ function extractCalls(node, sourceCode, language, filePath) {
 /**
  * 提取 Python 调用
  */
-function extractPythonCalls(node, sourceCode, filePath, calls) {
+function extractPythonCalls(node, _sourceCode, filePath, calls) {
   const builtinCalls = ['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set'];
 
   if (node.type === 'call') {
@@ -1003,7 +1021,7 @@ function extractPythonCalls(node, sourceCode, filePath, calls) {
 /**
  * 提取 Go 调用
  */
-function extractGoCalls(node, sourceCode, filePath, calls) {
+function extractGoCalls(node, _sourceCode, filePath, calls) {
   const builtinCalls = ['fmt.Println', 'fmt.Printf', 'fmt.Print', 'len', 'cap', 'append'];
 
   if (node.type === 'call_expression') {
@@ -1044,7 +1062,7 @@ function extractGoCalls(node, sourceCode, filePath, calls) {
 /**
  * 提取 Rust 调用
  */
-function extractRustCalls(node, sourceCode, filePath, calls) {
+function extractRustCalls(node, _sourceCode, filePath, calls) {
   const builtinCalls = ['println!', 'print!', 'eprintln!', 'eprint!', 'format!', 'vec!'];
 
   if (node.type === 'call_expression') {
@@ -1085,7 +1103,7 @@ function extractRustCalls(node, sourceCode, filePath, calls) {
 /**
  * 提取 Java 调用
  */
-function extractJavaCalls(node, sourceCode, filePath, calls) {
+function extractJavaCalls(node, _sourceCode, filePath, calls) {
   const builtinCalls = ['System.out.println', 'System.out.print', 'System.err.println'];
 
   if (node.type === 'method_invocation') {
@@ -1429,7 +1447,11 @@ function loadQuery(language) {
     const querySource = readFileSync(queryPath, 'utf-8');
     queryCache.set(language, querySource);
     return querySource;
-  } catch {
+  } catch (error) {
+    // Query 文件不存在或不可读，静默返回 null（允许 fallback）
+    if (error.code !== 'ENOENT') {
+      console.warn(`[TreeSitter] Failed to load query file for ${language}: ${error.message}`);
+    }
     return null;
   }
 }
@@ -1443,10 +1465,11 @@ function loadQuery(language) {
  */
 export async function analyzeWithQuery(filePath, sourceCode, language) {
   const startTime = performance.now();
+  let parser = null;
 
   try {
     const lang = await loadLanguage(language);
-    const parser = new Parser();
+    parser = new Parser();
     parser.setLanguage(lang);
 
     const tree = parser.parse(sourceCode);
@@ -1459,7 +1482,16 @@ export async function analyzeWithQuery(filePath, sourceCode, language) {
       return await analyzeWithTreeSitter(filePath, sourceCode, language);
     }
 
-    const query = lang.query(querySource);
+    let query;
+    try {
+      query = lang.query(querySource);
+    } catch (error) {
+      console.warn(
+        `[TreeSitter] Failed to compile query for ${language}: ${error.message}, falling back to tree traversal`
+      );
+      return await analyzeWithTreeSitter(filePath, sourceCode, language);
+    }
+
     const matches = query.matches(rootNode);
 
     const functions = [];
@@ -1585,17 +1617,14 @@ export async function analyzeWithQuery(filePath, sourceCode, language) {
       dependencies: classifiedDeps,
       analysis_duration_ms: duration,
     };
-
-    // 释放 Parser 资源
-    parser.delete();
-
-    return result;
-  } catch (_error) {
-    // 释放 Parser 资源（如果已创建）
-    if (typeof parser !== 'undefined' && parser) {
+  } catch (error) {
+    console.warn(
+      `[TreeSitter] Query analysis failed for ${filePath}: ${error.message}, falling back to tree traversal`
+    );
+    return await analyzeWithTreeSitter(filePath, sourceCode, language);
+  } finally {
+    if (parser) {
       parser.delete();
     }
-    // Fallback 到树遍历
-    return await analyzeWithTreeSitter(filePath, sourceCode, language);
   }
 }
