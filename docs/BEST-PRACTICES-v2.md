@@ -1,6 +1,6 @@
 # 🧠 最佳实践：opencode-memory-plugin × 后端 × OpenCode × oh-my-opencode 协同指南
 
-**版本**: v2.0  
+**版本**: v2.1  
 **更新时间**: 2026-04-21  
 **适用**: opencode-memory-plugin v3.2.2+ (Atom/Entity/Reference 架构)
 
@@ -219,6 +219,30 @@ export WS_ENABLED=true
 | 2     | 完整内容（无限制）              | 大   | 需要详情时 |
 
 **最佳实践**：先用 `level=0` 或 `level=1` 扫描，确认相关后再 `memory_read(level=2)` 加载详情。
+
+### 4.4 性能优化建议
+
+| 场景           | 建议                                | 原因                             |
+| -------------- | ----------------------------------- | -------------------------------- |
+| 批量创建 Atoms | 使用 sequential 而非 Promise.all()  | 避免后端限流，单个失败不影响其他 |
+| 大文件分析     | 设置 `batchSize: 50`                | 防止内存溢出，控制并发           |
+| WebSocket 重连 | 保持默认 `reconnectMaxAttempts: 10` | 平衡可靠性与资源消耗             |
+| 指纹缓存       | 启用 `fingerprintCache`             | 避免重复分析未变更文件           |
+| 代码分析语言   | 只启用需要的语言                    | 减少 Tree-sitter WASM 加载       |
+
+**配置示例**（高性能）：
+
+```json
+{
+  "code_analysis": {
+    "auto_trigger": true,
+    "use_atom_entity_api": true,
+    "batch_size": 50,
+    "languages": ["javascript", "typescript"],
+    "fingerprint_cache": true
+  }
+}
+```
 
 ---
 
@@ -630,6 +654,99 @@ await wrapperClient.createEntity({
 
 ---
 
+## 十二、常见问题排查
+
+### 12.1 Atom/Entity API 错误
+
+| 错误                 | 可能原因                          | 解决方案                               |
+| -------------------- | --------------------------------- | -------------------------------------- |
+| `409 Conflict`       | 同一项目中存在重复的 atom 名称    | 使用唯一命名或先检查是否存在           |
+| `404 Not Found`      | Entity 引用了不存在的 Atom ID     | 确保所有 atoms 创建成功后再创建 entity |
+| `400 Bad Request`    | 缺少必需字段（如 `type`, `name`） | 检查请求体是否包含所有必填字段         |
+| `500 Internal Error` | 后端数据库连接问题                | 检查 SurrealDB 状态，重试或联系管理员  |
+
+**调试命令**：
+
+```bash
+# 检查后端健康状态
+curl http://localhost:18008/health
+
+# 测试 Atom API
+curl http://localhost:18008/api/v1/atoms
+
+# 查看后端日志
+docker logs opencode-memory-backend
+```
+
+### 12.2 WebSocket 连接问题
+
+| 症状         | 可能原因                 | 解决方案                              |
+| ------------ | ------------------------ | ------------------------------------- |
+| 连接反复断开 | 心跳间隔过短或网络不稳定 | 增加 `heartbeatInterval` 到 60000ms   |
+| 无法连接     | 后端未启动或端口冲突     | 检查 `API_PORT` 是否被占用            |
+| 消息丢失     | 未收到 ACK 确认          | 检查后端日志，确认 WebSocket 服务正常 |
+
+**验证步骤**：
+
+```javascript
+// 在 OpenCode 中检查连接状态
+index_status detailed=true
+```
+
+### 12.3 代码分析失败
+
+| 症状                        | 可能原因                | 解决方案                     |
+| --------------------------- | ----------------------- | ---------------------------- |
+| Tree-sitter 解析失败        | WASM 未加载或语言不支持 | 检查文件扩展名是否在支持列表 |
+| Oxc 分析超时                | 文件过大或复杂度太高    | 增加超时时间或分批处理       |
+| Atom 创建成功但 Entity 失败 | 部分 Atom 创建失败      | 检查日志，确认 rollback 执行 |
+
+**日志查看**：
+
+```bash
+# 查看代码分析日志
+grep "\[CodeAnalysis\]" ~/.opencode/logs/opencode.log
+```
+
+### 12.4 搜索无结果
+
+| 症状                 | 可能原因             | 解决方案                              |
+| -------------------- | -------------------- | ------------------------------------- |
+| 新写入的记忆搜索不到 | 索引尚未同步         | 等待几秒或手动运行 `incremental_sync` |
+| 语义搜索结果不准确   | Embedding 服务不可用 | 检查 `MODELSCOPE_API_KEY` 是否设置    |
+| 关键词搜索无结果     | BM25 索引未构建      | 运行 `rebuild_index` 重建索引         |
+
+**诊断命令**：
+
+```javascript
+// 检查后端搜索服务
+memory_search query="test" mode="keyword"
+memory_search query="test" mode="vector"
+```
+
+### 12.5 同步问题
+
+| 症状           | 可能原因             | 解决方案                                    |
+| -------------- | -------------------- | ------------------------------------------- |
+| 同步卡住       | 网络中断或后端不可用 | 检查网络，使用 `sync_checkpoint` 查看进度   |
+| 冲突无法解决   | 本地和远程同时修改   | 使用 `conflict_list` 查看，手动选择保留版本 |
+| 同步后数据丢失 | 冲突自动解决策略不当 | 修改 `auto_resolve` 为 `manual`             |
+
+**恢复步骤**：
+
+```javascript
+// 查看同步状态
+sync_checkpoint
+
+// 列出冲突
+conflict_list
+
+// 手动解决冲突
+conflict_resolve conflict_id="xxx" resolution="USE_LOCAL"
+```
+
+---
+
 ## 十二、推荐每日操作清单
 
 - [ ] 启动 OpenCode → 确认后端连接正常（`index_status`）
@@ -646,6 +763,8 @@ await wrapperClient.createEntity({
 
 | 版本 | 日期       | 变更                            |
 | ---- | ---------- | ------------------------------- |
+| v2.1 | 2026-04-21 | 新增性能优化建议（第 4.4 节）   |
+|      |            | 新增常见问题排查（第 12 节）    |
 | v2.0 | 2026-04-21 | 新增 Atom/Entity/Reference 架构 |
 |      |            | 新增 Backlog 支持               |
 |      |            | 新增 Tree-sitter Query API      |
