@@ -1427,6 +1427,7 @@ function loadQuery(language) {
   try {
     const queryPath = join(__dirname, 'queries', `${language}.scm`);
     const querySource = readFileSync(queryPath, 'utf-8');
+    queryCache.set(language, querySource);
     return querySource;
   } catch {
     return null;
@@ -1584,7 +1585,16 @@ export async function analyzeWithQuery(filePath, sourceCode, language) {
       dependencies: classifiedDeps,
       analysis_duration_ms: duration,
     };
+
+    // 释放 Parser 资源
+    parser.delete();
+
+    return result;
   } catch (_error) {
+    // 释放 Parser 资源（如果已创建）
+    if (typeof parser !== 'undefined' && parser) {
+      parser.delete();
+    }
     // Fallback 到树遍历
     return await analyzeWithTreeSitter(filePath, sourceCode, language);
   }
