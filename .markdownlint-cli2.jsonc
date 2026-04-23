@@ -8,7 +8,8 @@
     "MD036": false,
     "MD040": false,
     "MD041": false,
-    "MD051": false
+    "MD051": false,
+    "MD060": false
   },
   "ignores": [
     "node_modules",
@@ -19,3 +20,4 @@
     "opencode-memory-plugin/code-analyzer/"
   ]
 }
+

@@ -260,15 +260,21 @@ export class WrapperClient {
   async getStatus() {
     try {
       const health = await this.health();
+      const stats = await withRetry(
+        () => this.http.get(`/api/v1/memories/stats?tenant_id=${this.tenantId}`),
+        this.maxRetries
+      );
       return {
         status: health.status || 'unavailable',
-        memory_count: health.memory_count || 0,
+        memory_count: stats.total_memories || 0,
+        relation_count: stats.total_relations || 0,
         healthy: health.status === 'healthy',
       };
     } catch (error) {
       return {
         status: 'error',
         memory_count: 0,
+        relation_count: 0,
         healthy: false,
         error: error.message,
       };
@@ -335,6 +341,16 @@ export class WrapperClient {
     if (result.success === 1 && result.memory_ids.length === 1) {
       logInfo('UPLOAD', 'uploadMemory success', { id: result.memory_ids[0] });
       return { id: result.memory_ids[0], success: true };
+    }
+
+    // content_hash 去重命中 — 后端已有相同内容，视为成功
+    if (result.skipped && result.skipped.length === 1 && result.skipped[0].reason === 'hash') {
+      const existingId = result.skipped[0].existing_id;
+      logInfo('UPLOAD', 'uploadMemory skipped (content_hash duplicate)', {
+        local_id: result.skipped[0].local_id,
+        existing_id: existingId,
+      });
+      return { id: existingId, success: true, deduplicated: true };
     }
 
     if (result.errors && result.errors.length > 0) {

@@ -56,7 +56,7 @@ export class AnalysisQueue {
   async initCache() {
     try {
       if (!this.memoryIdCache) {
-        const projectId = resolveProjectId({});
+        const projectId = await resolveProjectId({});
         this.memoryIdCache = new MemoryIdCache(projectId);
         await this.memoryIdCache.load();
       }
@@ -223,8 +223,8 @@ export class AnalysisQueue {
     }
   }
 
-  addToBatch(item, analysisResult, content) {
-    const projectId = resolveProjectId({ projectRoot: item.projectRoot });
+  async addToBatch(item, analysisResult, content) {
+    const projectId = await resolveProjectId({ projectRoot: item.projectRoot });
 
     const sourceId = this.memoryIdCache?.generateSourceId() || `local-${Date.now()}`;
     const contentHash = createHash('md5').update(content).digest('hex');
@@ -323,7 +323,7 @@ export class AnalysisQueue {
   }
 
   async flushBatchPrecompute(batchToSend) {
-    const projectId = resolveProjectId({});
+    const projectId = await resolveProjectId({});
 
     const analysisResults = batchToSend.map(item => {
       const meta = item.memoryItem.metadata;
@@ -412,7 +412,7 @@ export class AnalysisQueue {
 
   async uploadAsAtomEntity(item, analysisResult, content) {
     const startTime = performance.now();
-    const projectId = resolveProjectId({ projectRoot: item.projectRoot });
+    const projectId = await resolveProjectId({ projectRoot: item.projectRoot });
     const language = analysisResult.language || this.detectLanguage(item.filePath);
 
     console.log(`[CodeAnalysis] Uploading via Atom/Entity API: ${item.relativePath}`);
@@ -574,7 +574,7 @@ export class AnalysisQueue {
   async analyzeWithAtomEntity(filePath, content, projectRoot) {
     const startTime = performance.now();
     const relativePath = relative(projectRoot, filePath);
-    const projectId = resolveProjectId({ projectRoot });
+    const projectId = await resolveProjectId({ projectRoot });
     const language = this.detectLanguage(filePath);
 
     console.log(`[CodeAnalysis] Analyzing with Atom/Entity API: ${relativePath}`);

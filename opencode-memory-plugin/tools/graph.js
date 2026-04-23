@@ -109,10 +109,11 @@ export const memory_graph = tool({
 
       return nodes
         .map(r => {
-          const nodeId = r.id || r.memory_id || 'unknown';
-          const abstract = r.abstract || '';
+          const rawId = r.id || r.memory_id || 'unknown';
+          const nodeId = typeof rawId === 'object' ? rawId.id || JSON.stringify(rawId) : rawId;
+          const abstract = r.abstract || r.overview || extractFromContent(r.content) || '';
           const depth = r.depth || 0;
-          return `[${depth}] ${nodeId}: ${abstract}...`;
+          return `[${depth}] ${nodeId}: ${abstract}`;
         })
         .join('\n');
     } catch (e) {
@@ -120,3 +121,16 @@ export const memory_graph = tool({
     }
   },
 });
+
+function extractFromContent(content) {
+  if (!content) return '';
+  const stripped = content.replace(/^---[\s\S]*?---\n*/m, '');
+  const abstractMatch = stripped.match(/# ≡≡≡ Abstract ≡≡≡\s*\n```\n([\s\S]*?)```/);
+  const overviewMatch = stripped.match(/# ≡≡≡ Overview ≡≡≡\s*\n```\n([\s\S]*?)```/);
+  const abstract = abstractMatch ? abstractMatch[1].replace(/\n/g, ' ').trim() : '';
+  const overview = overviewMatch ? overviewMatch[1].replace(/\n/g, ' ').trim() : '';
+  if (abstract && overview) return `${abstract} | ${overview}`;
+  if (abstract) return abstract;
+  if (overview) return overview;
+  return stripped.replace(/\n/g, ' ').trim();
+}

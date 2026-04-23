@@ -3,18 +3,42 @@
  * Tests the end-to-end flow: upload → analyze → upload calls → query
  */
 
+import { describe, expect, beforeAll, afterAll } from '@jest/globals';
 import { WrapperClient } from '../../lib/wrapper-client.js';
 import { codeAnalyzer } from '../../lib/code-analyzer.js';
 import { AnalysisQueue } from '../../lib/code-analysis-service.js';
+import { MemoryIdCache } from '../../lib/memory-id-cache.js';
+import os from 'os';
+import fs from 'fs';
+import path from 'path';
 
 describe('Calls API Integration Tests', () => {
   let wrapperClient;
   let analysisQueue;
   const _projectId = 'github.com/test/integration';
 
+  // Isolated cache directory per test run to avoid cross-test pollution
+  const tempCacheDir = path.join(os.tmpdir(), 'memory-cache-calls-' + Date.now());
+  let memoryIdCache;
+
   beforeAll(async () => {
     wrapperClient = new WrapperClient();
     analysisQueue = new AnalysisQueue();
+    // Inject isolated cache into AnalysisQueue before initCache() is called
+    memoryIdCache = new MemoryIdCache('github.com/test/integration', tempCacheDir);
+    analysisQueue.memoryIdCache = memoryIdCache;
+  });
+
+  afterAll(() => {
+    if (memoryIdCache) {
+      memoryIdCache.cleanup();
+    }
+    // Clean up isolated temp cache
+    try {
+      fs.rmSync(tempCacheDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors (temp dir may already be gone)
+    }
   });
 
   describe('Scenario 1: Basic Call Relationship', () => {

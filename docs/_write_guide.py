@@ -1,0 +1,3 @@
+import pathlib
+DOC = pathlib.Path(chr(68)+chr(58)+chr(47)+chr(103)+chr(105)+chr(116)+chr(104)+chr(117)+chr(98)+chr(47)+chr(111)+chr(112)+chr(101)+chr(110)+chr(99)+chr(111)+chr(100)+chr(101)+chr(45)+chr(109)+chr(101)+chr(109)+chr(111)+chr(114)+chr(121)+chr(45)+chr(112)+chr(108)+chr(117)+chr(103)+chr(105)+chr(110)+chr(47)+chr(100)+chr(111)+chr(99)+chr(115)+chr(47)+chr(79)+chr(80)+chr(69)+chr(78)+chr(67)+chr(79)+chr(68)+chr(69)+chr(45)+chr(83)+chr(69)+chr(84)+chr(85)+chr(80)+chr(45)+chr(71)+chr(85)+chr(73)+chr(68)+chr(69)+chr(45)+chr(79)+chr(80)+chr(84)+chr(73)+chr(79)+chr(78)+chr(45)+chr(65)+chr(46)+chr(109)+chr(100))
+print(DOC.exists())

@@ -3,15 +3,20 @@
  * Tests complete flow: analyze → upload → lookup → create call relation
  */
 
-import { describe, expect, beforeAll } from '@jest/globals';
+import { describe, expect, beforeAll, afterAll } from '@jest/globals';
 import { WrapperClient } from '../../lib/wrapper-client.js';
 import { codeAnalyzer } from '../../lib/code-analyzer.js';
 import { MemoryIdCache } from '../../lib/memory-id-cache.js';
+import os from 'os';
+import fs from 'fs';
+import path from 'path';
 
 describe('Code Analysis v1.4 - End to End', () => {
   let wrapperClient;
   let memoryIdCache;
   const projectId = `e2e-test-${Date.now()}`;
+  // Isolated cache directory per test run to avoid cross-test pollution
+  const tempCacheDir = path.join(os.tmpdir(), `memory-cache-e2e-${Date.now()}`);
 
   // Test data
   const cryptoCode = `
@@ -44,8 +49,18 @@ describe('Code Analysis v1.4 - End to End', () => {
 
   beforeAll(async () => {
     wrapperClient = new WrapperClient();
-    memoryIdCache = new MemoryIdCache(projectId);
+    memoryIdCache = new MemoryIdCache(projectId, tempCacheDir);
     await memoryIdCache.load();
+  });
+
+  afterAll(() => {
+    memoryIdCache.cleanup();
+    // Clean up isolated temp cache
+    try {
+      fs.rmSync(tempCacheDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors (temp dir may already be gone)
+    }
   });
 
   describe('Step 1: Analyze Code', () => {

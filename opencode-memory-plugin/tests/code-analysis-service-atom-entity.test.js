@@ -4,7 +4,6 @@
 
 import { jest } from '@jest/globals';
 import { AnalysisQueue } from '../lib/code-analysis-service.js';
-
 const TENANT_ID = 'test-tenant';
 
 const mockItem = {
@@ -140,7 +139,7 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
           is_async: false,
           start_line: 1,
           end_line: 10,
-          project: expect.any(Object),
+          project: expect.any(String),
           tenant_id: TENANT_ID,
         })
       );

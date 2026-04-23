@@ -2,9 +2,20 @@ import { tool } from '@opencode-ai/plugin/tool';
 import { getConfig, getLinkMap, deleteEntryFile } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
 import { MEMORY_DIR } from '../lib/constants.js';
-import { removeFromLinkMap } from '../lib/indexer.js';
+import { removeFromLinkMap, updateLinkMap } from '../lib/indexer.js';
+import { LOG_FILE } from '../lib/constants.js';
 import fs from 'fs';
 import path from 'path';
+
+function writeLog(level, category, message, data = null) {
+  const timestamp = new Date().toISOString();
+  const logLine = `[${timestamp}] [${level}] [${category}] ${message}${data ? ' ' + JSON.stringify(data) : ''}\n`;
+  try {
+    fs.appendFileSync(LOG_FILE, logLine);
+  } catch {
+    console.log(logLine.trim());
+  }
+}
 
 export const rebuild_index = tool({
   description: 'Sync all local memory files to backend service',
@@ -46,7 +57,12 @@ export const rebuild_index = tool({
           type: entry.type,
           tags: entry.tags,
           source: 'plugin',
+          source_id: entry.id,
+          local_id: entry.id,
         });
+
+        entry.synced = true;
+        await updateLinkMap(entry, filePath);
 
         synced++;
       } catch {
@@ -78,12 +94,14 @@ export const index_status = tool({
 
     let backendStatus = '❌ Offline';
     let backendCount = 0;
+    let backendRelations = 0;
 
     if (backendEnabled) {
       try {
         const status = await client.getStatus();
         backendStatus = '✅ Online';
         backendCount = status.memory_count || 0;
+        backendRelations = status.relation_count || 0;
       } catch (e) {
         backendStatus = `❌ Error: ${e.message}`;
       }
@@ -99,6 +117,7 @@ export const index_status = tool({
 **Backend:**
 - Status: ${backendStatus}
 - Backend entries: ${backendCount}
+- Backend relations: ${backendRelations}
 
 **Storage:**
 - Memory dir: ${MEMORY_DIR}
@@ -136,16 +155,33 @@ export const incremental_sync = tool({
       return `📋 Dry run: ${pending.length} entries would be synced`;
     }
 
-    const fingerprints = entries.map(e => {
+    const fingerprints = [];
+    const missingFiles = [];
+    const validEntries = [];
+
+    for (const e of entries) {
       const filePath = path.join(MEMORY_DIR, e.path);
-      const stat = fs.statSync(filePath);
-      return {
-        path: e.path,
-        mtime: Math.floor(stat.mtimeMs),
-        hash: e.hash || '',
-        source_id: e.id,
-      };
-    });
+      try {
+        const stat = fs.statSync(filePath);
+        fingerprints.push({
+          path: e.path,
+          mtime: Math.floor(stat.mtimeMs),
+          hash: e.hash || '',
+          source_id: e.id,
+        });
+        validEntries.push(e);
+      } catch (err) {
+        if (err.code === 'ENOENT') {
+          missingFiles.push(e.path);
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    if (missingFiles.length > 0) {
+      console.warn(`⚠️ incremental_sync: Skipped ${missingFiles.length} missing files`);
+    }
 
     if (fingerprints.length === 0) {
       return '✅ No entries to sync';
@@ -153,10 +189,77 @@ export const incremental_sync = tool({
 
     try {
       const tenantId = config?.backend?.tenant_id || 'default';
-      const result = await client.syncPreview(fingerprints, tenantId);
-      const toUpload = result.to_upload?.length || 0;
-      const toDelete = result.to_delete?.length || 0;
-      return `✅ Incremental sync: ${toUpload} to upload, ${toDelete} to delete`;
+      const previewResult = await client.syncPreview(fingerprints, tenantId);
+      const toUpload = previewResult.to_upload || [];
+      const toDelete = previewResult.to_delete || [];
+
+      if (toUpload.length === 0 && toDelete.length === 0) {
+        return '✅ All memories already synced';
+      }
+
+      let uploaded = 0;
+      let failed = 0;
+      const uploadErrors = [];
+
+      for (const item of toUpload) {
+        const entry = linkMap.entries[item.source_id];
+        if (!entry) {
+          failed++;
+          uploadErrors.push(`${item.source_id}: entry not found in linkMap`);
+          continue;
+        }
+
+        const filePath = path.join(MEMORY_DIR, entry.path);
+        try {
+          const content = fs.readFileSync(filePath, 'utf-8');
+
+          await client.uploadMemory({
+            content,
+            type: entry.type,
+            tags: entry.tags,
+            source: 'plugin',
+            source_id: entry.id,
+            local_id: entry.id,
+          });
+
+          entry.synced = true;
+          await updateLinkMap(entry, filePath);
+
+          uploaded++;
+        } catch (uploadErr) {
+          failed++;
+          uploadErrors.push(`${item.source_id}: ${uploadErr.message}`);
+          writeLog(
+            'ERROR',
+            'incremental_sync',
+            `Upload failed for ${item.source_id}: ${uploadErr.message}`,
+            {
+              source_id: item.source_id,
+              path: entry.path,
+              stack: uploadErr.stack?.substring(0, 300),
+            }
+          );
+        }
+      }
+
+      let resultMessage = `✅ Incremental sync: ${uploaded} uploaded, ${failed} failed`;
+      if (toDelete.length > 0) {
+        resultMessage += `, ${toDelete.length} to delete`;
+      }
+      if (missingFiles.length > 0) {
+        resultMessage += `, ${missingFiles.length} missing files skipped`;
+      }
+
+      if (uploadErrors.length > 0 && uploadErrors.length <= 5) {
+        resultMessage += '\n\n**Errors:**\n' + uploadErrors.map(e => `- ${e}`).join('\n');
+      } else if (uploadErrors.length > 5) {
+        resultMessage += `\n\n**Errors:**\n${uploadErrors
+          .slice(0, 5)
+          .map(e => `- ${e}`)
+          .join('\n')}\n... and ${uploadErrors.length - 5} more`;
+      }
+
+      return resultMessage;
     } catch (e) {
       return `❌ Sync error: ${e.message}`;
     }
