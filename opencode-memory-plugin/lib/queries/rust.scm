@@ -13,7 +13,7 @@
 ;; Async function items
 (
   (function_item
-    (async) @function.async
+    (function_modifiers "async") @function.async
     name: (identifier) @function.name
   ) @function.async_def
 )

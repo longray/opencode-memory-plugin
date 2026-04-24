@@ -2,6 +2,8 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { createHash } from 'crypto';
 import { getPrecomputeClient } from './client.js';
+import { getWrapperClient } from '../wrapper-client.js';
+import { resolveProjectId } from '../project-resolver.js';
 
 const CACHE_FILE = '.precompute_fingerprint_cache.json';
 
@@ -114,6 +116,59 @@ export class FingerprintCache {
   clear() {
     this.cache.fingerprints = {};
     this.save();
+  }
+
+  /**
+   * 同步本地指纹到后端（通过 WrapperClient）
+   * 用于增量同步场景，对比本地和后端指纹差异
+   */
+  async syncWithBackend() {
+    const fingerprints = Object.entries(this.cache.fingerprints).map(([path, fp]) => ({
+      path,
+      hash: fp.content_hash,
+      symbols_hash: fp.symbols_hash,
+      mtime: new Date(fp.updated_at).getTime(),
+      size: 0,
+    }));
+
+    if (fingerprints.length === 0) {
+      return {
+        success: true,
+        changed: [],
+        unchanged: [],
+        missing: [],
+        conflicts: [],
+      };
+    }
+
+    try {
+      const client = getWrapperClient();
+      const projectId = resolveProjectId({ projectRoot: this.projectRoot });
+
+      const response = await client.http.post('/api/v1/sync/code-fingerprints', {
+        fingerprints,
+        project_id: projectId,
+        tenant_id: client.tenantId,
+      });
+
+      console.log('[FingerprintCache] Sync response:', response);
+      return {
+        success: true,
+        changed: response.changed || [],
+        unchanged: response.unchanged || [],
+        missing: response.missing || [],
+        conflicts: response.conflicts || [],
+      };
+    } catch (error) {
+      console.error('[FingerprintCache] Sync failed:', error.message);
+      return {
+        success: false,
+        changed: Object.keys(this.cache.fingerprints),
+        unchanged: [],
+        missing: [],
+        error: error.message,
+      };
+    }
   }
 
   size() {

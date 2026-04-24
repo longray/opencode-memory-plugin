@@ -1,4 +1,4 @@
-import * as Parser from 'web-tree-sitter';
+import { Parser, Language, Query } from 'web-tree-sitter';
 
 let parserInitialized = false;
 let languageCache = new Map();
@@ -291,31 +291,30 @@ async function loadLanguage(languageName) {
 
   await initParser();
 
-  let langModule;
-  try {
-    switch (languageName) {
-      case 'python':
-        langModule = await import('tree-sitter-python');
-        break;
-      case 'go':
-        langModule = await import('tree-sitter-go');
-        break;
-      case 'rust':
-        langModule = await import('tree-sitter-rust');
-        break;
-      case 'java':
-        langModule = await import('tree-sitter-java');
-        break;
-      default:
-        throw new Error(`Unsupported language: ${languageName}`);
-    }
-  } catch (error) {
-    throw new Error(`Failed to load ${languageName} grammar: ${error.message}`);
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const grammarDir = join(__dirname, '..', 'node_modules');
+
+  let wasmFileName;
+  switch (languageName) {
+    case 'python':
+      wasmFileName = 'tree-sitter-python/tree-sitter-python.wasm';
+      break;
+    case 'go':
+      wasmFileName = 'tree-sitter-go/tree-sitter-go.wasm';
+      break;
+    case 'rust':
+      wasmFileName = 'tree-sitter-rust/tree-sitter-rust.wasm';
+      break;
+    case 'java':
+      wasmFileName = 'tree-sitter-java/tree-sitter-java.wasm';
+      break;
+    default:
+      throw new Error(`Unsupported language: ${languageName}`);
   }
 
   let language;
   try {
-    language = await Parser.Language.load(langModule.default);
+    language = await Language.load(join(grammarDir, wasmFileName));
   } catch (error) {
     throw new Error(`Failed to load ${languageName} language from WASM: ${error.message}`);
   }
@@ -524,7 +523,7 @@ function extractPythonSymbols(node, _sourceCode, collectors) {
 
   // 递归处理子节点
   for (const child of node.children) {
-    extractPythonSymbols(child, sourceCode, collectors);
+    extractPythonSymbols(child, _sourceCode, collectors);
   }
 }
 
@@ -663,7 +662,7 @@ function extractGoSymbols(node, _sourceCode, collectors) {
 
   // 递归处理子节点
   for (const child of node.children) {
-    extractGoSymbols(child, sourceCode, collectors);
+    extractGoSymbols(child, _sourceCode, collectors);
   }
 }
 
@@ -807,7 +806,7 @@ function extractRustSymbols(node, _sourceCode, collectors) {
   }
 
   for (const child of node.children) {
-    extractRustSymbols(child, sourceCode, collectors);
+    extractRustSymbols(child, _sourceCode, collectors);
   }
 }
 
@@ -815,11 +814,11 @@ function extractRustSymbols(node, _sourceCode, collectors) {
  * 提取 Java 符号
  */
 function extractJavaSymbols(node, _sourceCode, collectors) {
-  const { functions, classes, imports, exports } = collectors;
+  const { functions, classes, interfaces, imports, exports } = collectors;
 
   if (node.type === 'method_declaration') {
     const nameNode = node.childForFieldName('name');
-    const modifiersNode = node.childForFieldName('modifiers');
+    const modifiersNode = node.children.find(c => c.type === 'modifiers');
     if (nameNode) {
       const modifiers = modifiersNode ? modifiersNode.text.split(/\s+/) : [];
       const isExported = modifiers.includes('public');
@@ -937,7 +936,7 @@ function extractJavaSymbols(node, _sourceCode, collectors) {
   }
 
   for (const child of node.children) {
-    extractJavaSymbols(child, sourceCode, collectors);
+    extractJavaSymbols(child, _sourceCode, collectors);
   }
 }
 
@@ -1014,7 +1013,7 @@ function extractPythonCalls(node, _sourceCode, filePath, calls) {
 
   // 递归处理子节点
   for (const child of node.children) {
-    extractPythonCalls(child, sourceCode, filePath, calls);
+    extractPythonCalls(child, _sourceCode, filePath, calls);
   }
 }
 
@@ -1055,7 +1054,7 @@ function extractGoCalls(node, _sourceCode, filePath, calls) {
 
   // 递归处理子节点
   for (const child of node.children) {
-    extractGoCalls(child, sourceCode, filePath, calls);
+    extractGoCalls(child, _sourceCode, filePath, calls);
   }
 }
 
@@ -1096,7 +1095,7 @@ function extractRustCalls(node, _sourceCode, filePath, calls) {
 
   // 递归处理子节点
   for (const child of node.children) {
-    extractRustCalls(child, sourceCode, filePath, calls);
+    extractRustCalls(child, _sourceCode, filePath, calls);
   }
 }
 
@@ -1133,7 +1132,7 @@ function extractJavaCalls(node, _sourceCode, filePath, calls) {
 
   // 递归处理子节点
   for (const child of node.children) {
-    extractJavaCalls(child, sourceCode, filePath, calls);
+    extractJavaCalls(child, _sourceCode, filePath, calls);
   }
 }
 
@@ -1484,7 +1483,7 @@ export async function analyzeWithQuery(filePath, sourceCode, language) {
 
     let query;
     try {
-      query = lang.query(querySource);
+      query = new Query(lang, querySource);
     } catch (error) {
       console.warn(
         `[TreeSitter] Failed to compile query for ${language}: ${error.message}, falling back to tree traversal`
@@ -1529,8 +1528,12 @@ export async function analyzeWithQuery(filePath, sourceCode, language) {
             break;
           }
 
-          case 'class.name': {
-            const classDef = match.captures.find(c => c.name === 'class.def');
+          case 'class.name':
+          case 'struct.name':
+          case 'enum.name': {
+            const classDef = match.captures.find(
+              c => c.name === 'class.def' || c.name === 'struct.def' || c.name === 'enum.def'
+            );
             if (classDef) {
               classes.push({
                 name: node.text,
@@ -1542,8 +1545,11 @@ export async function analyzeWithQuery(filePath, sourceCode, language) {
             break;
           }
 
-          case 'interface.name': {
-            const interfaceDef = match.captures.find(c => c.name === 'interface.def');
+          case 'interface.name':
+          case 'trait.name': {
+            const interfaceDef = match.captures.find(
+              c => c.name === 'interface.def' || c.name === 'trait.def'
+            );
             if (interfaceDef) {
               interfaces.push({
                 name: node.text,
@@ -1555,9 +1561,20 @@ export async function analyzeWithQuery(filePath, sourceCode, language) {
           }
 
           case 'import.source':
-          case 'import.module': {
+          case 'import.module':
+          case 'import.path':
+          case 'import.scoped':
+          case 'import.wildcard':
+          case 'import.simple': {
             const importStmt = match.captures.find(
-              c => c.name === 'import.stmt' || c.name === 'import.from' || c.name === 'import.spec'
+              c =>
+                c.name === 'import.stmt' ||
+                c.name === 'import.from' ||
+                c.name === 'import.spec' ||
+                c.name === 'import.aliased' ||
+                c.name === 'import.wild' ||
+                c.name === 'import.scoped' ||
+                c.name === 'import.simple'
             );
             if (importStmt) {
               imports.push({
@@ -1621,7 +1638,30 @@ export async function analyzeWithQuery(filePath, sourceCode, language) {
     console.warn(
       `[TreeSitter] Query analysis failed for ${filePath}: ${error.message}, falling back to tree traversal`
     );
-    return await analyzeWithTreeSitter(filePath, sourceCode, language);
+    try {
+      return await analyzeWithTreeSitter(filePath, sourceCode, language);
+    } catch (fallbackError) {
+      console.warn(
+        `[TreeSitter] Tree traversal fallback also failed for ${filePath}: ${fallbackError.message}`
+      );
+      return {
+        language,
+        analyzer: 'tree-sitter',
+        analyzed_at: new Date().toISOString(),
+        analyzer_version: '0.26.7',
+        functions: [],
+        classes: [],
+        interfaces: [],
+        imports: [],
+        exports: [],
+        calls: [],
+        complexity_metrics: {},
+        quality_score: 0,
+        dependencies: [],
+        analysis_duration_ms: 0,
+        error: `Both query and tree traversal failed: ${fallbackError.message}`,
+      };
+    }
   } finally {
     if (parser) {
       parser.delete();

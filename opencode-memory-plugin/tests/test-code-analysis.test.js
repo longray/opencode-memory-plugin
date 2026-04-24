@@ -243,7 +243,7 @@ async def fetch_data() -> dict:
 `;
 
       try {
-        const result = await analyzeWithTreeSitter('test.py', pythonCode);
+        const result = await analyzeWithTreeSitter('test.py', pythonCode, 'python');
 
         expect(result).toBeDefined();
         expect(result.language).toBe('python');
@@ -283,7 +283,7 @@ func (c *Calculator) Add(a, b int) int {
 `;
 
       try {
-        const result = await analyzeWithTreeSitter('test.go', goCode);
+        const result = await analyzeWithTreeSitter('test.go', goCode, 'go');
 
         expect(result).toBeDefined();
         expect(result.language).toBe('go');
@@ -324,7 +324,7 @@ struct Point {
 `;
 
       try {
-        const result = await analyzeWithTreeSitter('test.rs', rustCode);
+        const result = await analyzeWithTreeSitter('test.rs', rustCode, 'rust');
 
         expect(result).toBeDefined();
         expect(result.language).toBe('rust');
@@ -363,7 +363,7 @@ public class Calculator {
 `;
 
       try {
-        const result = await analyzeWithTreeSitter('Calculator.java', javaCode);
+        const result = await analyzeWithTreeSitter('Calculator.java', javaCode, 'java');
 
         expect(result).toBeDefined();
         expect(result.language).toBe('java');

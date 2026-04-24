@@ -79,6 +79,6 @@
 ;; Package declaration
 (
   (package_clause
-    name: (package_identifier) @package.name
+    (package_identifier) @package.name
   ) @package.decl
 )

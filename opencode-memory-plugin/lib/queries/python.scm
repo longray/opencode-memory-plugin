@@ -10,14 +10,6 @@
   ) @function.def
 )
 
-;; Async function definitions
-(
-  (function_definition
-    (async) @function.async
-    name: (identifier) @function.name
-  ) @function.async_def
-)
-
 ;; Class definitions
 (
   (class_definition
