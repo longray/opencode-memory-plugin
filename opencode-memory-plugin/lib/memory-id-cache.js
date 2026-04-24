@@ -445,9 +445,6 @@ export class MemoryIdCache {
    * 扫描目录获取文件列表
    */
   scanDirectory(dir, extension) {
-    const fs = require('fs');
-    const path = require('path');
-
     const results = [];
 
     const scan = currentDir => {

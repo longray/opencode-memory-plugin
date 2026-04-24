@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { statSync } from 'fs';
 
 const EXCLUDED_PATTERNS = [
   /[\\/]\.env$/,
@@ -110,7 +110,7 @@ export function shouldSkipFile(filePath, content = null) {
 
 export function validateFileSize(filePath) {
   try {
-    const stats = readFileSync(filePath, { flag: 'r' }).length;
+    const stats = statSync(filePath).size;
     return {
       valid: stats <= MAX_FILE_SIZE,
       size: stats,
