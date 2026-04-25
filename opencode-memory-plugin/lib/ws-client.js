@@ -1,6 +1,9 @@
 /**
  * WebSocket Sync Client - Real-time synchronization with backend
  * Connects to backend WebSocket for live memory change notifications
+ *
+ * @deprecated Use lib/websocket/reliable-client.js (ReliableWebSocketClient) instead.
+ * This module has module-level shared state that causes issues with multiple instances.
  */
 
 import WebSocket from 'ws';

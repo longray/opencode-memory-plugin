@@ -45,11 +45,11 @@ export const memory_timeline = tool({
       output += `## ${date} (${byDate[date].length} entries)\n\n`;
       for (const entry of byDate[date].slice(0, 10)) {
         const content =
-          level === 0
-            ? entry.abstract?.substring(0, 50) || ''
-            : level === 1
-              ? (entry.overview || entry.abstract || '').substring(0, 100)
-              : '';
+      level === 0
+        ? entry.abstract?.substring(0, 50) || ''
+        : level === 1
+          ? (entry.overview || entry.abstract || '').substring(0, 100)
+          : (entry.overview || entry.abstract || '').substring(0, 300);
         output += `- [${entry.type}] ${content}${content ? '...' : ''} \`${entry.id}\`\n`;
       }
       output += '\n';

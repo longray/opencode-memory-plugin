@@ -371,7 +371,7 @@ export const conflict_resolve = tool({
   description: 'Resolve a sync conflict',
   args: {
     conflict_id: tool.schema.string().describe('Conflict ID'),
-    resolution: tool.schema.string().describe('Resolution: use_local, use_remote, keep_both'),
+    resolution: tool.schema.string().describe('Resolution: keep_local, keep_server, merge'),
   },
   async execute(args) {
     const config = getConfig();

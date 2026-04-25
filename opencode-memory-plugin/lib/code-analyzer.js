@@ -134,16 +134,12 @@ export class CodeAnalyzer {
         const oxcDuration = performance.now() - oxcStartTime;
 
         if (oxcDuration > 200) {
-          warnings.push({
-            type: 'degraded',
-            from: 'oxc',
-            to: 'tree-sitter',
-            reason: 'timeout',
-            duration_ms: oxcDuration,
-          });
-        } else {
-          return result;
+          console.warn(
+            `[CodeAnalyzer] Slow Oxc parse for ${filePath}: ${oxcDuration.toFixed(0)}ms`
+          );
         }
+
+        return result;
       } catch (error) {
         warnings.push({
           type: 'degraded',

@@ -1,6 +1,23 @@
 import fs from 'fs';
 import path from 'path';
 import { LINK_MAP_FILE, MEMORY_FILE, MEMORY_DIR, CONFIG_FILE } from './constants.js';
+import { writeFileSync, renameSync } from 'fs';
+
+function atomicWriteJson(filePath, data) {
+  const tmpPath = filePath + '.tmp';
+  writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+  renameSync(tmpPath, filePath);
+}
+
+function readJsonSafe(filePath) {
+  const raw = fs.readFileSync(filePath, 'utf-8');
+  const parsed = JSON.parse(raw);
+  if (!parsed || typeof parsed !== 'object') {
+    console.warn(`[indexer] Invalid JSON structure in ${filePath}, resetting`);
+    return { version: '2.4.0', entries: {} };
+  }
+  return parsed;
+}
 
 export async function updateDayOverview(dayDir, entry) {
   const overviewPath = path.join(dayDir, '.overview.md');
@@ -37,7 +54,7 @@ export async function updateLinkMap(entry, filePath) {
 
   if (fs.existsSync(LINK_MAP_FILE)) {
     try {
-      linkMap = JSON.parse(fs.readFileSync(LINK_MAP_FILE, 'utf-8'));
+      linkMap = readJsonSafe(LINK_MAP_FILE);
     } catch {
       // ignore
     }
@@ -57,17 +74,17 @@ export async function updateLinkMap(entry, filePath) {
     memory_id: entry.memory_id || null,
   };
 
-  fs.writeFileSync(LINK_MAP_FILE, JSON.stringify(linkMap, null, 2));
+  atomicWriteJson(LINK_MAP_FILE, linkMap);
 }
 
 export async function removeFromLinkMap(localId) {
   if (!fs.existsSync(LINK_MAP_FILE)) return;
 
   try {
-    const linkMap = JSON.parse(fs.readFileSync(LINK_MAP_FILE, 'utf-8'));
+    const linkMap = readJsonSafe(LINK_MAP_FILE);
     if (linkMap.entries && linkMap.entries[localId]) {
       delete linkMap.entries[localId];
-      fs.writeFileSync(LINK_MAP_FILE, JSON.stringify(linkMap, null, 2));
+      atomicWriteJson(LINK_MAP_FILE, linkMap);
     }
   } catch {
     // ignore

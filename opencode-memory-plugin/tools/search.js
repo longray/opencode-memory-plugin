@@ -13,7 +13,7 @@ export const memory_search = tool({
     mode: tool.schema
       .string()
       .optional()
-      .default('keyword')
+      .default('hybrid')
       .describe('Search mode: vector, keyword, hybrid'),
     limit: tool.schema.number().optional().default(10),
     level: tool.schema.number().optional().default(0).describe('0=abstract, 1=overview, 2=full'),
@@ -21,7 +21,7 @@ export const memory_search = tool({
   async execute(args) {
     const config = getConfig();
     const client = getWrapperClient(config);
-    const mode = args.mode || 'keyword';
+    const mode = args.mode || 'hybrid';
     const limit = args.limit || 10;
     const level = args.level || 0;
 
@@ -98,8 +98,8 @@ async function localSearch(query, limit, level) {
             ? e.abstract?.substring(0, 50) || ''
             : level === 1
               ? (e.overview || e.abstract || '').substring(0, 100)
-              : '';
-        return `${i + 1}. [${e.type}] ${prefix}${prefix ? '...' : ''}\n   ID: ${e.id}`;
+              : (e.overview || e.abstract || '').substring(0, 300);
+        return `${i + 1}. [${e.type}] ${prefix}${level >= 2 ? '' : '...'}\n   ID: ${e.id}`;
       })
       .join('\n\n');
   } catch (e) {
@@ -115,8 +115,8 @@ function formatSearchResults(results, level) {
           ? (r.abstract || '').substring(0, 50)
           : level === 1
             ? (r.overview || r.abstract || '').substring(0, 100)
-            : (r.content || '').substring(0, 200);
-      return `${i + 1}. [${r.type || 'general'}] ${content}${content ? '...' : ''}\n   ID: ${r.id}`;
+            : (r.content || r.overview || r.abstract || '').substring(0, 500);
+      return `${i + 1}. [${r.type || 'general'}] ${content}${level >= 2 ? '' : '...'}\n   ID: ${r.id}`;
     })
     .join('\n\n');
 }

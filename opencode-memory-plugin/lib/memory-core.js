@@ -223,7 +223,9 @@ export async function syncMemoryToBackend({
     if (linkMap.entries[localId]) {
       linkMap.entries[localId].synced = true;
       linkMap.entries[localId].memory_id = memoryId;
-      fs.writeFileSync(LINK_MAP_FILE, JSON.stringify(linkMap, null, 2));
+      const tmpPath = LINK_MAP_FILE + '.tmp';
+      fs.writeFileSync(tmpPath, JSON.stringify(linkMap, null, 2), 'utf-8');
+      fs.renameSync(tmpPath, LINK_MAP_FILE);
     }
 
     return {
