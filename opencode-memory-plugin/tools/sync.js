@@ -360,7 +360,12 @@ export const conflict_list = tool({
       if (!conflicts || conflicts.length === 0) {
         return '✅ No conflicts found';
       }
-      return conflicts.map(c => `${c.id}: ${c.description}`).join('\n');
+      return conflicts
+        .map(
+          c =>
+            `- **${c.id}**: ${c.description || 'No description'}${c.local_id ? ` (local: ${c.local_id.substring(0, 12)}...)` : ''}${c.remote_id ? ` (remote: ${c.remote_id.substring(0, 12)}...)` : ''}`
+        )
+        .join('\n');
     } catch (e) {
       return `❌ Error: ${e.message}`;
     }

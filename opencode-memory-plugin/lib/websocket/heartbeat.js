@@ -53,7 +53,7 @@ export class HeartbeatManager {
       clearTimeout(this.monitorTimer);
     }
 
-    const checkInterval = this.interval * this.maxMissed;
+    const checkInterval = this.interval;
     this.monitorTimer = setTimeout(() => {
       this.missedCount++;
       if (this.missedCount >= this.maxMissed) {

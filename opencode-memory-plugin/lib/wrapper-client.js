@@ -160,6 +160,14 @@ class HTTPClient {
         throw new WrapperError('Backend service unavailable', 503, true);
       }
 
+      if (error.cause?.code === 'ECONNREFUSED' || error.cause?.code === 'ENOTFOUND') {
+        throw new WrapperError('Backend service unavailable', 503, true);
+      }
+
+      if (error instanceof TypeError && error.message.includes('fetch failed')) {
+        throw new WrapperError('Backend service unavailable', 503, true);
+      }
+
       logError('HTTP', `Exception: ${error.message}`);
       throw error;
     }
@@ -199,7 +207,7 @@ async function withRetry(fn, maxRetries = 3, baseDelay = 1000) {
       }
 
       // 指数退避
-      const delay = baseDelay * Math.pow(2, attempt);
+      const delay = baseDelay * Math.pow(2, attempt) * (0.5 + Math.random() * 0.5);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }

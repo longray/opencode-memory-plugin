@@ -6,6 +6,8 @@ import { resolveProjectId } from './project-resolver.js';
 import { shouldSkipFile } from './privacy-filter.js';
 import { getConfig } from './storage.js';
 import { MemoryIdCache } from './memory-id-cache.js';
+import fs from 'fs';
+import path from 'path';
 import { readFileSync } from 'fs';
 import { extname, relative, basename } from 'path';
 import { createHash } from 'crypto';
@@ -830,9 +832,6 @@ export class AnalysisQueue {
     const startTime = performance.now();
     const projectId = await resolveProjectId({ projectRoot });
     const tenantId = this.wrapperClient.tenantId;
-    const { codeAnalyzer } = await import('./code-analyzer.js');
-    const fs = await import('fs');
-    const path = await import('path');
 
     const SUPPORTED = new Set(['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.tsx']);
     const SKIP = new Set([
