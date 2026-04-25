@@ -4,8 +4,9 @@ import { extname } from 'path';
 import { analyzeWithTreeSitter } from './tree-sitter-parser.js';
 import { getConfig } from './storage.js';
 
-const userConfig = getConfig();
-const CODE_ANALYSIS_CONFIG = userConfig.code_analysis || {};
+function readCodeAnalysisConfig() {
+  return getConfig().code_analysis || {};
+}
 
 /**
  * @typedef {Object} AnalysisResult
@@ -38,17 +39,20 @@ const CODE_ANALYSIS_CONFIG = userConfig.code_analysis || {};
  * @property {number} [batchMaxSize=10] - 批量最大大小
  */
 
-export const DEFAULT_CONFIG = {
-  debounceMs: CODE_ANALYSIS_CONFIG.debounce_ms || 300,
-  maxConcurrent: CODE_ANALYSIS_CONFIG.max_concurrent || 2,
-  maxQueueSize: CODE_ANALYSIS_CONFIG.max_queue_size || 10,
-  queueTimeoutMs: CODE_ANALYSIS_CONFIG.queue_timeout_ms || 5000,
-  fileTimeoutMs: CODE_ANALYSIS_CONFIG.file_timeout_ms || 500,
-  largeFileThreshold: CODE_ANALYSIS_CONFIG.large_file_threshold || 5000,
-  skipFileThreshold: CODE_ANALYSIS_CONFIG.skip_file_threshold || 10000,
-  batchDelayMs: CODE_ANALYSIS_CONFIG.batch_delay_ms || 2000,
-  batchMaxSize: CODE_ANALYSIS_CONFIG.batch_max_size || 10,
-};
+export const DEFAULT_CONFIG = (() => {
+  const _cfg = readCodeAnalysisConfig();
+  return {
+    debounceMs: _cfg.debounce_ms || 300,
+    maxConcurrent: _cfg.max_concurrent || 2,
+    maxQueueSize: _cfg.max_queue_size || 10,
+    queueTimeoutMs: _cfg.queue_timeout_ms || 5000,
+    fileTimeoutMs: _cfg.file_timeout_ms || 500,
+    largeFileThreshold: _cfg.large_file_threshold || 5000,
+    skipFileThreshold: _cfg.skip_file_threshold || 10000,
+    batchDelayMs: _cfg.batch_delay_ms || 2000,
+    batchMaxSize: _cfg.batch_max_size || 10,
+  };
+})();
 
 const EXTENSION_TO_LANGUAGE = {
   '.js': 'javascript',
@@ -679,7 +683,13 @@ export class CodeAnalyzer {
           node.id?.name === funcName);
 
       if (isMatch) {
-        if (!found || (startLine && nodeStartLine && Math.abs(nodeStartLine - startLine) < Math.abs((found.loc?.start?.line || 0) - startLine))) {
+        if (
+          !found ||
+          (startLine &&
+            nodeStartLine &&
+            Math.abs(nodeStartLine - startLine) <
+              Math.abs((found.loc?.start?.line || 0) - startLine))
+        ) {
           found = node;
         }
         return;

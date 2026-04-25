@@ -34,6 +34,7 @@ export const memory_search = tool({
           query: args.query,
           mode,
           limit,
+          level,
           tenant_id: tenantId,
         });
 

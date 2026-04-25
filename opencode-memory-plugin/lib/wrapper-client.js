@@ -55,13 +55,44 @@ const LOG_FILE = path.join(HOME, '.opencode', 'memory', 'memory.log');
 /**
  * 写入日志到 memory.log
  */
+const SENSITIVE_KEYS = new Set([
+  'WRAPPER_MEILI_API_KEY',
+  'authorization',
+  'api_key',
+  'apikey',
+  'token',
+  'password',
+  'secret',
+  'credential',
+  'private_key',
+  'access_token',
+]);
+
+function redactSensitive(data) {
+  if (!data || typeof data !== 'object') return data;
+  const redacted = { ...data };
+  for (const key of Object.keys(redacted)) {
+    if (SENSITIVE_KEYS.has(key.toLowerCase())) {
+      redacted[key] = '[REDACTED]';
+    }
+    if (key === 'headers' && typeof redacted[key] === 'object') {
+      const headers = { ...redacted[key] };
+      for (const h of Object.keys(headers)) {
+        if (SENSITIVE_KEYS.has(h.toLowerCase())) headers[h] = '[REDACTED]';
+      }
+      redacted[key] = headers;
+    }
+  }
+  return redacted;
+}
+
 function writeLog(level, category, message, data = null) {
   const timestamp = new Date().toISOString();
-  const logLine = `[${timestamp}] [${level}] [${category}] ${message}${data ? ' ' + JSON.stringify(data) : ''}\n`;
+  const safeData = level === 'DEBUG' ? null : redactSensitive(data);
+  const logLine = `[${timestamp}] [${level}] [${category}] ${message}${safeData ? ' ' + JSON.stringify(safeData) : ''}\n`;
   try {
     fs.appendFileSync(LOG_FILE, logLine);
   } catch {
-    // Fallback to console if file write fails
     console.log(logLine.trim());
   }
 }
@@ -439,7 +470,10 @@ export class WrapperClient {
       tenant_id: tenant_id || this.tenantId,
     };
 
-    return await withRetry(() => this.http.post('/api/v1/access-log', requestBody), this.maxRetries);
+    return await withRetry(
+      () => this.http.post('/api/v1/access-log', requestBody),
+      this.maxRetries
+    );
   }
 
   /**
@@ -609,7 +643,10 @@ export class WrapperClient {
   async listConflicts({ limit = 10, tenant_id }) {
     const body = { tenant_id: tenant_id || this.tenantId, limit };
     try {
-      return await withRetry(() => this.http.post('/api/v1/sync/conflicts/list', body), this.maxRetries);
+      return await withRetry(
+        () => this.http.post('/api/v1/sync/conflicts/list', body),
+        this.maxRetries
+      );
     } catch {
       return [];
     }
@@ -987,8 +1024,13 @@ let wrapperClientInstance = null;
 export function getWrapperClient(config) {
   if (!wrapperClientInstance) {
     wrapperClientInstance = new WrapperClient(config);
-  } else if (config?.backend?.tenant_id && config.backend.tenant_id !== wrapperClientInstance.tenantId) {
-    console.warn(`[WrapperClient] Ignoring tenant_id change: ${wrapperClientInstance.tenantId} → ${config.backend.tenantId}. Use forceNew=true if needed.`);
+  } else if (
+    config?.backend?.tenant_id &&
+    config.backend.tenant_id !== wrapperClientInstance.tenantId
+  ) {
+    console.warn(
+      `[WrapperClient] Ignoring tenant_id change: ${wrapperClientInstance.tenantId} → ${config.backend.tenantId}. Use forceNew=true if needed.`
+    );
   }
   return wrapperClientInstance;
 }

@@ -1,5 +1,5 @@
 import { tool } from '@opencode-ai/plugin/tool';
-import { getConfig } from '../lib/storage.js';
+import { getConfig, resolveTenantId } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
 
 export const memory_relate = tool({
@@ -15,6 +15,7 @@ export const memory_relate = tool({
     const config = getConfig();
     const client = getWrapperClient(config);
     const backendEnabled = config?.backend?.enabled !== false;
+    const tenantId = resolveTenantId(config);
 
     if (!backendEnabled) {
       return '❌ Backend not enabled. Graph relations require backend service.';
@@ -31,6 +32,7 @@ export const memory_relate = tool({
             to_id: args.to_id,
             type: args.relation_type || 'related',
             weight: args.weight || 0.5,
+            tenant_id: tenantId,
           });
           return `✅ Relation created: ${args.from_id} → ${args.to_id} (${args.relation_type})`;
         }
@@ -39,7 +41,10 @@ export const memory_relate = tool({
           if (!args.from_id) {
             return '❌ from_id is required for query action';
           }
-          const queryResult = await client.getRelations({ memory_id: args.from_id });
+          const queryResult = await client.getRelations({
+            memory_id: args.from_id,
+            tenant_id: tenantId,
+          });
           const relations = Array.isArray(queryResult) ? queryResult : queryResult?.relations || [];
           if (!relations || relations.length === 0) {
             return `❌ No relations found for: ${args.from_id}`;
@@ -59,7 +64,10 @@ export const memory_relate = tool({
             return '❌ from_id and to_id are required for delete action';
           }
           // Query relations to find the relation_id
-          const relationsResult = await client.getRelations({ memory_id: args.from_id });
+          const relationsResult = await client.getRelations({
+            memory_id: args.from_id,
+            tenant_id: tenantId,
+          });
           const relations = Array.isArray(relationsResult)
             ? relationsResult
             : relationsResult?.relations || [];
@@ -68,7 +76,7 @@ export const memory_relate = tool({
             return `❌ No relation found from ${args.from_id} to ${args.to_id}`;
           }
           const relationId = targetRelation.id || targetRelation.relation_id;
-          await client.deleteRelation(relationId);
+          await client.deleteRelation(relationId, tenantId);
           return `✅ Relation deleted: ${args.from_id} → ${args.to_id}`;
 
         default:
@@ -91,6 +99,7 @@ export const memory_graph = tool({
     const config = getConfig();
     const client = getWrapperClient(config);
     const backendEnabled = config?.backend?.enabled !== false;
+    const tenantId = resolveTenantId(config);
 
     if (!backendEnabled) {
       return '❌ Backend not enabled. Graph traversal requires backend service.';
@@ -101,6 +110,7 @@ export const memory_graph = tool({
         memory_id: args.memory_id,
         depth: args.depth || 2,
         limit: args.limit || 20,
+        tenant_id: tenantId,
       });
 
       if (!results) {

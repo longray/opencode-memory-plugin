@@ -27,6 +27,7 @@ export const rebuild_index = tool({
     const config = getConfig();
     const client = getWrapperClient(config);
     const backendEnabled = config?.backend?.enabled !== false;
+    const tenantId = resolveTenantId(config);
 
     if (!backendEnabled) {
       return '❌ Backend not enabled';
@@ -59,14 +60,16 @@ export const rebuild_index = tool({
           source: 'plugin',
           source_id: entry.id,
           local_id: entry.id,
+          tenant_id: tenantId,
         });
 
         entry.synced = true;
         await updateLinkMap(entry, filePath);
 
         synced++;
-      } catch {
+      } catch (err) {
         failed++;
+        writeLog('ERROR', 'rebuild_index', `Failed to sync ${entry.id}: ${err.message}`);
       }
     }
 
@@ -147,10 +150,11 @@ export const incremental_sync = tool({
   async execute(args) {
     const config = getConfig();
     const client = getWrapperClient(config);
+    const backendEnabled = config?.backend?.enabled !== false;
     const linkMap = getLinkMap();
     const entries = Object.values(linkMap.entries || {});
 
-    if (args.dry_run) {
+    if (backendEnabled && args.dry_run) {
       const pending = entries.filter(e => !e.synced);
       return `📋 Dry run: ${pending.length} entries would be synced`;
     }
@@ -220,6 +224,7 @@ export const incremental_sync = tool({
             source: 'plugin',
             source_id: entry.id,
             local_id: entry.id,
+            tenant_id: tenantId,
           });
 
           entry.synced = true;
@@ -275,7 +280,13 @@ export const full_sync = tool({
   async execute(args) {
     const config = getConfig();
     const client = getWrapperClient(config);
+    const backendEnabled = config?.backend?.enabled !== false;
 
+    if (!backendEnabled) {
+      return '❌ Backend not enabled. Enable it in memory-config.json or set WRAPPER_MEILI_API_KEY.';
+    }
+
+    const tenantId = resolveTenantId(config);
     const linkMap = getLinkMap();
     const entries = Object.values(linkMap.entries || {});
 
@@ -288,23 +299,37 @@ export const full_sync = tool({
     }
 
     try {
-      const memories = entries.map(e => {
-        const filePath = path.join(MEMORY_DIR, e.path);
-        const content = fs.readFileSync(filePath, 'utf-8');
-        return {
-          content,
-          abstract: e.abstract || null,
-          overview: e.overview || null,
-          type: e.type || 'general',
-          tags: e.tags || [],
-          source: 'plugin',
-          source_id: e.id || null,
-          local_id: e.id || null,
-          project_id: e.project || 'global',
-        };
-      });
+      const memories = [];
+      const failedFiles = [];
 
-      const tenantId = resolveTenantId(config);
+      for (const e of entries) {
+        const filePath = path.join(MEMORY_DIR, e.path);
+        try {
+          const content = fs.readFileSync(filePath, 'utf-8');
+          memories.push({
+            content,
+            abstract: e.abstract || null,
+            overview: e.overview || null,
+            type: e.type || 'general',
+            tags: e.tags || [],
+            source: 'plugin',
+            source_id: e.id || null,
+            local_id: e.id || null,
+            project_id: e.project || 'global',
+          });
+        } catch (err) {
+          if (err.code === 'ENOENT') {
+            failedFiles.push(e.id);
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      if (failedFiles.length > 0) {
+        writeLog('WARN', 'full_sync', `Skipped ${failedFiles.length} missing files`);
+      }
+
       const result = await client.syncFull(memories, tenantId);
 
       const skipped = result.skipped || [];
@@ -354,6 +379,11 @@ export const conflict_list = tool({
   async execute(args) {
     const config = getConfig();
     const client = getWrapperClient(config);
+    const backendEnabled = config?.backend?.enabled !== false;
+
+    if (!backendEnabled) {
+      return '❌ Backend not enabled. Conflict detection requires backend service.';
+    }
 
     try {
       const conflicts = await client.listConflicts({ limit: args.limit || 10 });
@@ -367,7 +397,10 @@ export const conflict_list = tool({
         )
         .join('\n');
     } catch (e) {
-      return `❌ Error: ${e.message}`;
+      if (e.code === 'ECONNREFUSED' || e.code === 'ENOTFOUND') {
+        return '❌ Backend unreachable. Please check that the backend service is running.';
+      }
+      return `❌ Error listing conflicts: ${e.message}`;
     }
   },
 });
@@ -384,11 +417,7 @@ export const conflict_resolve = tool({
 
     try {
       const normalizedResolution = (args.resolution || '').toLowerCase();
-      await client.resolveConflict(
-        args.conflict_id,
-        normalizedResolution,
-        resolveTenantId(config)
-      );
+      await client.resolveConflict(args.conflict_id, normalizedResolution, resolveTenantId(config));
       return `✅ Conflict resolved: ${args.conflict_id} (${normalizedResolution})`;
     } catch (e) {
       return `❌ Error: ${e.message}`;
@@ -416,9 +445,7 @@ export const sync_checkpoint = tool({
 
     if (action === 'list') {
       try {
-        const fingerprints = await client.getServerFingerprints(
-          resolveTenantId(config)
-        );
+        const fingerprints = await client.getServerFingerprints(resolveTenantId(config));
         const list = fingerprints.fingerprints || fingerprints || [];
 
         if (list.length === 0) {

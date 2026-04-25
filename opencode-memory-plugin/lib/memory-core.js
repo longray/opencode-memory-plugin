@@ -37,9 +37,9 @@ import {
   updateMemoryIndex,
   updateDayOverview,
 } from './indexer.js';
-import { deleteEntryFile } from './storage.js';
+import { deleteEntryFile, getEntryById } from './storage.js';
 import { LINK_MAP_FILE } from './constants.js';
-import { getEntryById } from './storage.js';
+import { containsSensitiveInfo } from './privacy-filter.js';
 import { extractByLevel } from './extractor.js';
 
 /**
@@ -119,6 +119,42 @@ export async function writeMemory({
       memoryId: null,
       message: '❌ Error: pinned must be a boolean',
     };
+  }
+
+  if (abstract.length > 100) {
+    return {
+      success: false,
+      localId: '',
+      filePath: '',
+      memoryId: null,
+      message: '❌ Error: abstract must be ≤100 characters (current: ' + abstract.length + ')',
+    };
+  }
+  if (overview.length > 500) {
+    return {
+      success: false,
+      localId: '',
+      filePath: '',
+      memoryId: null,
+      message: '❌ Error: overview must be ≤500 characters (current: ' + overview.length + ')',
+    };
+  }
+  if (content.length > 100_000) {
+    return {
+      success: false,
+      localId: '',
+      filePath: '',
+      memoryId: null,
+      message:
+        '❌ Error: content must be ≤100KB (current: ' + (content.length / 1024).toFixed(1) + 'KB)',
+    };
+  }
+
+  const sensitiveCheck = containsSensitiveInfo(content);
+  if (sensitiveCheck.hasSensitive) {
+    console.warn(
+      `[memory-core] Content contains ${sensitiveCheck.patterns.length} sensitive pattern(s), saving anyway`
+    );
   }
 
   try {

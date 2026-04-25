@@ -3,8 +3,8 @@ import { writeAndSyncMemory } from '../lib/memory-core.js';
 import { getConfig, getLinkMap, resolveTenantId } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
 import { resolveProjectId } from '../lib/project-resolver.js';
+import { atomicWriteJson } from '../lib/indexer.js';
 import { LINK_MAP_FILE } from '../lib/constants.js';
-import fs from 'fs';
 
 function normalizeTags(tags) {
   if (Array.isArray(tags)) return tags;
@@ -67,7 +67,7 @@ export const memory_write = tool({
       const linkMap = getLinkMap();
       if (linkMap.entries[result.localId]) {
         linkMap.entries[result.localId].pinned = true;
-        fs.writeFileSync(LINK_MAP_FILE, JSON.stringify(linkMap, null, 2));
+        atomicWriteJson(LINK_MAP_FILE, linkMap);
       }
     }
 
@@ -106,7 +106,7 @@ export const memory_pin = tool({
     linkMap.entries[entry_id].pinned = isPinned;
 
     try {
-      fs.writeFileSync(LINK_MAP_FILE, JSON.stringify(linkMap, null, 2));
+      atomicWriteJson(LINK_MAP_FILE, linkMap);
       return `✅ Successfully ${isPinned ? 'pinned' : 'unpinned'} memory entry '${entry_id}'.`;
     } catch (e) {
       return `❌ Error: Failed to update memory entry '${entry_id}': ${e.message}`;

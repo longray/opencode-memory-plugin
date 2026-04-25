@@ -1,5 +1,5 @@
 import { codeAnalyzer } from './code-analyzer.js';
-import { WrapperClient } from './wrapper-client.js';
+import { getWrapperClient } from './wrapper-client.js';
 import { getPrecomputeClient } from './precompute/client.js';
 import { FingerprintCache } from './precompute/fingerprint-cache.js';
 import { resolveProjectId } from './project-resolver.js';
@@ -13,8 +13,9 @@ import { extname, relative, basename } from 'path';
 import { createHash } from 'crypto';
 import { analyzeWithQuery } from './tree-sitter-parser.js';
 
-const userConfig = getConfig();
-const CODE_ANALYSIS_CONFIG = userConfig.code_analysis || {};
+function readCodeAnalysisConfig() {
+  return getConfig().code_analysis || {};
+}
 
 const SUPPORTED_EXTENSIONS = [
   '.js',
@@ -30,15 +31,16 @@ const SUPPORTED_EXTENSIONS = [
   '.java',
 ];
 
-const DEBOUNCE_MS = CODE_ANALYSIS_CONFIG.debounce_ms || 300;
-const BATCH_DELAY_MS = CODE_ANALYSIS_CONFIG.batch_delay_ms || 2000;
-const BATCH_MAX_SIZE = CODE_ANALYSIS_CONFIG.batch_max_size || 10;
-const MAX_CONCURRENT = CODE_ANALYSIS_CONFIG.max_concurrent || 2;
-const QUEUE_TIMEOUT_MS = CODE_ANALYSIS_CONFIG.queue_timeout_ms || 5000;
-const MAX_QUEUE_SIZE = CODE_ANALYSIS_CONFIG.max_queue_size || 10;
+const _cfg = readCodeAnalysisConfig();
+const DEBOUNCE_MS = _cfg.debounce_ms || 300;
+const BATCH_DELAY_MS = _cfg.batch_delay_ms || 2000;
+const BATCH_MAX_SIZE = _cfg.batch_max_size || 10;
+const MAX_CONCURRENT = _cfg.max_concurrent || 2;
+const QUEUE_TIMEOUT_MS = _cfg.queue_timeout_ms || 5000;
+const MAX_QUEUE_SIZE = _cfg.queue_max_size || 10;
 
 // BL-CA-41: Enable new Atom/Entity/Reference API
-const _USE_ATOM_ENTITY_API = CODE_ANALYSIS_CONFIG.use_atom_entity_api !== false;
+const _USE_ATOM_ENTITY_API = _cfg.use_atom_entity_api !== false;
 
 export class AnalysisQueue {
   constructor() {
@@ -47,12 +49,12 @@ export class AnalysisQueue {
     this.batch = [];
     this.batchTimer = null;
     this.debounceTimer = null;
-    this.wrapperClient = new WrapperClient();
+    this.wrapperClient = getWrapperClient(getConfig());
     this.precomputeClient = getPrecomputeClient();
     this.concurrentCount = 0;
     this.memoryIdCache = null;
     this.fingerprintCache = null;
-    this.usePrecompute = CODE_ANALYSIS_CONFIG.use_precompute !== false;
+    this.usePrecompute = readCodeAnalysisConfig().use_precompute !== false;
   }
 
   async initCache() {
@@ -98,7 +100,9 @@ export class AnalysisQueue {
 
       if (this.queue.length >= MAX_QUEUE_SIZE) {
         const removed = this.queue.shift();
-        console.warn(`[CodeAnalysis] Queue full (${MAX_QUEUE_SIZE}), dropped oldest: ${removed.relativePath}`);
+        console.warn(
+          `[CodeAnalysis] Queue full (${MAX_QUEUE_SIZE}), dropped oldest: ${removed.relativePath}`
+        );
       }
 
       const existingIndex = this.queue.findIndex(item => item.filePath === filePath);
@@ -478,7 +482,10 @@ export class AnalysisQueue {
         createdAtoms.push(atom);
         atomIds.push(atom.id);
       } catch (error) {
-        console.error(`[CodeAnalysis] Failed to create atom for function ${func.name}:`, error.message);
+        console.error(
+          `[CodeAnalysis] Failed to create atom for function ${func.name}:`,
+          error.message
+        );
       }
     }
 
@@ -513,7 +520,10 @@ export class AnalysisQueue {
         createdAtoms.push(atom);
         atomIds.push(atom.id);
       } catch (error) {
-        console.error(`[CodeAnalysis] Failed to create atom for import ${imp.source}:`, error.message);
+        console.error(
+          `[CodeAnalysis] Failed to create atom for import ${imp.source}:`,
+          error.message
+        );
       }
     }
 
@@ -561,12 +571,17 @@ export class AnalysisQueue {
         }
       } catch (error) {
         refFailures++;
-        console.error(`[CodeAnalysis] Failed to create reference for call ${call.target}:`, error.message);
+        console.error(
+          `[CodeAnalysis] Failed to create reference for call ${call.target}:`,
+          error.message
+        );
       }
     }
 
     if (refFailures > 0) {
-      console.warn(`[CodeAnalysis] ${refFailures}/${(analysisResult.calls || []).length} references failed`);
+      console.warn(
+        `[CodeAnalysis] ${refFailures}/${(analysisResult.calls || []).length} references failed`
+      );
     }
 
     if (createdReferences.length === 0 && createdAtoms.some(a => a.type === 'function')) {
@@ -588,7 +603,13 @@ export class AnalysisQueue {
 
     try {
       const analysisResult = await analyzeWithQuery(filePath, content, language);
-      const result = await this._createAtomsEntityReferences(relativePath, analysisResult, projectId, language, content);
+      const result = await this._createAtomsEntityReferences(
+        relativePath,
+        analysisResult,
+        projectId,
+        language,
+        content
+      );
 
       const duration = performance.now() - startTime;
       console.log(

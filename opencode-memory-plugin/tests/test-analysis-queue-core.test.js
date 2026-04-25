@@ -20,6 +20,14 @@ jest.unstable_mockModule('../lib/wrapper-client.js', () => ({
     deleteAtom: jest.fn().mockResolvedValue({ success: true }),
     uploadMemories: jest.fn().mockResolvedValue({ success: 1, total: 1 }),
   })),
+  getWrapperClient: jest.fn().mockReturnValue({
+    tenantId: 'test-tenant',
+    createAtom: jest.fn().mockResolvedValue({ id: 'atom:1' }),
+    createEntity: jest.fn().mockResolvedValue({ id: 'entity:1' }),
+    createReference: jest.fn().mockResolvedValue({ id: 'ref:1' }),
+    deleteAtom: jest.fn().mockResolvedValue({ success: true }),
+    uploadMemories: jest.fn().mockResolvedValue({ success: 1, total: 1 }),
+  }),
 }));
 
 jest.unstable_mockModule('../lib/precompute/client.js', () => ({
@@ -110,7 +118,6 @@ jest.unstable_mockModule('fs/promises', () => ({
 const { AnalysisQueue } = await import('../lib/code-analysis-service.js');
 const { shouldSkipFile } = await import('../lib/privacy-filter.js');
 const { codeAnalyzer } = await import('../lib/code-analyzer.js');
-const fsModule = await import('fs');
 const { readFile: readFileMock } = await import('fs/promises');
 
 // ===== detectLanguage =====
@@ -273,7 +280,7 @@ describe('add', () => {
 
 // ===== processItem =====
 
-  describe('processItem', () => {
+describe('processItem', () => {
   let queue;
 
   beforeEach(() => {

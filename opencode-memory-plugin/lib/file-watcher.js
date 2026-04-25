@@ -4,9 +4,7 @@ import { shouldSkipFile } from './privacy-filter.js';
 import { getConfig } from './storage.js';
 import { relative } from 'path';
 
-const userConfig = getConfig();
-const CODE_ANALYSIS_CONFIG = userConfig.code_analysis || {};
-const DEBOUNCE_MS = CODE_ANALYSIS_CONFIG.debounce_ms || 300;
+const DEBOUNCE_MS = getConfig().code_analysis?.debounce_ms || 300;
 
 export class FileWatcher {
   constructor(projectRoot) {

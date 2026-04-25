@@ -1,12 +1,40 @@
 import fs from 'fs';
 import path from 'path';
+import { copyFileSync, writeFileSync, renameSync } from 'fs';
 import { LINK_MAP_FILE, MEMORY_FILE, MEMORY_DIR, CONFIG_FILE } from './constants.js';
-import { writeFileSync, renameSync } from 'fs';
 
-function atomicWriteJson(filePath, data) {
+let linkMapLock = Promise.resolve();
+
+export function atomicWriteJson(filePath, data) {
   const tmpPath = filePath + '.tmp';
   writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
-  renameSync(tmpPath, filePath);
+  try {
+    renameSync(tmpPath, filePath);
+  } catch (error) {
+    if (error.code === 'EXDEV') {
+      copyFileSync(tmpPath, filePath);
+      fs.unlinkSync(tmpPath);
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Serialize all link-map mutations to prevent TOCTOU race conditions.
+ * Wraps an async operation that reads link-map, modifies it, and writes it back.
+ */
+export async function withLinkMapLock(fn) {
+  await linkMapLock;
+  let releaseLock;
+  linkMapLock = new Promise(resolve => {
+    releaseLock = resolve;
+  });
+  try {
+    return await fn();
+  } finally {
+    releaseLock();
+  }
 }
 
 function readJsonSafe(filePath) {

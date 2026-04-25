@@ -39,6 +39,8 @@ const SENSITIVE_PATTERNS = [
   { pattern: /database[_-]?url\s*[:=]\s*["'][^"']{4,}["']/i, type: 'database_url' },
   { pattern: /connection[_-]?string\s*[:=]\s*["'][^"']{4,}["']/i, type: 'connection_string' },
   { pattern: /bearer\s+[a-zA-Z0-9_\-.]{10,}/i, type: 'bearer_token' },
+  { pattern: /MONGO_URI|REDIS_URL|GITHUB_TOKEN|SLACK_WEBHOOK/i, type: 'service_url' },
+  { pattern: /eyJ[A-Za-z0-9_-]{20,}/, type: 'base64_secret' },
 ];
 
 const MAX_FILE_SIZE = 1024 * 1024;
@@ -68,7 +70,7 @@ export function containsSensitiveInfo(content) {
       foundPatterns.push({
         type,
         count: matches ? matches.length : 0,
-        sample: matches && matches[0] ? matches[0].substring(0, 50) + '...' : null,
+        sample: matches && matches[0] ? `Found ${type} pattern` : null,
       });
     }
   }
