@@ -37,7 +37,6 @@ function normalizeMemory(memory) {
 describe('Phase A - Integration Tests (A-INT)', () => {
   jest.setTimeout(60000);
   beforeAll(async () => {
-    // Setup test environment
     await fs.mkdir(TEST_DIR, { recursive: true });
     await fs.mkdir(MEMORY_DIR, { recursive: true });
     console.log('Test environment created at:', TEST_DIR);
@@ -239,7 +238,7 @@ This is a full content for Phase A integration testing.
         console.error('❌ Upload failed:', error.message);
         throw error;
       }
-    }, 20000); // 增加到 20 秒超时
+    });
 
     it('should search memories via backend', async () => {
       try {
@@ -281,7 +280,7 @@ This is a full content for Phase A integration testing.
         console.error('❌ Search failed:', error.message);
         throw error;
       }
-    }, 15000);
+    });
 
     it('should handle batch upload', async () => {
       const timestamp = Date.now();
@@ -322,7 +321,7 @@ This is a full content for Phase A integration testing.
         console.error('❌ Batch upload failed:', error.message);
         throw error;
       }
-    }, 15000);
+    });
   });
 
   describe('Go/No-Go Checkpoint 4: End-to-End Workflow', () => {
@@ -515,7 +514,7 @@ ${entryData.content}
       const result2 = await response2.json();
       // Should be detected as duplicate or succeed depending on dedup implementation
       console.log('Second upload:', result2.success, 'success,', result2.failed, 'failed');
-    }, 15000);
+    });
   });
 
   describe('Go/No-Go Checkpoint 6: Performance', () => {
@@ -556,7 +555,7 @@ ${entryData.content}
       expect(duration).toBeLessThan(10000); // Should complete within 10 seconds
 
       console.log('✅ Performance test:', duration, 'ms');
-    }, 15000);
+    });
   });
 });
 

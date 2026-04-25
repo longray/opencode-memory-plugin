@@ -3,6 +3,7 @@
   "coverageDirectory": "coverage",
   "collectCoverageFrom": ["lib/**/*.js", "!lib/**/*.test.js", "!node_modules/**"],
   "testMatch": ["**/tests/**/*.test.js"],
+  "globalSetup": "<rootDir>/tests/global-setup.js",
   "coverageThreshold": {
     "global": {
       "branches": 10,
