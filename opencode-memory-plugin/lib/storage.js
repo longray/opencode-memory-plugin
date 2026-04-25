@@ -55,3 +55,12 @@ export function deleteEntryFile(filePath) {
     fs.unlinkSync(filePath);
   }
 }
+
+export function resolveTenantId(config) {
+  return (
+    config?.backend?.tenant_id ||
+    process.env.MEMORY_TENANT_ID ||
+    process.env.USERNAME ||
+    'default'
+  );
+}

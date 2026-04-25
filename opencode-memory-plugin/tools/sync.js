@@ -1,5 +1,5 @@
 import { tool } from '@opencode-ai/plugin/tool';
-import { getConfig, getLinkMap, deleteEntryFile } from '../lib/storage.js';
+import { getConfig, getLinkMap, deleteEntryFile, resolveTenantId } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
 import { MEMORY_DIR } from '../lib/constants.js';
 import { removeFromLinkMap, updateLinkMap } from '../lib/indexer.js';
@@ -188,7 +188,7 @@ export const incremental_sync = tool({
     }
 
     try {
-      const tenantId = config?.backend?.tenant_id || 'default';
+      const tenantId = resolveTenantId(config);
       const previewResult = await client.syncPreview(fingerprints, tenantId);
       const toUpload = previewResult.to_upload || [];
       const toDelete = previewResult.to_delete || [];
@@ -304,7 +304,7 @@ export const full_sync = tool({
         };
       });
 
-      const tenantId = config?.backend?.tenant_id || 'default';
+      const tenantId = resolveTenantId(config);
       const result = await client.syncFull(memories, tenantId);
 
       const skipped = result.skipped || [];
@@ -387,7 +387,7 @@ export const conflict_resolve = tool({
       await client.resolveConflict(
         args.conflict_id,
         normalizedResolution,
-        config?.backend?.tenant_id
+        resolveTenantId(config)
       );
       return `✅ Conflict resolved: ${args.conflict_id} (${normalizedResolution})`;
     } catch (e) {
@@ -417,7 +417,7 @@ export const sync_checkpoint = tool({
     if (action === 'list') {
       try {
         const fingerprints = await client.getServerFingerprints(
-          config?.backend?.tenant_id || 'default'
+          resolveTenantId(config)
         );
         const list = fingerprints.fingerprints || fingerprints || [];
 

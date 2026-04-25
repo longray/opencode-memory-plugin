@@ -17,6 +17,9 @@ jest.unstable_mockModule('@opencode-ai/plugin/tool', () => {
     describe: () => mockSchema,
     optional: () => mockSchema,
     default: () => mockSchema,
+    min: () => mockSchema,
+    max: () => mockSchema,
+    positive: () => mockSchema,
   };
 
   return {
@@ -38,6 +41,7 @@ jest.unstable_mockModule('../lib/memory-core.js', () => ({
 
 jest.unstable_mockModule('../lib/storage.js', () => ({
   getConfig: jest.fn(() => ({})),
+  resolveTenantId: jest.fn(() => 'default'),
   getLinkMap: jest.fn(() => ({
     version: '2.4.0',
     entries: {

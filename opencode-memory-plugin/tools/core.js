@@ -1,6 +1,6 @@
 import { tool } from '@opencode-ai/plugin/tool';
 import { writeAndSyncMemory } from '../lib/memory-core.js';
-import { getConfig, getLinkMap } from '../lib/storage.js';
+import { getConfig, getLinkMap, resolveTenantId } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
 import { resolveProjectId } from '../lib/project-resolver.js';
 import { LINK_MAP_FILE } from '../lib/constants.js';
@@ -19,9 +19,9 @@ function normalizeTags(tags) {
 export const memory_write = tool({
   description: 'Write an entry to long-term memory. abstract and overview are REQUIRED.',
   args: {
-    content: tool.schema.string().describe('L2: Full content (required)'),
-    abstract: tool.schema.string().describe('L0: Summary ≤100 chars (REQUIRED)'),
-    overview: tool.schema.string().describe('L1: Key points ≤500 chars (REQUIRED)'),
+    content: tool.schema.string().min(1).describe('L2: Full content (required)'),
+    abstract: tool.schema.string().min(1).describe('L0: Summary ≤100 chars (REQUIRED)'),
+    overview: tool.schema.string().min(1).describe('L1: Key points ≤500 chars (REQUIRED)'),
     type: tool.schema.string().optional().default('general'),
     tags: tool.schema.array(tool.schema.string()).optional().default([]),
     pinned: tool.schema.boolean().optional().default(false),
@@ -36,7 +36,7 @@ export const memory_write = tool({
     const content = args.content;
     const type = args.type || 'general';
     const tags = normalizeTags(args.tags);
-    const tenantId = config?.backend?.tenant_id || process.env.USERNAME || 'default';
+    const tenantId = resolveTenantId(config);
 
     if (!abstract) {
       return '❌ Error: abstract is REQUIRED. Generate it before calling memory_write.';

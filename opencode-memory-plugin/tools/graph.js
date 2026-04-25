@@ -9,7 +9,7 @@ export const memory_relate = tool({
     from_id: tool.schema.string().optional(),
     to_id: tool.schema.string().optional(),
     relation_type: tool.schema.string().optional().default('related'),
-    weight: tool.schema.number().optional().default(0.5),
+    weight: tool.schema.number().min(0).max(1).optional().default(0.5),
   },
   async execute(args) {
     const config = getConfig();
@@ -84,7 +84,7 @@ export const memory_graph = tool({
   description: 'Traverse the memory graph to find related memories',
   args: {
     memory_id: tool.schema.string().describe('Starting memory ID'),
-    depth: tool.schema.number().optional().default(2),
+    depth: tool.schema.number().min(1).max(5).optional().default(2),
     limit: tool.schema.number().optional().default(20),
   },
   async execute(args) {

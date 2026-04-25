@@ -101,10 +101,17 @@ jest.unstable_mockModule('fs', () => ({
   statSync: jest.fn().mockReturnValue({ size: 100 }),
 }));
 
+jest.unstable_mockModule('fs/promises', () => ({
+  readFile: jest.fn().mockResolvedValue('function test() {}'),
+  writeFile: jest.fn().mockResolvedValue(undefined),
+  rename: jest.fn().mockResolvedValue(undefined),
+}));
+
 const { AnalysisQueue } = await import('../lib/code-analysis-service.js');
 const { shouldSkipFile } = await import('../lib/privacy-filter.js');
 const { codeAnalyzer } = await import('../lib/code-analyzer.js');
 const fsModule = await import('fs');
+const { readFile: readFileMock } = await import('fs/promises');
 
 // ===== detectLanguage =====
 
@@ -266,7 +273,7 @@ describe('add', () => {
 
 // ===== processItem =====
 
-describe('processItem', () => {
+  describe('processItem', () => {
   let queue;
 
   beforeEach(() => {
@@ -286,6 +293,7 @@ describe('processItem', () => {
       deleteAtom: jest.fn().mockResolvedValue({ success: true }),
     };
     queue.concurrentCount = 0;
+    readFileMock.mockResolvedValue('function test() {}');
   });
 
   afterEach(() => {
@@ -293,11 +301,9 @@ describe('processItem', () => {
   });
 
   it('文件不存在 (ENOENT) → 不抛异常', async () => {
-    const error = new Error('ENOENT');
-    error.code = 'ENOENT';
-    fsModule.readFileSync.mockImplementationOnce(() => {
-      throw error;
-    });
+    const err = new Error('ENOENT');
+    err.code = 'ENOENT';
+    readFileMock.mockRejectedValueOnce(err);
 
     await expect(
       queue.processItem({

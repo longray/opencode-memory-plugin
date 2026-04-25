@@ -218,14 +218,19 @@ export async function syncMemoryToBackend({
     const uploadResult = await client.uploadMemory(memory);
     const memoryId = uploadResult.id;
 
-    // 更新 link-map
-    const linkMap = JSON.parse(fs.readFileSync(LINK_MAP_FILE, 'utf-8'));
-    if (linkMap.entries[localId]) {
-      linkMap.entries[localId].synced = true;
-      linkMap.entries[localId].memory_id = memoryId;
-      const tmpPath = LINK_MAP_FILE + '.tmp';
-      fs.writeFileSync(tmpPath, JSON.stringify(linkMap, null, 2), 'utf-8');
-      fs.renameSync(tmpPath, LINK_MAP_FILE);
+    try {
+      const linkMap = JSON.parse(fs.readFileSync(LINK_MAP_FILE, 'utf-8'));
+      if (linkMap.entries[localId]) {
+        linkMap.entries[localId].synced = true;
+        linkMap.entries[localId].memory_id = memoryId;
+        const tmpPath = LINK_MAP_FILE + '.tmp';
+        fs.writeFileSync(tmpPath, JSON.stringify(linkMap, null, 2), 'utf-8');
+        fs.renameSync(tmpPath, LINK_MAP_FILE);
+      }
+    } catch (linkMapError) {
+      console.warn(
+        `[syncMemoryToBackend] Upload succeeded (${memoryId}) but link-map update failed: ${linkMapError.message}. Entry will be re-synced on next run.`
+      );
     }
 
     return {

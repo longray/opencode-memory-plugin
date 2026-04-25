@@ -1,5 +1,5 @@
 import { parseSync } from 'oxc-parser';
-import { readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 import { extname } from 'path';
 import { analyzeWithTreeSitter } from './tree-sitter-parser.js';
 import { getConfig } from './storage.js';
@@ -87,7 +87,7 @@ export class CodeAnalyzer {
     const warnings = [];
 
     try {
-      const sourceCode = content ?? readFileSync(filePath, 'utf-8');
+      const sourceCode = content ?? (await readFile(filePath, 'utf-8'));
       const lines = sourceCode.split('\n').length;
 
       if (lines > this.config.skipFileThreshold) {

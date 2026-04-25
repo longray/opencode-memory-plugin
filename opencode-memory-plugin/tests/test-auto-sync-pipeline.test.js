@@ -6,15 +6,32 @@
  * - codeAnalyzer: jest.spyOn(codeAnalyzer, 'analyze') — ESM live binding, same object ref
  * - wrapperClient/fingerprintCache/memoryIdCache: instance replacement on queue
  * - shouldSkipFile: real function, use actual sensitive content to trigger skip
- * - fs: real temp files (no fs mock needed)
+ * - fs/promises: jest.unstable_mockModule to ensure readFile mock propagates to all importers
  */
 
 import { jest } from '@jest/globals';
 import { writeFileSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { codeAnalyzer } from '../lib/code-analyzer.js';
-import { AnalysisQueue } from '../lib/code-analysis-service.js';
+
+jest.unstable_mockModule('fs/promises', () => ({
+  readFile: jest.fn().mockImplementation(async (filePath) => {
+    if (filePath.includes('nonexistent')) {
+      const err = new Error('ENOENT');
+      err.code = 'ENOENT';
+      throw err;
+    }
+    if (filePath.includes('sensitive')) {
+      return 'const API_KEY = "sk-1234567890abcdef";';
+    }
+    return 'function foo(x) { return x + 1; }';
+  }),
+  writeFile: jest.fn().mockResolvedValue(undefined),
+  rename: jest.fn().mockResolvedValue(undefined),
+}));
+
+const { codeAnalyzer } = await import('../lib/code-analyzer.js');
+const { AnalysisQueue } = await import('../lib/code-analysis-service.js');
 
 const flushPromises = () => Promise.resolve().then(() => Promise.resolve().then(() => {}));
 

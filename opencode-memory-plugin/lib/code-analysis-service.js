@@ -8,7 +8,7 @@ import { getConfig } from './storage.js';
 import { MemoryIdCache } from './memory-id-cache.js';
 import fs from 'fs';
 import path from 'path';
-import { readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 import { extname, relative, basename } from 'path';
 import { createHash } from 'crypto';
 import { analyzeWithQuery } from './tree-sitter-parser.js';
@@ -178,7 +178,7 @@ export class AnalysisQueue {
 
       let content;
       try {
-        content = readFileSync(item.filePath, 'utf-8');
+        content = await readFile(item.filePath, 'utf-8');
       } catch (error) {
         if (error.code === 'ENOENT') {
           console.log(`[CodeAnalysis] File not found (deleted?): ${item.relativePath}`);
@@ -419,174 +419,164 @@ export class AnalysisQueue {
 
     console.log(`[CodeAnalysis] Uploading via Atom/Entity API: ${item.relativePath}`);
 
-    try {
-      const createdAtoms = [];
-      const atomIds = [];
+    const result = await this._createAtomsEntityReferences(
+      item.relativePath,
+      analysisResult,
+      projectId,
+      language,
+      content
+    );
 
-      for (const func of analysisResult.functions || []) {
-        try {
-          const atom = await this.wrapperClient.createAtom({
-            type: 'function',
-            name: func.name,
-            content:
-              func.signature || `${func.name}(${(func.params || []).map(p => p.name).join(', ')})`,
-            signature: func.signature,
-            params: func.params,
-            return_type: func.return_type,
-            is_exported: func.is_exported,
-            is_async: func.is_async,
-            complexity: func.complexity,
-            max_nesting_depth: func.max_nesting_depth,
-            docstring: func.jsdoc?.text,
-            start_line: func.start_line,
-            end_line: func.end_line,
-            project: projectId,
-            tenant_id: this.wrapperClient.tenantId,
-          });
-          createdAtoms.push(atom);
-          atomIds.push(atom.id);
-        } catch (error) {
-          console.error(
-            `[CodeAnalysis] Failed to create atom for function ${func.name}:`,
-            error.message
-          );
-        }
-      }
-
-      for (const cls of analysisResult.classes || []) {
-        try {
-          const atom = await this.wrapperClient.createAtom({
-            type: 'class',
-            name: cls.name,
-            content: `class ${cls.name}`,
-            start_line: cls.start_line,
-            end_line: cls.end_line,
-            project: projectId,
-            tenant_id: this.wrapperClient.tenantId,
-          });
-          createdAtoms.push(atom);
-          atomIds.push(atom.id);
-        } catch (error) {
-          console.error(
-            `[CodeAnalysis] Failed to create atom for class ${cls.name}:`,
-            error.message
-          );
-        }
-      }
-
-      for (const imp of analysisResult.imports || []) {
-        try {
-          const atom = await this.wrapperClient.createAtom({
-            type: 'import',
-            name: imp.source,
-            content: `import ${imp.source}`,
-            project: projectId,
-            tenant_id: this.wrapperClient.tenantId,
-          });
-          createdAtoms.push(atom);
-          atomIds.push(atom.id);
-        } catch (error) {
-          console.error(
-            `[CodeAnalysis] Failed to create atom for import ${imp.source}:`,
-            error.message
-          );
-        }
-      }
-
-      let entity = null;
-      if (atomIds.length > 0) {
-        try {
-          entity = await this.wrapperClient.createEntity({
-            type: 'code',
-            abstract: this.generateAbstract(item.relativePath, analysisResult),
-            overview: this.generateOverview(item.relativePath, analysisResult),
-            atoms: atomIds,
-            tags: [language, 'code-analysis'],
-            project: projectId,
-            file_path: item.relativePath,
-            language,
-            quality_score: analysisResult.quality_score?.score,
-            complexity_metrics: analysisResult.complexity_metrics,
-            tenant_id: this.wrapperClient.tenantId,
-          });
-          console.log(`[CodeAnalysis] Created entity: ${entity.id} (${item.relativePath})`);
-        } catch (error) {
-          console.error(
-            `[CodeAnalysis] Failed to create entity for ${item.relativePath}:`,
-            error.message
-          );
-          await this.rollbackAtoms(createdAtoms);
-          throw error;
-        }
-      }
-
-      const createdReferences = [];
-      let refFailures = 0;
-      for (const call of analysisResult.calls || []) {
-        try {
-          const targetAtom = createdAtoms.find(a => a.name === call.target);
-          if (targetAtom && entity) {
-            const reference = await this.wrapperClient.createReference({
-              from_id: entity.id,
-              to_id: targetAtom.id,
-              type: 'calls',
-              weight: 0.5,
-              line: call.line,
-              column: call.column,
-              file_path: call.file_path,
-              tenant_id: this.wrapperClient.tenantId,
-            });
-            createdReferences.push(reference);
-          }
-        } catch (error) {
-          refFailures++;
-          console.error(
-            `[CodeAnalysis] Failed to create reference for call ${call.target}:`,
-            error.message
-          );
-        }
-      }
-
-      if (refFailures > 0) {
-        console.warn(`[CodeAnalysis] ${refFailures}/${(analysisResult.calls || []).length} references failed`);
-      }
-
-      if (this.fingerprintCache) {
-        try {
-          const contentHash = createHash('md5').update(content).digest('hex');
-          this.fingerprintCache.set(item.filePath, {
-            content_hash: contentHash,
-            symbols_hash: this.fingerprintCache.getSymbolsHash(analysisResult),
-          });
-        } catch (fpError) {
-          console.warn(
-            `[CodeAnalysis] Failed to update fingerprint for ${item.relativePath}: ${fpError.message}`
-          );
-        }
-      }
-
-      const duration = performance.now() - startTime;
-      console.log(
-        `[CodeAnalysis] Atom/Entity upload complete: ${createdAtoms.length} atoms, ${createdReferences.length} references in ${duration.toFixed(2)}ms`
-      );
-
-      if (createdReferences.length === 0 && createdAtoms.some(a => a.type === 'function')) {
+    if (this.fingerprintCache) {
+      try {
+        const contentHash = createHash('md5').update(content).digest('hex');
+        this.fingerprintCache.set(item.filePath, {
+          content_hash: contentHash,
+          symbols_hash: this.fingerprintCache.getSymbolsHash(analysisResult),
+        });
+      } catch (fpError) {
         console.warn(
-          `[CodeAnalysis] INCOMPLETE: ${item.relativePath} has functions but 0 references. Call relations may be missing.`
+          `[CodeAnalysis] Failed to update fingerprint for ${item.relativePath}: ${fpError.message}`
         );
       }
-
-      return { atoms: createdAtoms, entity, references: createdReferences, duration };
-    } catch (error) {
-      console.error(
-        `[CodeAnalysis] Atom/Entity upload failed for ${item.relativePath}:`,
-        error.message
-      );
-      throw error;
     }
+
+    const duration = performance.now() - startTime;
+    console.log(
+      `[CodeAnalysis] Atom/Entity upload complete: ${result.atoms.length} atoms, ${result.references.length} references in ${duration.toFixed(2)}ms`
+    );
+
+    return { ...result, duration };
   }
 
   // ===== BL-CA-41: Atom/Entity/Reference API Implementation (standalone) =====
+
+  async _createAtomsEntityReferences(relativePath, analysisResult, projectId, language, _content) {
+    const createdAtoms = [];
+    const atomIds = [];
+
+    for (const func of analysisResult.functions || []) {
+      try {
+        const atom = await this.wrapperClient.createAtom({
+          type: 'function',
+          name: func.name,
+          content:
+            func.signature || `${func.name}(${(func.params || []).map(p => p.name).join(', ')})`,
+          signature: func.signature,
+          params: func.params,
+          return_type: func.return_type,
+          is_exported: func.is_exported,
+          is_async: func.is_async,
+          complexity: func.complexity,
+          max_nesting_depth: func.max_nesting_depth,
+          docstring: func.jsdoc?.text,
+          start_line: func.start_line ?? func.line,
+          end_line: func.end_line,
+          project: projectId,
+          tenant_id: this.wrapperClient.tenantId,
+        });
+        createdAtoms.push(atom);
+        atomIds.push(atom.id);
+      } catch (error) {
+        console.error(`[CodeAnalysis] Failed to create atom for function ${func.name}:`, error.message);
+      }
+    }
+
+    for (const cls of analysisResult.classes || []) {
+      try {
+        const atom = await this.wrapperClient.createAtom({
+          type: 'class',
+          name: cls.name,
+          content: `class ${cls.name}`,
+          start_line: cls.start_line ?? cls.line,
+          end_line: cls.end_line,
+          project: projectId,
+          tenant_id: this.wrapperClient.tenantId,
+        });
+        createdAtoms.push(atom);
+        atomIds.push(atom.id);
+      } catch (error) {
+        console.error(`[CodeAnalysis] Failed to create atom for class ${cls.name}:`, error.message);
+      }
+    }
+
+    for (const imp of analysisResult.imports || []) {
+      try {
+        const atom = await this.wrapperClient.createAtom({
+          type: 'import',
+          name: imp.source,
+          content: `import ${imp.source}`,
+          start_line: imp.line,
+          project: projectId,
+          tenant_id: this.wrapperClient.tenantId,
+        });
+        createdAtoms.push(atom);
+        atomIds.push(atom.id);
+      } catch (error) {
+        console.error(`[CodeAnalysis] Failed to create atom for import ${imp.source}:`, error.message);
+      }
+    }
+
+    let entity = null;
+    if (atomIds.length > 0) {
+      try {
+        entity = await this.wrapperClient.createEntity({
+          type: 'code',
+          abstract: this.generateAbstract(relativePath, analysisResult),
+          overview: this.generateOverview(relativePath, analysisResult),
+          atoms: atomIds,
+          tags: [language, 'code-analysis'],
+          project: projectId,
+          file_path: relativePath,
+          language,
+          quality_score: analysisResult.quality_score?.score,
+          complexity_metrics: analysisResult.complexity_metrics,
+          tenant_id: this.wrapperClient.tenantId,
+        });
+        console.log(`[CodeAnalysis] Created entity: ${entity.id} (${relativePath})`);
+      } catch (error) {
+        console.error(`[CodeAnalysis] Failed to create entity for ${relativePath}:`, error.message);
+        await this.rollbackAtoms(createdAtoms);
+        throw error;
+      }
+    }
+
+    const createdReferences = [];
+    let refFailures = 0;
+    for (const call of analysisResult.calls || []) {
+      try {
+        const targetAtom = createdAtoms.find(a => a.name === call.target);
+        if (targetAtom && entity) {
+          const reference = await this.wrapperClient.createReference({
+            from_id: entity.id,
+            to_id: targetAtom.id,
+            type: 'calls',
+            weight: 0.5,
+            line: call.line,
+            column: call.column,
+            file_path: call.file_path,
+            tenant_id: this.wrapperClient.tenantId,
+          });
+          createdReferences.push(reference);
+        }
+      } catch (error) {
+        refFailures++;
+        console.error(`[CodeAnalysis] Failed to create reference for call ${call.target}:`, error.message);
+      }
+    }
+
+    if (refFailures > 0) {
+      console.warn(`[CodeAnalysis] ${refFailures}/${(analysisResult.calls || []).length} references failed`);
+    }
+
+    if (createdReferences.length === 0 && createdAtoms.some(a => a.type === 'function')) {
+      console.warn(
+        `[CodeAnalysis] INCOMPLETE: ${relativePath} has functions but 0 references. Call relations may be missing.`
+      );
+    }
+
+    return { atoms: createdAtoms, entity, references: createdReferences };
+  }
 
   async analyzeWithAtomEntity(filePath, content, projectRoot) {
     const startTime = performance.now();
@@ -597,155 +587,15 @@ export class AnalysisQueue {
     console.log(`[CodeAnalysis] Analyzing with Atom/Entity API: ${relativePath}`);
 
     try {
-      // Step 1: 使用 Query API 分析代码
       const analysisResult = await analyzeWithQuery(filePath, content, language);
-
-      // Step 2: 创建 Atoms（函数、类、导入）
-      const createdAtoms = [];
-      const atomIds = [];
-
-      // 创建函数 Atoms
-      for (const func of analysisResult.functions || []) {
-        try {
-          const atom = await this.wrapperClient.createAtom({
-            type: 'function',
-            name: func.name,
-            content: `${func.name}(${func.params?.join(', ') || ''})`,
-            signature: func.signature,
-            params: func.params,
-            return_type: func.return_type,
-            is_exported: func.is_exported,
-            is_async: func.is_async,
-            complexity: func.complexity,
-            max_nesting_depth: func.max_nesting_depth,
-            docstring: func.docstring,
-            start_line: func.line,
-            end_line: func.end_line,
-            project: projectId,
-            tenant_id: this.wrapperClient.tenantId,
-          });
-          createdAtoms.push(atom);
-          atomIds.push(atom.id);
-          console.log(`[CodeAnalysis] Created atom: ${atom.id} (${func.name})`);
-        } catch (error) {
-          console.error(
-            `[CodeAnalysis] Failed to create atom for function ${func.name}:`,
-            error.message
-          );
-          // 继续处理其他函数
-        }
-      }
-
-      // 创建类 Atoms
-      for (const cls of analysisResult.classes || []) {
-        try {
-          const atom = await this.wrapperClient.createAtom({
-            type: 'class',
-            name: cls.name,
-            content: `class ${cls.name}`,
-            start_line: cls.line,
-            project: projectId,
-            tenant_id: this.wrapperClient.tenantId,
-          });
-          createdAtoms.push(atom);
-          atomIds.push(atom.id);
-          console.log(`[CodeAnalysis] Created atom: ${atom.id} (${cls.name})`);
-        } catch (error) {
-          console.error(
-            `[CodeAnalysis] Failed to create atom for class ${cls.name}:`,
-            error.message
-          );
-        }
-      }
-
-      // 创建导入 Atoms
-      for (const imp of analysisResult.imports || []) {
-        try {
-          const atom = await this.wrapperClient.createAtom({
-            type: 'import',
-            name: imp.source,
-            content: `import ${imp.source}`,
-            start_line: imp.line,
-            project: projectId,
-            tenant_id: this.wrapperClient.tenantId,
-          });
-          createdAtoms.push(atom);
-          atomIds.push(atom.id);
-          console.log(`[CodeAnalysis] Created atom: ${atom.id} (import ${imp.source})`);
-        } catch (error) {
-          console.error(
-            `[CodeAnalysis] Failed to create atom for import ${imp.source}:`,
-            error.message
-          );
-        }
-      }
-
-      // Step 3: 创建 Entity（代码文件）
-      let entity = null;
-      if (atomIds.length > 0) {
-        try {
-          entity = await this.wrapperClient.createEntity({
-            type: 'code',
-            abstract: this.generateAbstract(relativePath, analysisResult),
-            overview: this.generateOverview(relativePath, analysisResult),
-            atoms: atomIds,
-            tags: [language, 'code-analysis'],
-            project: projectId,
-            file_path: relativePath,
-            tenant_id: this.wrapperClient.tenantId,
-          });
-          console.log(`[CodeAnalysis] Created entity: ${entity.id} (${relativePath})`);
-        } catch (error) {
-          console.error(
-            `[CodeAnalysis] Failed to create entity for ${relativePath}:`,
-            error.message
-          );
-          // Entity 创建失败，清理已创建的 Atoms
-          await this.rollbackAtoms(createdAtoms);
-          throw error;
-        }
-      }
-
-      // Step 4: 创建 References（调用关系）
-      const createdReferences = [];
-      for (const call of analysisResult.calls || []) {
-        try {
-          // 查找目标函数的 Atom ID
-          const targetAtom = createdAtoms.find(a => a.name === call.target);
-          if (targetAtom && entity) {
-            const reference = await this.wrapperClient.createReference({
-              from_id: entity.id,
-              to_id: targetAtom.id,
-              type: 'calls',
-              weight: 0.5,
-              metadata: {
-                line: call.line,
-                column: call.column,
-                file_path: call.file_path,
-              },
-              tenant_id: this.wrapperClient.tenantId,
-            });
-            createdReferences.push(reference);
-          }
-        } catch (error) {
-          console.error(
-            `[CodeAnalysis] Failed to create reference for call ${call.target}:`,
-            error.message
-          );
-        }
-      }
+      const result = await this._createAtomsEntityReferences(relativePath, analysisResult, projectId, language, content);
 
       const duration = performance.now() - startTime;
       console.log(
-        `[CodeAnalysis] Analysis complete: ${createdAtoms.length} atoms, ${createdReferences.length} references in ${duration.toFixed(2)}ms`
+        `[CodeAnalysis] Analysis complete: ${result.atoms.length} atoms, ${result.references.length} references in ${duration.toFixed(2)}ms`
       );
 
-      return {
-        atoms: createdAtoms,
-        entity,
-        references: createdReferences,
-        duration,
-      };
+      return { ...result, duration };
     } catch (error) {
       console.error(`[CodeAnalysis] Analysis failed for ${relativePath}:`, error.message);
       throw error;
@@ -865,7 +715,7 @@ export class AnalysisQueue {
 
     for (const filePath of files) {
       try {
-        const source = fs.readFileSync(filePath, 'utf-8');
+        const source = await readFile(filePath, 'utf-8');
         if (source.split('\n').length > 1000) continue;
 
         const result = await codeAnalyzer.analyze(filePath, source);

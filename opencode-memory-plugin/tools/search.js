@@ -1,5 +1,5 @@
 import { tool } from '@opencode-ai/plugin/tool';
-import { getConfig } from '../lib/storage.js';
+import { getConfig, resolveTenantId } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
 import { getAutocompleteSuggestions } from '../lib/trie-index.js';
 import fs from 'fs';
@@ -26,7 +26,7 @@ export const memory_search = tool({
     const level = args.level || 0;
 
     const backendEnabled = config?.backend?.enabled !== false;
-    const tenantId = config?.backend?.tenant_id || 'default';
+    const tenantId = resolveTenantId(config);
 
     if (backendEnabled) {
       try {
