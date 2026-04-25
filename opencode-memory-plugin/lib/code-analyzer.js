@@ -202,9 +202,11 @@ export class CodeAnalyzer {
 
     const uniqueFunctions = this.deduplicateFunctions(functions);
 
+    const enrichedFunctions = this.enrichFunctionsWithComplexity(uniqueFunctions, ast);
+
     const qualityScore = this.calculateFileQualityScore(
       complexityMetrics,
-      uniqueFunctions,
+      enrichedFunctions,
       classes
     );
 
@@ -213,7 +215,7 @@ export class CodeAnalyzer {
       analyzer: 'oxc',
       analyzed_at: new Date().toISOString(),
       analyzer_version: '0.x',
-      functions: uniqueFunctions,
+      functions: enrichedFunctions,
       classes,
       interfaces,
       imports,
@@ -363,6 +365,35 @@ export class CodeAnalyzer {
     });
   }
 
+  extractReturnType(returnTypeNode) {
+    if (!returnTypeNode?.typeAnnotation) return null;
+    const typeNode = returnTypeNode.typeAnnotation;
+    if (typeNode.type === 'TSStringKeyword') return 'string';
+    if (typeNode.type === 'TSNumberKeyword') return 'number';
+    if (typeNode.type === 'TSBooleanKeyword') return 'boolean';
+    if (typeNode.type === 'TSVoidKeyword') return 'void';
+    if (typeNode.type === 'TSArrayType') return 'Array';
+    if (typeNode.type === 'TSTypeReference') return typeNode.typeName?.name || 'unknown';
+    if (typeNode.type === 'TSUnionType') {
+      return typeNode.types
+        ?.map(t => this.extractReturnType({ typeAnnotation: t }))
+        .filter(Boolean)
+        .join(' | ');
+    }
+    if (typeNode.type === 'TSFunctionType') return 'Function';
+    if (typeNode.type === 'TSObjectKeyword') return 'object';
+    if (typeNode.type === 'TSAnyKeyword') return 'any';
+    if (typeNode.type === 'TSUnknownKeyword') return 'unknown';
+    return typeNode.type;
+  }
+
+  buildFunctionSignature(name, params, returnType, isAsync) {
+    const paramsStr = params.map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`).join(', ');
+    const asyncPrefix = isAsync ? 'async ' : '';
+    const returnStr = returnType ? `: ${returnType}` : '';
+    return `${asyncPrefix}function ${name || 'anonymous'}(${paramsStr})${returnStr}`;
+  }
+
   extractSymbolsFromOxcAst(node, sourceCode, collectors, parentExported = false, comments = []) {
     if (!node || typeof node !== 'object') return;
 
@@ -371,12 +402,21 @@ export class CodeAnalyzer {
     switch (node.type) {
       case 'FunctionDeclaration': {
         const jsdoc = this.extractJSDoc(node.start, comments);
+        const params = this.extractParams(node.params);
+        const returnType = this.extractReturnType(node.returnType);
+        const signature = this.buildFunctionSignature(
+          node.id?.name,
+          params,
+          returnType,
+          node.async
+        );
         functions.push({
           name: node.id?.name || 'anonymous',
           start_line: this.offsetToLine(sourceCode, node.start),
           end_line: this.offsetToLine(sourceCode, node.end),
-          params: this.extractParams(node.params),
-          return_type: node.returnType?.typeAnnotation?.typeName?.name,
+          params,
+          return_type: returnType,
+          signature,
           is_exported: parentExported,
           is_async: node.async ?? false,
           jsdoc,
@@ -571,6 +611,22 @@ export class CodeAnalyzer {
       name: p.name || p.local?.name || 'unknown',
       type: p.typeAnnotation?.typeAnnotation?.typeName?.name,
     }));
+  }
+
+  enrichFunctionsWithComplexity(functions, ast) {
+    return functions.map(func => {
+      const funcAst = this.findFunctionAst(ast, func.name, func.start_line);
+      if (funcAst) {
+        const complexity = this.calculateCyclomaticComplexity(funcAst);
+        const maxDepth = this.calculateMaxNestingDepth(funcAst);
+        return {
+          ...func,
+          complexity,
+          max_nesting_depth: maxDepth,
+        };
+      }
+      return { ...func, complexity: 1, max_nesting_depth: 0 };
+    });
   }
 
   calculateComplexity(functions, classes, sourceCode, ast) {

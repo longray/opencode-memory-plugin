@@ -426,11 +426,16 @@ export class AnalysisQueue {
           const atom = await this.wrapperClient.createAtom({
             type: 'function',
             name: func.name,
-            content: `${func.name}(${(func.params || []).map(p => p.name).join(', ')})`,
+            content:
+              func.signature || `${func.name}(${(func.params || []).map(p => p.name).join(', ')})`,
+            signature: func.signature,
             params: func.params,
             return_type: func.return_type,
             is_exported: func.is_exported,
             is_async: func.is_async,
+            complexity: func.complexity,
+            max_nesting_depth: func.max_nesting_depth,
+            docstring: func.jsdoc?.text,
             start_line: func.start_line,
             end_line: func.end_line,
             project: projectId,
@@ -523,11 +528,9 @@ export class AnalysisQueue {
               to_id: targetAtom.id,
               type: 'calls',
               weight: 0.5,
-              metadata: {
-                line: call.line,
-                column: call.column,
-                file_path: call.file_path,
-              },
+              line: call.line,
+              column: call.column,
+              file_path: call.file_path,
               tenant_id: this.wrapperClient.tenantId,
             });
             createdReferences.push(reference);
@@ -817,7 +820,7 @@ export class AnalysisQueue {
     return this.memoryIdCache.getMemoryId(filePath);
   }
 
-  async uploadProject(projectRoot, options = {}) {
+  async uploadProject(projectRoot, _options = {}) {
     const startTime = performance.now();
     const projectId = await resolveProjectId({ projectRoot });
     const tenantId = this.wrapperClient.tenantId;
@@ -826,7 +829,17 @@ export class AnalysisQueue {
     const path = await import('path');
 
     const SUPPORTED = new Set(['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.tsx']);
-    const SKIP = new Set(['node_modules', '.git', 'tests', 'memory', 'docs', 'scripts', 'agents', 'cli', 'bin']);
+    const SKIP = new Set([
+      'node_modules',
+      '.git',
+      'tests',
+      'memory',
+      'docs',
+      'scripts',
+      'agents',
+      'cli',
+      'bin',
+    ]);
 
     function walkDir(dir, files = []) {
       for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -856,12 +869,17 @@ export class AnalysisQueue {
 
         for (const func of result.functions || []) {
           const atom = await this.wrapperClient.createAtom({
-            type: 'function', name: func.name,
+            type: 'function',
+            name: func.name,
             content: `${func.name}(${(func.params || []).map(p => p.name || p).join(', ')})`,
-            params: func.params, return_type: func.return_type,
-            is_exported: func.is_exported, is_async: func.is_async,
-            start_line: func.start_line, end_line: func.end_line,
-            project: projectId, tenant_id: tenantId,
+            params: func.params,
+            return_type: func.return_type,
+            is_exported: func.is_exported,
+            is_async: func.is_async,
+            start_line: func.start_line,
+            end_line: func.end_line,
+            project: projectId,
+            tenant_id: tenantId,
           });
           atomIds.push(atom.id);
           globalNameToAtomId.set(func.name, atom.id);
@@ -869,10 +887,13 @@ export class AnalysisQueue {
 
         for (const cls of result.classes || []) {
           const atom = await this.wrapperClient.createAtom({
-            type: 'class', name: cls.name,
+            type: 'class',
+            name: cls.name,
             content: 'class ' + cls.name,
-            start_line: cls.start_line, end_line: cls.end_line,
-            project: projectId, tenant_id: tenantId,
+            start_line: cls.start_line,
+            end_line: cls.end_line,
+            project: projectId,
+            tenant_id: tenantId,
           });
           atomIds.push(atom.id);
           globalNameToAtomId.set(cls.name, atom.id);
@@ -881,10 +902,18 @@ export class AnalysisQueue {
         if (atomIds.length > 0) {
           const entity = await this.wrapperClient.createEntity({
             type: 'code',
-            abstract: relPath + ': ' + (result.functions || []).length + ' fns, ' + (result.classes || []).length + ' cls',
-            file_path: relPath, atoms: atomIds,
+            abstract:
+              relPath +
+              ': ' +
+              (result.functions || []).length +
+              ' fns, ' +
+              (result.classes || []).length +
+              ' cls',
+            file_path: relPath,
+            atoms: atomIds,
             language: result.language,
-            project: projectId, tenant_id: tenantId,
+            project: projectId,
+            tenant_id: tenantId,
           });
           relPathToEntityId.set(relPath, entity.id);
         }
@@ -924,13 +953,22 @@ export class AnalysisQueue {
     const duration = performance.now() - startTime;
     console.log(
       '[CodeAnalysis] uploadProject complete: ' +
-        allResults.length + ' files, ' +
-        globalNameToAtomId.size + ' atoms, ' +
-        refCount + ' references in ' +
-        duration.toFixed(2) + 'ms'
+        allResults.length +
+        ' files, ' +
+        globalNameToAtomId.size +
+        ' atoms, ' +
+        refCount +
+        ' references in ' +
+        duration.toFixed(2) +
+        'ms'
     );
 
-    return { files: allResults.length, atoms: globalNameToAtomId.size, references: refCount, duration };
+    return {
+      files: allResults.length,
+      atoms: globalNameToAtomId.size,
+      references: refCount,
+      duration,
+    };
   }
 
   async getSourceId(filePath) {

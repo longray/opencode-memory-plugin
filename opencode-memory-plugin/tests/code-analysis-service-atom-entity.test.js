@@ -204,7 +204,9 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
           to_id: mockAtoms.testFunc.id,
           type: 'calls',
           weight: 0.5,
-          metadata: { line: 15, column: 4, file_path: 'src/test.js' },
+          line: 15,
+          column: 4,
+          file_path: 'src/test.js',
           tenant_id: TENANT_ID,
         })
       );
@@ -214,7 +216,9 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
           to_id: mockAtoms.helperFunc.id,
           type: 'calls',
           weight: 0.5,
-          metadata: { line: 18, column: 8, file_path: 'src/test.js' },
+          line: 18,
+          column: 8,
+          file_path: 'src/test.js',
           tenant_id: TENANT_ID,
         })
       );
