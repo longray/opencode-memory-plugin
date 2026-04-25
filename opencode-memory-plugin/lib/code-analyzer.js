@@ -665,23 +665,23 @@ export class CodeAnalyzer {
     };
   }
 
-  findFunctionAst(ast, funcName, _startLine) {
+  findFunctionAst(ast, funcName, startLine) {
     let found = null;
 
     const traverse = node => {
       if (found) return;
       if (!node || typeof node !== 'object') return;
 
-      if (node.type === 'FunctionDeclaration' && node.id?.name === funcName) {
-        found = node;
-        return;
-      }
+      const nodeStartLine = node.loc?.start?.line;
+      const isMatch =
+        (node.type === 'FunctionDeclaration' && node.id?.name === funcName) ||
+        ((node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') &&
+          node.id?.name === funcName);
 
-      if (
-        (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') &&
-        node.id?.name === funcName
-      ) {
-        found = node;
+      if (isMatch) {
+        if (!found || (startLine && nodeStartLine && Math.abs(nodeStartLine - startLine) < Math.abs((found.loc?.start?.line || 0) - startLine))) {
+          found = node;
+        }
         return;
       }
 

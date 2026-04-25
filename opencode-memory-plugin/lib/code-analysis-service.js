@@ -96,7 +96,7 @@ export class AnalysisQueue {
 
       if (this.queue.length >= MAX_QUEUE_SIZE) {
         const removed = this.queue.shift();
-        console.log(`[CodeAnalysis] Queue full, dropping oldest: ${removed.relativePath}`);
+        console.warn(`[CodeAnalysis] Queue full (${MAX_QUEUE_SIZE}), dropped oldest: ${removed.relativePath}`);
       }
 
       const existingIndex = this.queue.findIndex(item => item.filePath === filePath);
@@ -519,6 +519,7 @@ export class AnalysisQueue {
       }
 
       const createdReferences = [];
+      let refFailures = 0;
       for (const call of analysisResult.calls || []) {
         try {
           const targetAtom = createdAtoms.find(a => a.name === call.target);
@@ -536,11 +537,16 @@ export class AnalysisQueue {
             createdReferences.push(reference);
           }
         } catch (error) {
+          refFailures++;
           console.error(
             `[CodeAnalysis] Failed to create reference for call ${call.target}:`,
             error.message
           );
         }
+      }
+
+      if (refFailures > 0) {
+        console.warn(`[CodeAnalysis] ${refFailures}/${(analysisResult.calls || []).length} references failed`);
       }
 
       if (this.fingerprintCache) {

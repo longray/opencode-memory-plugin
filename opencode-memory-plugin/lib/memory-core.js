@@ -254,7 +254,7 @@ export async function syncMemoryToBackend({
     return {
       success: false,
       memoryId: null,
-      message: `⏳ Queued (${error.message})`,
+      message: `⚠️ Sync failed: ${error.message}`,
     };
   }
 }

@@ -431,7 +431,7 @@ export class WrapperClient {
       tenant_id: tenant_id || this.tenantId,
     };
 
-    return await this.http.post('/api/v1/access-log', requestBody);
+    return await withRetry(() => this.http.post('/api/v1/access-log', requestBody), this.maxRetries);
   }
 
   /**
@@ -601,7 +601,7 @@ export class WrapperClient {
   async listConflicts({ limit = 10, tenant_id }) {
     const body = { tenant_id: tenant_id || this.tenantId, limit };
     try {
-      return await this.http.post('/api/v1/sync/conflicts/list', body);
+      return await withRetry(() => this.http.post('/api/v1/sync/conflicts/list', body), this.maxRetries);
     } catch {
       return [];
     }
@@ -979,6 +979,8 @@ let wrapperClientInstance = null;
 export function getWrapperClient(config) {
   if (!wrapperClientInstance) {
     wrapperClientInstance = new WrapperClient(config);
+  } else if (config?.backend?.tenant_id && config.backend.tenant_id !== wrapperClientInstance.tenantId) {
+    console.warn(`[WrapperClient] Ignoring tenant_id change: ${wrapperClientInstance.tenantId} → ${config.backend.tenantId}. Use forceNew=true if needed.`);
   }
   return wrapperClientInstance;
 }
