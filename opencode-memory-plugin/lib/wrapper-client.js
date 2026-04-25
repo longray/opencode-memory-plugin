@@ -437,20 +437,13 @@ export class WrapperClient {
   /**
    * 创建关系
    * @param {Object} params - 关系参数
-   * @returns {Promise<{id: string, relationship_type: string, weight: number}>}
+   * @returns {Promise<{id: string, type: string, weight: number}>}
    */
-  async createRelation({
-    from_id,
-    to_id,
-    relationship_type = 'related',
-    weight = 0.5,
-    description,
-    tenant_id,
-  }) {
+  async createRelation({ from_id, to_id, type = 'related', weight = 0.5, description, tenant_id }) {
     const requestBody = {
       from_id,
       to_id,
-      relationship_type,
+      type,
       weight,
       tenant_id: tenant_id || this.tenantId,
     };
@@ -470,14 +463,14 @@ export class WrapperClient {
    * @param {Object} params - 查询参数
    * @returns {Promise<{relations: Array, total: number}>}
    */
-  async getRelations({ memory_id, direction = 'both', relationship_type, tenant_id }) {
+  async getRelations({ memory_id, direction = 'both', type, tenant_id }) {
     const requestBody = {
       direction,
       tenant_id: tenant_id || this.tenantId,
     };
 
-    if (relationship_type) {
-      requestBody.relationship_type = relationship_type;
+    if (type) {
+      requestBody.type = type;
     }
 
     return await withRetry(

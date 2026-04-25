@@ -476,7 +476,7 @@ describe('WrapperClient Atom/Entity/Reference API', () => {
         id: 'rel:test',
         from_id: 'mem:1',
         to_id: 'mem:2',
-        relationship_type: 'related',
+        type: 'related',
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -488,7 +488,7 @@ describe('WrapperClient Atom/Entity/Reference API', () => {
       const result = await client.createRelation({
         from_id: 'mem:1',
         to_id: 'mem:2',
-        relationship_type: 'related',
+        type: 'related',
       });
 
       expect(result).toEqual(mockResponse);

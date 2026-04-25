@@ -195,7 +195,7 @@ describe('E2E: Backend API', () => {
         const relation = await client.createRelation({
           from_id: mem1Id,
           to_id: mem2Id,
-          relationship_type: 'related',
+          type: 'related',
           weight: 0.8,
           tenant_id: 'default',
         });

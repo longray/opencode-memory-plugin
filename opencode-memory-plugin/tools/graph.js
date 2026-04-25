@@ -29,7 +29,7 @@ export const memory_relate = tool({
           await client.createRelation({
             from_id: args.from_id,
             to_id: args.to_id,
-            relationship_type: args.relation_type || 'related',
+            type: args.relation_type || 'related',
             weight: args.weight || 0.5,
           });
           return `✅ Relation created: ${args.from_id} → ${args.to_id} (${args.relation_type})`;
@@ -47,7 +47,7 @@ export const memory_relate = tool({
           return relations
             .map(r => {
               const targetId = r.to || r.to_id || 'unknown';
-              const relType = r.relationship_type || r.relation_type || 'unknown';
+              const relType = r.type || r.relation_type || 'unknown';
               const weight = r.weight ?? 0.5;
               return `- ${targetId}: ${relType} (${weight})`;
             })
