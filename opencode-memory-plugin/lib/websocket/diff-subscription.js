@@ -1,6 +1,11 @@
 import fastJsonPatch from 'fast-json-patch';
 const { applyPatch } = fastJsonPatch;
 
+function escapeSurrealQL(value) {
+  if (typeof value !== 'string') return String(value);
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 export class DiffSubscription {
   constructor(client) {
     this.client = client;
@@ -10,24 +15,25 @@ export class DiffSubscription {
   }
 
   async subscribe(entityId, tenantId = 'default') {
-    if (!this.client || this.client.state !== 'CONNECTED') {
+    if (!this.client || !this.client.isConnected()) {
       throw new Error('WebSocket client not connected');
     }
 
     this.localCache.set(entityId, {});
+    this.subscriptions.set(entityId, true);
 
     const subscribeRequest = {
       action: 'subscribe',
-      query: `LIVE SELECT DIFF FROM entity WHERE id = "${entityId}" AND tenant_id = "${tenantId}"`,
+      query: `LIVE SELECT DIFF FROM entity WHERE id = "${escapeSurrealQL(entityId)}" AND tenant_id = "${escapeSurrealQL(tenantId)}"`,
     };
 
-    await this.client.send(JSON.stringify(subscribeRequest));
+    this.client.send(subscribeRequest);
 
     console.log(`[DiffSubscription] Subscribed to DIFF for ${entityId}`);
   }
 
   async unsubscribe(entityId) {
-    if (!this.client || this.client.state !== 'CONNECTED') {
+    if (!this.client || !this.client.isConnected()) {
       return;
     }
 
@@ -36,7 +42,7 @@ export class DiffSubscription {
       entityId,
     };
 
-    await this.client.send(JSON.stringify(unsubscribeRequest));
+    this.client.send(unsubscribeRequest);
 
     this.localCache.delete(entityId);
     this.subscriptions.delete(entityId);

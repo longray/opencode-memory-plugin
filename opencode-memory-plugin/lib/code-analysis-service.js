@@ -946,7 +946,12 @@ export class AnalysisQueue {
             tenant_id: tenantId,
           });
           refCount++;
-        } catch (_) {}
+        } catch (error) {
+          console.warn(
+            `[CodeAnalysis] Failed to create reference for ${call.funcName} (${relPath}:${call.line}):`,
+            error.message
+          );
+        }
       }
     }
 

@@ -1120,3 +1120,656 @@
 **状态**: 🆕 新建
 
 ---
+
+## 代码审查修复（2026-04-25）
+
+基于 4 个并行审查代理的综合代码审查报告，按优先级分批修复。
+
+### Sprint 1 — 立即修复（P0 功能损坏）
+
+### BL-CA-62 [P0] WS-RECONNECT: WebSocket 重连机制完全失效
+
+**目标**: 修复 `reliable-client.js` 中重连永远不会成功的关键 bug
+
+**根因**: `scheduleReconnect()` 先将状态改为 `CONNECTING`，再调用 `connect()`。但 `connect()` 守卫检查 `!is(CLOSED)` 为 true，立即返回，新 WebSocket 永不创建。
+
+**修复方案**:
+
+1. 分离 `connect()`（外部 API，带 CLOSED 守卫）和 `_doConnect()`（内部实现，无守卫）
+2. `scheduleReconnect` 调用 `_doConnect()` 而非 `connect()`
+3. 修复 `connect()` async 不 resolve/reject 的问题（在 `connected` 事件中 resolve）
+
+**涉及文件**:
+
+- `lib/websocket/reliable-client.js`
+
+**验证**: 断开 WebSocket 后重连成功
+
+**工时**: 2 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-63 [P0] WS-CLEANUP: 重连事件监听器泄漏 + 队列无上限
+
+**目标**: 修复资源泄漏和潜在的内存溢出
+
+**修复方案**:
+
+1. 重连前对旧 ws 调用 `ws.removeAllListeners()` 或手动 detach
+2. Message Queue 设置 `MAX_QUEUE_SIZE`（建议 1000），超过后丢弃最旧消息
+3. `flushMessageQueue` 直接操作 ws 而不经过 `send()`，避免断开时无限循环
+
+**涉及文件**:
+
+- `lib/websocket/reliable-client.js`
+
+**验证**: 重连后旧监听器被清理；队列满后旧消息被丢弃
+
+**工时**: 1.5 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-64 [P0] WS-DIFF-SUB: diff-subscription 双重序列化 + SurrealQL 注入
+
+**目标**: 修复 `diff-subscription.js` 的双重 JSON.stringify 和参数注入
+
+**修复方案**:
+
+1. `client.send()` 传入对象而非字符串（send 内部会 stringify）
+2. `this.client.state` 改为 `this.client.getState()` 或 `this.client.stateManager.is(CONNECTED)`
+3. `entityId`/`tenantId` 参数转义，防止 SurrealQL 注入
+
+**涉及文件**:
+
+- `lib/websocket/diff-subscription.js`
+
+**验证**: subscribe 能正确发送和接收
+
+**工时**: 1 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-65 [P0] REF-SILENT: Reference 创建错误被完全静默
+
+**目标**: `code-analysis-service.js:949` 的 `catch (_) {}` 替换为日志记录
+
+**修复方案**:
+
+1. 替换 `catch (_) {}` 为 `catch (error) { console.warn('[CodeAnalysis] Reference creation failed:', error.message) }`
+2. 检查所有类似的空 catch 块，统一添加日志
+3. 上传失败计数器，在最终结果中报告
+
+**涉及文件**:
+
+- `lib/code-analysis-service.js`
+
+**验证**: Reference 创建失败时有日志输出
+
+**工时**: 1 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-66 [P0] CORE-DEAD-CODE: memory_read 双重定义
+
+**目标**: 删除 `tools/core.js` 中的 `memory_read` 死代码
+
+**修复方案**:
+
+1. 删除 `tools/core.js` 中 `memory_read` 的 export（约 25 行）
+2. 保留 `plugin.js` 中的版本作为唯一实现
+3. 验证 `plugin.js` 版本的错误消息质量
+
+**涉及文件**:
+
+- `tools/core.js`
+- `plugin.js`
+
+**验证**: 只有一个 memory_read 实现，测试通过
+
+**工时**: 0.5 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-67 [P0] TOOL-GRAPH: memory_graph 缺少 backendEnabled 检查
+
+**目标**: 添加后端可用性检查，与其他工具保持一致
+
+**修复方案**:
+
+1. 在 `memory_graph.execute()` 开头添加 `if (!backendEnabled)` 检查
+2. 返回友好的错误消息
+
+**涉及文件**:
+
+- `tools/graph.js`
+
+**验证**: 后端离线时返回友好错误而非崩溃
+
+**工时**: 0.5 小时
+
+**状态**: 🆕 新建
+
+---
+
+### Sprint 2 — 本周修复（P0 数据/API 契约）
+
+### BL-CA-68 [P0] SEARCH-DEFAULT: 搜索默认模式与文档不符
+
+**目标**: 将 `memory_search` 的 schema 默认值从 `keyword` 改为 `hybrid`
+
+**修复方案**:
+
+1. `tools/search.js` 中 `mode` 的 `.default('keyword')` 改为 `.default('hybrid')`
+2. 同步更新 README 和 TOOLS.md 中的描述（确认一致）
+
+**涉及文件**:
+
+- `tools/search.js`
+- `README.md`（如需同步）
+
+**验证**: 不传 mode 时使用 hybrid 搜索
+
+**工时**: 0.5 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-69 [P0] LEVEL-2-CONTENT: level=2 不返回完整内容
+
+**目标**: 修复 3/4 场景下 level=2 不返回完整内容的问题
+
+**修复方案**:
+
+1. `tools/search.js` 本地搜索 level=2 时返回完整 content（当前返回空字符串）
+2. `tools/browse.js` memory_timeline level=2 时返回完整 content
+3. 后端搜索 level=2 的 200 字符截断改为返回完整内容（需后端确认支持）
+4. 如后端不支持完整返回，在截断时添加 `[truncated]` 标记
+
+**涉及文件**:
+
+- `tools/search.js`
+- `tools/browse.js`
+
+**验证**: level=2 在所有场景下返回完整或带标记的内容
+
+**工时**: 2 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-70 [P0] SYNC-RESOLUTION: conflict_resolve resolution 值三处不一致
+
+**目标**: 统一 `conflict_resolve` 的 resolution 参数值
+
+**修复方案**:
+
+1. 确定统一的值（建议: `USE_LOCAL`, `USE_BACKEND`, `MERGE`，与 AGENTS.md 一致）
+2. 更新 `tools/sync.js` schema 描述
+3. 更新 `lib/wrapper-client.js` 的 `resolveConflict` 方法
+4. 更新 `AGENTS.md/TOOLS.md` 文档
+
+**涉及文件**:
+
+- `tools/sync.js`
+- `lib/wrapper-client.js`
+- `AGENTS.md`
+- `~/.opencode/memory/TOOLS.md`
+
+**验证**: 三个位置的值完全一致
+
+**工时**: 1 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-71 [P0] LINK-MAP-ATOMIC: Link-map 读写非原子操作
+
+**目标**: 防止并发 sync 导致 link-map 更新丢失
+
+**修复方案**:
+
+1. 使用 write-to-temp + rename 模式替代直接 writeFileSync
+2. 添加 link-map JSON 校验（空文件/损坏时回退到空对象）
+3. 考虑添加简易文件锁（`proper-lockfile` 或基于 mkdir 的 advisory lock）
+
+**涉及文件**:
+
+- `lib/memory-core.js`（`syncMemoryToBackend`）
+- `lib/indexer.js`（`updateLinkMap`）
+
+**验证**: 并发 sync 不会丢失更新
+
+**工时**: 3 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-72 [P0] OXC-DISCARD: Oxc 解析结果在慢时被错误丢弃
+
+**目标**: 修复 code-analyzer.js 中 Oxc >200ms 时丢弃有效结果
+
+**修复方案**:
+
+1. 移除时间阈值检查，Oxc 解析成功就返回结果
+2. 仅在 Oxc 抛出错误时才降级到 tree-sitter
+3. 保留 warning 记录慢解析，但不影响结果
+
+**涉及文件**:
+
+- `lib/code-analyzer.js`
+
+**验证**: 慢文件也能使用 Oxc 结果
+
+**工时**: 0.5 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-73 [P0] WS-LEGACY: Legacy ws-client 模块级共享状态
+
+**目标**: 标记废弃或修复 ws-client.js 的共享状态问题
+
+**修复方案**:
+
+1. 添加 `@deprecated` JSDoc 标记
+2. 更新 `test-ws-client.test.js` 指向新实现
+3. 如仍需保留，将共享状态移入实例属性
+
+**涉及文件**:
+
+- `lib/ws-client.js`
+- `tests/test-ws-client.test.js`
+
+**验证**: 废弃标记生效，测试指向新实现
+
+**工时**: 1 小时
+
+**状态**: 🆕 新建
+
+---
+
+### Sprint 3 — 下周修复（P1 性能/健壮性）
+
+### BL-CA-74 [P1] SYNC-IO: 同步文件 I/O 阻塞事件循环
+
+**目标**: 将关键路径上的同步 I/O 改为异步
+
+**修复方案**:
+
+1. `wrapper-client.js` 的 `writeLog` 改为异步（或批量写入）
+2. `code-analyzer.js` 的 `readFileSync` 改为异步（调用方已异步）
+3. `code-analysis-service.js` 的 `readFileSync` 已在 line 179 读取，避免重复
+
+**涉及文件**:
+
+- `lib/wrapper-client.js`
+- `lib/code-analyzer.js`
+
+**验证**: 性能测试中无同步阻塞
+
+**工时**: 2 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-75 [P1] RETRY-INCONSISTENT: 不一致的重试包装
+
+**目标**: 统一所有 API 方法的重试策略
+
+**修复方案**:
+
+1. `reportAccessLog` 和 `listConflicts` 添加 `withRetry`
+2. 审计所有 HTTP 方法，确保一致的重试行为
+3. 对幂等方法使用重试，非幂等方法考虑是否需要
+
+**涉及文件**:
+
+- `lib/wrapper-client.js`
+
+**验证**: 所有 API 方法在网络瞬态故障时自动重试
+
+**工时**: 1 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-76 [P1] SINGLETON-CONFIG: Singleton 忽略后续配置
+
+**目标**: `getWrapperClient` 支持配置更新
+
+**修复方案**:
+
+1. 允许传入 `forceNew` 参数重新创建实例
+2. 或改为工厂模式，每次返回新实例（检查性能影响）
+3. 至少在配置不同时打印 warning
+
+**涉及文件**:
+
+- `lib/wrapper-client.js`
+
+**验证**: 不同 tenant_id 能正确切换
+
+**工时**: 1 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-77 [P1] CODE-DUP: uploadAsAtomEntity vs analyzeWithAtomEntity 代码重复
+
+**目标**: 消除 165 行几乎相同的代码
+
+**修复方案**:
+
+1. 提取公共的 `createAtomEntityWithRollback` 方法
+2. 两个方法只提供分析结果的差异部分
+3. 确保回滚逻辑统一
+
+**涉及文件**:
+
+- `lib/code-analysis-service.js`
+
+**验证**: 修复一处 bug 自动修复另一处
+
+**工时**: 3 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-78 [P1] START-LINE-UNUSED: \_startLine 参数未使用
+
+**目标**: `findFunctionAst` 使用 `_startLine` 定位正确的函数
+
+**修复方案**:
+
+1. 实现基于 `_startLine` 的匹配逻辑
+2. 多个同名函数时优先匹配行号最近的
+3. 去掉 `_` 前缀，改为正式参数
+
+**涉及文件**:
+
+- `lib/code-analyzer.js`
+
+**验证**: 同名函数的复杂度计算正确
+
+**工时**: 1 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-79 [P1] REF-ROLLBACK: 无部分引用创建回滚
+
+**目标**: References 创建支持事务性回滚
+
+**修复方案**:
+
+1. 先收集所有引用，一次性批量创建
+2. 或使用与 Atom 类似的 rollback 模式
+3. 至少在失败时记录哪些引用创建失败
+
+**涉及文件**:
+
+- `lib/code-analysis-service.js`
+
+**验证**: 部分失败时有清晰日志
+
+**工时**: 2 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-80 [P1] QUEUE-DROP: Queue 满时静默丢弃无反馈
+
+**目标**: 文件被丢弃时通知调用方
+
+**修复方案**:
+
+1. `add()` 返回 boolean 或 `{ queued: boolean, dropped: boolean }`
+2. 至少在 `console.log` 中提示
+
+**涉及文件**:
+
+- `lib/code-analysis-service.js`
+
+**验证**: 队列满时有日志提示
+
+**工时**: 0.5 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-81 [P1] MISLEADING-QUEUE: 误导性 "Queued" 错误消息
+
+**目标**: 修复 syncMemoryToBackend 失败时的错误消息
+
+**修复方案**:
+
+1. 非 duplicate 错误返回真实错误消息
+2. 如果确实要入队（未来实现重试），需要真实的队列机制
+3. 当前改为 "⚠️ Sync failed: ..." 更准确
+
+**涉及文件**:
+
+- `lib/memory-core.js`
+
+**验证**: 错误消息准确反映状态
+
+**工时**: 0.5 小时
+
+**状态**: 🆕 新建
+
+---
+
+### Sprint 4 — P2 改进（健壮性/可维护性）
+
+### BL-CA-82 [P2] SCHEMA-CONSTRAINTS: Tool Schema 约束缺失
+
+**目标**: 添加输入验证约束
+
+**修复方案**:
+
+1. `memory_write` content 添加 `.min(1)`
+2. `memory_write` type 改为 enum（general/long-term/daily/preference/implementation）
+3. `memory_relate` action 改为 enum（create/query/delete）
+4. `memory_graph` depth 添加 `.max(5)` 上限
+5. `memory_relate` relation_type 添加白名单验证
+
+**涉及文件**:
+
+- `tools/core.js`
+- `tools/graph.js`
+
+**验证**: 无效输入被 schema 拦截
+
+**工时**: 2 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-83 [P2] TENANT-FALLBACK: tenant_id fallback 不一致
+
+**目标**: 统一 tenant_id 的解析逻辑
+
+**修复方案**:
+
+1. 提取 `resolveTenantId(config)` 公共函数
+2. 统一 fallback 链: config → MEMORY_TENANT_ID → USERNAME → 'default'
+3. 所有工具和 lib 文件使用同一函数
+
+**涉及文件**:
+
+- `tools/core.js`
+- `tools/search.js`
+- `tools/sync.js`
+- `lib/wrapper-client.js`
+- `lib/memory-core.js`
+
+**验证**: 所有位置的 tenant_id 解析一致
+
+**工时**: 1.5 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-84 [P2] HEARTBEAT-TIMEOUT: 心跳断连检测延迟过长
+
+**目标**: 将实际断连检测从 120 秒降到 60 秒
+
+**修复方案**:
+
+1. `heartbeat.js` 的 `checkInterval` 改为 `this.interval`（30s）
+2. 保持 `maxMissed` 作为容错计数
+
+**涉及文件**:
+
+- `lib/websocket/heartbeat.js`
+
+**验证**: 60 秒内检测到死连接
+
+**工时**: 0.5 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-85 [P2] WRITE-PIPELINE: Write pipeline 非原子
+
+**目标**: memory-write 的 4 步操作添加补偿机制
+
+**修复方案**:
+
+1. link-map 写入使用 temp+rename（与 BL-CA-71 配合）
+2. 失败步骤添加补偿（如 link-map 失败，清理已创建的文件）
+3. 或简化为"尽力而为"模式，失败时记录不一致状态
+
+**涉及文件**:
+
+- `lib/memory-core.js`
+
+**验证**: 部分失败时有补偿或清晰日志
+
+**工时**: 2 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-86 [P2] CONF-LIST-OUTPUT: conflict_list 输出过于简略
+
+**目标**: 增加冲突决策所需的关键信息
+
+**修复方案**:
+
+1. 显示涉及的两个 memory 的摘要（local vs remote）
+2. 显示冲突类型和时间
+3. 显示建议的解决方案
+
+**涉及文件**:
+
+- `tools/sync.js`
+
+**验证**: 用户能看到足够信息做出决策
+
+**工时**: 1 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-87 [P2] FETCH-ERROR: fetch() error.code 检查无效
+
+**目标**: 修复 wrapper-client.js 中网络错误检测的死代码
+
+**修复方案**:
+
+1. 检查 `error.cause?.code`（Node.js ≥ 18）
+2. 或检查 `error instanceof TypeError && error.message.includes('fetch failed')`
+3. 提供准确的 "Backend unavailable" 错误消息
+
+**涉及文件**:
+
+- `lib/wrapper-client.js`
+
+**验证**: 后端离线时显示友好错误消息
+
+**工时**: 1 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-88 [P2] DYNAMIC-IMPORT: 动态导入已导入模块
+
+**目标**: 移除 code-analysis-service.js 中的冗余动态导入
+
+**修复方案**:
+
+1. 删除 line 828 的 `await import('./code-analyzer.js')`
+2. 使用已有的顶层 `codeAnalyzer` 导入
+
+**涉及文件**:
+
+- `lib/code-analysis-service.js`
+
+**验证**: 功能不变
+
+**工时**: 0.5 小时
+
+**状态**: 🆕 新建
+
+---
+
+### BL-CA-89 [P2] NO-JITTER: 指数退避无抖动
+
+**目标**: wrapper-client.js 重试添加随机抖动
+
+**修复方案**:
+
+1. `delay = baseDelay * Math.pow(2, attempt) * (0.5 + Math.random() * 0.5)`
+
+**涉及文件**:
+
+- `lib/wrapper-client.js`
+
+**验证**: 多客户端同时重试时减少惊群效应
+
+**工时**: 0.5 小时
+
+**状态**: 🆕 新建
+
+---
+
+## 工时汇总
+
+| Sprint   | 优先级 | 任务数 | 总工时  |
+| -------- | ------ | ------ | ------- |
+| Sprint 1 | P0     | 7      | 8.5h    |
+| Sprint 2 | P0     | 7      | 9.5h    |
+| Sprint 3 | P1     | 8      | 12h     |
+| Sprint 4 | P2     | 8      | 10h     |
+| **总计** |        | **30** | **40h** |
+
+---

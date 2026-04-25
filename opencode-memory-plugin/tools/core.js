@@ -1,5 +1,5 @@
 import { tool } from '@opencode-ai/plugin/tool';
-import { writeAndSyncMemory, readMemory } from '../lib/memory-core.js';
+import { writeAndSyncMemory } from '../lib/memory-core.js';
 import { getConfig, getLinkMap } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
 import { resolveProjectId } from '../lib/project-resolver.js';
@@ -111,32 +111,5 @@ export const memory_pin = tool({
     } catch (e) {
       return `❌ Error: Failed to update memory entry '${entry_id}': ${e.message}`;
     }
-  },
-});
-
-export const memory_read = tool({
-  description: 'Read a memory entry by ID with level support (v3.2 API)',
-  args: {
-    entry_id: tool.schema.string().describe('The ID of the memory entry to read (required)'),
-    level: tool.schema.number().optional().default(2).describe('Content level: 0=abstract, 1=overview, 2=full (default)'),
-  },
-  async execute(args) {
-    const { entry_id, level = 2 } = args;
-
-    if (!entry_id) {
-      return '❌ Error: entry_id is REQUIRED.';
-    }
-
-    const result = await readMemory({ entry_id, level });
-
-    if (!result.success) {
-      return result.message;
-    }
-
-    return `✅ Memory read successfully
-- ID: ${entry_id}
-- Level: ${level} (${level === 0 ? 'abstract' : level === 1 ? 'overview' : 'full'})
-- Content:
-${result.content}`;
   },
 });

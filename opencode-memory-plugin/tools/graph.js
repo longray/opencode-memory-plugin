@@ -90,6 +90,11 @@ export const memory_graph = tool({
   async execute(args) {
     const config = getConfig();
     const client = getWrapperClient(config);
+    const backendEnabled = config?.backend?.enabled !== false;
+
+    if (!backendEnabled) {
+      return '❌ Backend not enabled. Graph traversal requires backend service.';
+    }
 
     try {
       const results = await client.traverseGraph({

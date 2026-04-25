@@ -8,6 +8,8 @@ import { StateManager, WebSocketState } from './state-manager.js';
 import { HeartbeatManager } from './heartbeat.js';
 import { AckManager } from './ack-manager.js';
 
+const MAX_QUEUE_SIZE = 1000;
+
 export class ReliableWebSocketClient {
   constructor(url, options = {}) {
     this.url = url;
@@ -40,6 +42,8 @@ export class ReliableWebSocketClient {
     this.messageHandlers = new Map();
 
     this.sessionId = options.sessionId || this.generateSessionId();
+    this._connectResolve = null;
+    this._connectReject = null;
   }
 
   generateSessionId() {
@@ -54,17 +58,23 @@ export class ReliableWebSocketClient {
 
     this.stateManager.transition(WebSocketState.CONNECTING, 'user initiated');
 
-    try {
-      const urlWithParams = this.buildUrl();
-      console.log(`[ReliableWebSocket] Connecting to ${urlWithParams}...`);
+    return new Promise((resolve, reject) => {
+      this._connectResolve = resolve;
+      this._connectReject = reject;
 
-      this.ws = new WebSocket(urlWithParams);
+      try {
+        const urlWithParams = this.buildUrl();
+        console.log(`[ReliableWebSocket] Connecting to ${urlWithParams}...`);
 
-      this.setupEventHandlers();
-    } catch (error) {
-      console.error('[ReliableWebSocket] Connection failed:', error.message);
-      this.handleConnectionFailure();
-    }
+        this.ws = new WebSocket(urlWithParams);
+
+        this.setupEventHandlers();
+      } catch (error) {
+        console.error('[ReliableWebSocket] Connection failed:', error.message);
+        this.handleConnectionFailure();
+        reject(error);
+      }
+    });
   }
 
   buildUrl() {
@@ -76,6 +86,23 @@ export class ReliableWebSocketClient {
       url.searchParams.set('token', this.token);
     }
     return url.toString();
+  }
+
+  _doConnect() {
+    try {
+      const urlWithParams = this.buildUrl();
+      console.log(`[ReliableWebSocket] Reconnecting to ${urlWithParams}...`);
+
+      if (this.ws) {
+        this.ws.removeAllListeners();
+      }
+
+      this.ws = new WebSocket(urlWithParams);
+      this.setupEventHandlers();
+    } catch (error) {
+      console.error('[ReliableWebSocket] Reconnection failed:', error.message);
+      this.handleConnectionFailure();
+    }
   }
 
   setupEventHandlers() {
@@ -102,7 +129,17 @@ export class ReliableWebSocketClient {
     this.ws.on('error', error => {
       console.error('[ReliableWebSocket] Error:', error.message);
       this.triggerHandler('error', { error: error.message });
+      if (this._connectReject) {
+        this._connectReject(error);
+        this._connectReject = null;
+        this._connectResolve = null;
+      }
     });
+  }
+
+  handleConnectionFailure() {
+    this.stateManager.transition(WebSocketState.RECONNECTING, 'connection failed');
+    this.scheduleReconnect();
   }
 
   handleMessage(message) {
@@ -132,6 +169,11 @@ export class ReliableWebSocketClient {
         tenantId: this.tenantId,
         sessionId: this.sessionId,
       });
+      if (this._connectResolve) {
+        this._connectResolve();
+        this._connectResolve = null;
+        this._connectReject = null;
+      }
       return;
     }
 
@@ -188,11 +230,12 @@ export class ReliableWebSocketClient {
     } else {
       this.stateManager.transition(WebSocketState.CLOSED, `disconnected: ${code}`);
     }
-  }
 
-  handleConnectionFailure() {
-    this.stateManager.transition(WebSocketState.RECONNECTING, 'connection failed');
-    this.scheduleReconnect();
+    if (this._connectReject) {
+      this._connectReject(new Error(`Disconnected: ${code} ${reason}`));
+      this._connectReject = null;
+      this._connectResolve = null;
+    }
   }
 
   scheduleReconnect() {
@@ -211,8 +254,7 @@ export class ReliableWebSocketClient {
     );
 
     this.reconnectTimer = setTimeout(() => {
-      this.stateManager.transition(WebSocketState.CONNECTING, 'reconnecting');
-      this.connect();
+      this._doConnect();
     }, delay);
   }
 
@@ -231,6 +273,10 @@ export class ReliableWebSocketClient {
 
   send(message) {
     if (!this.stateManager.is(WebSocketState.CONNECTED) || !this.ws) {
+      if (this.messageQueue.length >= MAX_QUEUE_SIZE) {
+        this.messageQueue.shift();
+        console.warn('[ReliableWebSocket] Queue full, dropped oldest message');
+      }
       this.messageQueue.push(message);
       return false;
     }
@@ -254,9 +300,18 @@ export class ReliableWebSocketClient {
   }
 
   flushMessageQueue() {
-    while (this.messageQueue.length > 0) {
-      const message = this.messageQueue.shift();
-      this.send(message);
+    const queueSnapshot = this.messageQueue.splice(0);
+    for (const message of queueSnapshot) {
+      if (!this.stateManager.is(WebSocketState.CONNECTED) || !this.ws) {
+        this.messageQueue.unshift(message);
+        break;
+      }
+      try {
+        this.ws.send(JSON.stringify(message));
+      } catch {
+        this.messageQueue.unshift(message);
+        break;
+      }
     }
   }
 
@@ -291,6 +346,7 @@ export class ReliableWebSocketClient {
     this.ackManager.clearAll();
 
     if (this.ws) {
+      this.ws.removeAllListeners();
       this.ws.close();
       this.ws = null;
     }
@@ -298,6 +354,8 @@ export class ReliableWebSocketClient {
     this.messageQueue = [];
     this.stateManager.transition(WebSocketState.CLOSED, 'user disconnected');
     this.reconnectAttempts = 0;
+    this._connectResolve = null;
+    this._connectReject = null;
     console.log('[ReliableWebSocket] Disconnected by user');
   }
 
