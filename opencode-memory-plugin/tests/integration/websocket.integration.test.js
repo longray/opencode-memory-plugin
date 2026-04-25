@@ -148,13 +148,16 @@ const runTests = () => {
         const timer = setTimeout(() => {
           ws.close();
           resolve(msgs);
-        }, 5000);
+        }, 35000);
 
         ws.on('message', data => {
           const msg = JSON.parse(data);
           msgs.push(msg);
           if (msg.type === 'ping') {
             ws.send(JSON.stringify({ type: 'pong', timestamp: msg.timestamp }));
+            clearTimeout(timer);
+            ws.close();
+            resolve(msgs);
           }
         });
 
@@ -164,7 +167,6 @@ const runTests = () => {
         });
       });
 
-      // Should get at least ping, may also get error about session
       expect(messages.length).toBeGreaterThan(0);
       expect(messages.some(m => m.type === 'ping')).toBe(true);
     });
