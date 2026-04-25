@@ -30,14 +30,14 @@
 
 对以下 **真实配置文件** 进行了审计：
 
-| 文件 | 路径 | 状态 |
-|------|------|------|
-| OMO 配置 | `~/.config/opencode/oh-my-opencode.json` | ⚠️ 需要升级 |
-| OpenCode 配置 | `~/.config/opencode/opencode.json` | ⚠️ 需要升级 |
-| 全局 Agent 指令 | `~/.config/opencode/AGENTS.md` | ✅ 已是最新 |
-| Plugin Agent: Observer | `opencode-memory-plugin/agents/memory-automation.md` | ✅ 已是最新 |
+| 文件                    | 路径                                                  | 状态        |
+| ----------------------- | ----------------------------------------------------- | ----------- |
+| OMO 配置                | `~/.config/opencode/oh-my-opencode.json`              | ⚠️ 需要升级 |
+| OpenCode 配置           | `~/.config/opencode/opencode.json`                    | ⚠️ 需要升级 |
+| 全局 Agent 指令         | `~/.config/opencode/AGENTS.md`                        | ✅ 已是最新 |
+| Plugin Agent: Observer  | `opencode-memory-plugin/agents/memory-automation.md`  | ✅ 已是最新 |
 | Plugin Agent: Librarian | `opencode-memory-plugin/agents/memory-consolidate.md` | ✅ 已是最新 |
-| 插件核心 | `opencode-memory-plugin/plugin.js` | ✅ 已是最新 |
+| 插件核心                | `opencode-memory-plugin/plugin.js`                    | ✅ 已是最新 |
 
 ### 1.2 关键问题
 
@@ -90,29 +90,29 @@
 
 ### 1.3 工具版本对照表
 
-| 旧版工具 (v2.x) | 当前版本 (v3.2+) | 替换说明 |
-|----------------|-----------------|---------|
-| `list_daily` | `memory_timeline` | 时间线浏览，功能完全替代 |
-| `init_daily` | `memory_timeline` | 初始化逻辑已合并到 timeline |
-| `memory_search` | `memory_search` | ✅ 保留，新增 `memory_suggest` |
-| `memory_write` | `memory_write` | ✅ 保留，新增 `memory_pin` |
-| `memory_read` | `memory_read` | ✅ 保留，支持 level 渐进加载 |
-| `rebuild_index` | `rebuild_index` | ✅ 保留，新增 `incremental_sync` |
-| `index_status` | `index_status` | ✅ 保留 |
-| *(不存在)* | `memory_suggest` | 🆕 自动补全建议 |
-| *(不存在)* | `memory_timeline` | 🆕 按日期浏览记忆 |
-| *(不存在)* | `memory_topics` | 🆕 按主题浏览记忆 |
-| *(不存在)* | `memory_relate` | 🆕 创建/查询图关系 |
-| *(不存在)* | `memory_graph` | 🆕 图谱遍历 |
-| *(不存在)* | `memory_pin` | 🆕 置顶/取消置顶 |
-| *(不存在)* | `incremental_sync` | 🆕 增量同步 |
-| *(不存在)* | `full_sync` | 🆕 完整同步 |
-| *(不存在)* | `sync_checkpoint` | 🆕 同步检查点 |
-| *(不存在)* | `conflict_list` | 🆕 冲突列表 |
-| *(不存在)* | `conflict_resolve` | 🆕 冲突解决 |
-| *(不存在)* | `createAtom` | 🆕 v3.2 Atom API |
-| *(不存在)* | `createEntity` | 🆕 v3.2 Entity API |
-| *(不存在)* | `createReference` | 🆕 v3.2 Reference API |
+| 旧版工具 (v2.x) | 当前版本 (v3.2+)   | 替换说明                         |
+| --------------- | ------------------ | -------------------------------- |
+| `list_daily`    | `memory_timeline`  | 时间线浏览，功能完全替代         |
+| `init_daily`    | `memory_timeline`  | 初始化逻辑已合并到 timeline      |
+| `memory_search` | `memory_search`    | ✅ 保留，新增 `memory_suggest`   |
+| `memory_write`  | `memory_write`     | ✅ 保留，新增 `memory_pin`       |
+| `memory_read`   | `memory_read`      | ✅ 保留，支持 level 渐进加载     |
+| `rebuild_index` | `rebuild_index`    | ✅ 保留，新增 `incremental_sync` |
+| `index_status`  | `index_status`     | ✅ 保留                          |
+| _(不存在)_      | `memory_suggest`   | 🆕 自动补全建议                  |
+| _(不存在)_      | `memory_timeline`  | 🆕 按日期浏览记忆                |
+| _(不存在)_      | `memory_topics`    | 🆕 按主题浏览记忆                |
+| _(不存在)_      | `memory_relate`    | 🆕 创建/查询图关系               |
+| _(不存在)_      | `memory_graph`     | 🆕 图谱遍历                      |
+| _(不存在)_      | `memory_pin`       | 🆕 置顶/取消置顶                 |
+| _(不存在)_      | `incremental_sync` | 🆕 增量同步                      |
+| _(不存在)_      | `full_sync`        | 🆕 完整同步                      |
+| _(不存在)_      | `sync_checkpoint`  | 🆕 同步检查点                    |
+| _(不存在)_      | `conflict_list`    | 🆕 冲突列表                      |
+| _(不存在)_      | `conflict_resolve` | 🆕 冲突解决                      |
+| _(不存在)_      | `createAtom`       | 🆕 v3.2 Atom API                 |
+| _(不存在)_      | `createEntity`     | 🆕 v3.2 Entity API               |
+| _(不存在)_      | `createReference`  | 🆕 v3.2 Reference API            |
 
 ---
 
@@ -255,23 +255,23 @@ plugin agents (memory-automation.md / memory-consolidate.md)
 
 ### 3.2 各 category 工具需求矩阵
 
-| 工具 | universal | ultrabrain | deep | artistry | quick | writing | visual-eng |
-|------|:---------:|:----------:|:----:|:--------:|:-----:|:-------:|:----------:|
-| `memory_write` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `memory_read` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `memory_search` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `memory_suggest` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `memory_timeline` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `memory_topics` | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
-| `memory_relate` | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
-| `memory_graph` | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
-| `memory_pin` | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
-| `index_status` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `incremental_sync` | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
-| `rebuild_index` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `sync_checkpoint` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `conflict_list` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `conflict_resolve` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 工具               | universal | ultrabrain | deep | artistry | quick | writing | visual-eng |
+| ------------------ | :-------: | :--------: | :--: | :------: | :---: | :-----: | :--------: |
+| `memory_write`     |    ✅     |     ✅     |  ✅  |    ✅    |  ✅   |   ✅    |     ✅     |
+| `memory_read`      |    ✅     |     ✅     |  ✅  |    ✅    |  ✅   |   ✅    |     ✅     |
+| `memory_search`    |    ✅     |     ✅     |  ✅  |    ✅    |  ✅   |   ✅    |     ✅     |
+| `memory_suggest`   |    ✅     |     ✅     |  ✅  |    ✅    |  ✅   |   ✅    |     ✅     |
+| `memory_timeline`  |    ✅     |     ✅     |  ✅  |    ✅    |  ✅   |   ✅    |     ✅     |
+| `memory_topics`    |    ✅     |     ✅     |  ✅  |    ✅    |  ❌   |   ✅    |     ✅     |
+| `memory_relate`    |    ✅     |     ✅     |  ✅  |    ✅    |  ❌   |   ✅    |     ✅     |
+| `memory_graph`     |    ✅     |     ✅     |  ✅  |    ✅    |  ❌   |   ✅    |     ✅     |
+| `memory_pin`       |    ✅     |     ✅     |  ✅  |    ❌    |  ❌   |   ✅    |     ❌     |
+| `index_status`     |    ✅     |     ✅     |  ✅  |    ✅    |  ✅   |   ✅    |     ✅     |
+| `incremental_sync` |    ✅     |     ✅     |  ✅  |    ✅    |  ❌   |   ✅    |     ✅     |
+| `rebuild_index`    |    ✅     |     ✅     |  ✅  |    ❌    |  ❌   |   ❌    |     ❌     |
+| `sync_checkpoint`  |    ✅     |     ✅     |  ✅  |    ❌    |  ❌   |   ❌    |     ❌     |
+| `conflict_list`    |    ✅     |     ✅     |  ✅  |    ❌    |  ❌   |   ❌    |     ❌     |
+| `conflict_resolve` |    ✅     |     ✅     |  ✅  |    ❌    |  ❌   |   ❌    |     ❌     |
 
 ### 3.3 升级操作步骤
 
@@ -383,6 +383,7 @@ if ($?) { "✅ JSON 语法正确" } else { "❌ JSON 语法错误" }
 ```
 
 > **关键差异**：
+>
 > - Observer 是 `primary` 模式（Tab 切换），**没有** `memory_write`（只分析不保存）
 > - Librarian 是 `subagent` 模式（@memory-consolidate 触发），有全部工具
 > - 删除了 `list_daily` 和 `init_daily`
@@ -400,6 +401,7 @@ opencode.json 中的 agent 配置**可能与插件 agents 目录冲突**。插�
 ### 5.1 核心原则
 
 每个 OMO 子智能体的 `prompt_append` 应包含**记忆工具使用指导**，确保智能体知道：
+
 1. **何时**使用记忆工具（触发条件）
 2. **如何**使用记忆工具（参数选择）
 3. **什么**内容值得保存（过滤标准）
@@ -504,9 +506,9 @@ opencode.json 中的 agent 配置**可能与插件 agents 目录冲突**。插�
 
 ```yaml
 ---
-description: 'Memory Observer — analyzes conversations and extracts
+description: "Memory Observer — analyzes conversations and extracts
   valuable insights. Returns ONLY high-confidence candidates. Never saves;
-  only proposes.'
+  only proposes."
 mode: primary
 model: anthropic/claude-sonnet-4-20250514
 tools:
@@ -520,7 +522,6 @@ tools:
   read: false
   # 注意：不配置 memory_write，Observer 只能分析和报告，不能保存
 ---
-
 你是记忆观察者（The Observer）。你的职责是分析对话，识别值得保存的信息。
 
 **关键规则：你只配置了读取类工具（memory_search/memory_suggest/memory_timeline/memory_topics），没有 memory_write。你只能分析和报告，不能执行保存。主代理会在用户确认后执行保存。**
@@ -550,12 +551,12 @@ tools:
 
 **关键设计决策**：
 
-| 决策 | 原因 |
-|------|------|
-| `mode: primary` | subagent 无法与用户多轮交互，Human-in-the-loop 需要用户直接对话 |
-| 无 `memory_write` | 只分析不保存，防止绕过用户确认 |
-| `model: claude-sonnet-4` | 指令遵循更强，避免跳过确认步骤 |
-| `bash/write/edit/read: false` | 最小权限原则，只做记忆分析 |
+| 决策                          | 原因                                                            |
+| ----------------------------- | --------------------------------------------------------------- |
+| `mode: primary`               | subagent 无法与用户多轮交互，Human-in-the-loop 需要用户直接对话 |
+| 无 `memory_write`             | 只分析不保存，防止绕过用户确认                                  |
+| `model: claude-sonnet-4`      | 指令遵循更强，避免跳过确认步骤                                  |
+| `bash/write/edit/read: false` | 最小权限原则，只做记忆分析                                      |
 
 **过滤规则**（命中任意一条即拒绝）：
 
@@ -652,6 +653,7 @@ Step 5: 静默同步
 I have analyzed recent memories and synthesized the following knowledge graph:
 
 **1. [Synthesized Node Abstract]** (ID: xxx)
+
 - Summarized 3 fragmented daily notes.
 - Pinned: Yes 📌
 - Relations created: 3
@@ -661,12 +663,12 @@ I have analyzed recent memories and synthesized the following knowledge graph:
 
 **关键设计决策**：
 
-| 决策 | 原因 |
-|------|------|
-| `mode: subagent` | 由主代理通过 @memory-consolidate 触发，不需要用户交互 |
-| 全部记忆工具 | 需要读取、写入、关联、同步 |
-| `model: claude-haiku-4` | 成本更低，整合任务不需要深度推理 |
-| `bash/write/edit/read: false` | 禁止文件操作，只通过 MCP 工具操作记忆 |
+| 决策                          | 原因                                                  |
+| ----------------------------- | ----------------------------------------------------- |
+| `mode: subagent`              | 由主代理通过 @memory-consolidate 触发，不需要用户交互 |
+| 全部记忆工具                  | 需要读取、写入、关联、同步                            |
+| `model: claude-haiku-4`       | 成本更低，整合任务不需要深度推理                      |
+| `bash/write/edit/read: false` | 禁止文件操作，只通过 MCP 工具操作记忆                 |
 
 ### 6.3 代理红线（禁止行为）
 
@@ -808,7 +810,7 @@ Step 4: 基于完整上下文做出架构建议
 ### 7.5 Atom/Entity API 调用示例
 
 ```javascript
-import { WrapperClient } from './wrapper-client.js';
+import { WrapperClient } from "./wrapper-client.js";
 const client = new WrapperClient();
 
 // ===== 创建 Atom =====
@@ -855,10 +857,10 @@ const refs = await client.queryReferences({
 
 ### 7.6 端口变更说明
 
-| 版本 | 端口 | 状态 |
-|------|------|------|
+| 版本        | 端口  | 状态      |
+| ----------- | ----- | --------- |
 | v3.1 及之前 | 17999 | ❌ 已废弃 |
-| v3.2+ | 18008 | ✅ 当前 |
+| v3.2+       | 18008 | ✅ 当前   |
 
 ```bash
 # 验证后端
@@ -962,22 +964,22 @@ Oracle 调用 memory_write 保存架构决策
 
 ### 8.3 工具权限隔离矩阵
 
-| 工具 | Sisyphus | Prometheus | Atlas | Oracle | Momus | Librarian (OMO) | Explore | Observer (插件) | Librarian (插件) |
-|------|:--------:|:----------:|:-----:|:------:|:-----:|:---------------:|:-------:|:---------------:|:----------------:|
-| `memory_write` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| `memory_read` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| `memory_search` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `memory_suggest` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `memory_timeline` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `memory_topics` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `memory_relate` | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| `memory_graph` | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| `memory_pin` | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| `index_status` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| `incremental_sync` | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| `rebuild_index` | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| `conflict_list` | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| `conflict_resolve` | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| 工具               | Sisyphus | Prometheus | Atlas | Oracle | Momus | Librarian (OMO) | Explore | Observer (插件) | Librarian (插件) |
+| ------------------ | :------: | :--------: | :---: | :----: | :---: | :-------------: | :-----: | :-------------: | :--------------: |
+| `memory_write`     |    ✅    |     ✅     |  ✅   |   ✅   |  ✅   |       ✅        |   ✅    |       ❌        |        ✅        |
+| `memory_read`      |    ✅    |     ✅     |  ✅   |   ✅   |  ✅   |       ✅        |   ✅    |       ❌        |        ✅        |
+| `memory_search`    |    ✅    |     ✅     |  ✅   |   ✅   |  ✅   |       ✅        |   ✅    |       ✅        |        ✅        |
+| `memory_suggest`   |    ✅    |     ✅     |  ✅   |   ✅   |  ✅   |       ✅        |   ✅    |       ✅        |        ✅        |
+| `memory_timeline`  |    ✅    |     ✅     |  ✅   |   ✅   |  ✅   |       ✅        |   ✅    |       ✅        |        ✅        |
+| `memory_topics`    |    ✅    |     ✅     |  ✅   |   ✅   |  ✅   |       ✅        |   ✅    |       ✅        |        ✅        |
+| `memory_relate`    |    ✅    |     ✅     |  ✅   |   ✅   |  ❌   |       ✅        |   ✅    |       ❌        |        ✅        |
+| `memory_graph`     |    ✅    |     ✅     |  ✅   |   ✅   |  ❌   |       ✅        |   ✅    |       ❌        |        ✅        |
+| `memory_pin`       |    ✅    |     ✅     |  ✅   |   ✅   |  ❌   |       ✅        |   ✅    |       ❌        |        ✅        |
+| `index_status`     |    ✅    |     ✅     |  ✅   |   ✅   |  ✅   |       ✅        |   ✅    |       ❌        |        ❌        |
+| `incremental_sync` |    ✅    |     ✅     |  ✅   |   ✅   |  ❌   |       ✅        |   ✅    |       ❌        |        ✅        |
+| `rebuild_index`    |    ✅    |     ✅     |  ✅   |   ✅   |  ❌   |       ✅        |   ❌    |       ❌        |        ❌        |
+| `conflict_list`    |    ✅    |     ✅     |  ✅   |   ✅   |  ❌   |       ✅        |   ❌    |       ❌        |        ✅        |
+| `conflict_resolve` |    ✅    |     ✅     |  ✅   |   ✅   |  ❌   |       ✅        |   ❌    |       ❌        |        ✅        |
 
 > **关键隔离**：Observer（插件）只有搜索/浏览工具，没有写入/同步/图谱工具。这是 Human-in-the-loop 安全机制的基石。
 
@@ -987,15 +989,15 @@ Oracle 调用 memory_write 保存架构决策
 
 ### 9.1 按层分类
 
-| 层级 | 组件 | 可用工具 | 说明 |
-|------|------|---------|------|
-| **L5** | OMO Sisyphus | 全部 15 工具 + Atom/Entity API | 编排需要最大权限 |
-| **L5** | OMO Prometheus | 浏览 + 搜索 + 写入 + 同步 | 规划需要历史上下文 |
-| **L5** | OMO Oracle | 图谱 + 搜索 + 写入 + 关联 | 架构追溯需要图谱 |
-| **L5** | OMO Explore | 搜索 + 写入（精简） | 探索只需要基本工具 |
-| **L5** | OMO Junior | 搜索（只读） | Junior 不负责保存 |
-| **L3** | Plugin Observer | 搜索 + 浏览（只读） | Human-in-the-loop |
-| **L3** | Plugin Librarian | 全部记忆工具 + 同步 | 自动整合 |
+| 层级   | 组件             | 可用工具                       | 说明               |
+| ------ | ---------------- | ------------------------------ | ------------------ |
+| **L5** | OMO Sisyphus     | 全部 15 工具 + Atom/Entity API | 编排需要最大权限   |
+| **L5** | OMO Prometheus   | 浏览 + 搜索 + 写入 + 同步      | 规划需要历史上下文 |
+| **L5** | OMO Oracle       | 图谱 + 搜索 + 写入 + 关联      | 架构追溯需要图谱   |
+| **L5** | OMO Explore      | 搜索 + 写入（精简）            | 探索只需要基本工具 |
+| **L5** | OMO Junior       | 搜索（只读）                   | Junior 不负责保存  |
+| **L3** | Plugin Observer  | 搜索 + 浏览（只读）            | Human-in-the-loop  |
+| **L3** | Plugin Librarian | 全部记忆工具 + 同步            | 自动整合           |
 
 ### 9.2 按功能分层
 
@@ -1103,14 +1105,14 @@ incremental_sync dry_run=true
 
 ### 10.3 常见问题
 
-| 问题 | 症状 | 解决方案 |
-|------|------|---------|
-| 旧工具名仍出现 | `list_daily is not a function` | 检查 oh-my-opencode.json 和 opencode.json |
-| Observer 有 write 权限 | Observer 自动保存 | 检查 opencode.json agent 配置，确保无 memory_write |
-| 后端连接失败 | `Unable to connect to localhost:18008` | 检查端口是否从 17999 迁移 |
-| 搜索无结果 | hybrid 模式返回空 | 检查 MODELSCOPE_API_KEY 和后端健康 |
-| WebSocket 断连 | 实时同步不工作 | 检查 websocket.enabled 配置 |
-| 图谱查询失败 | `memory_graph` 返回错误 | 确认后端 SurrealDB 运行正常 |
+| 问题                   | 症状                                   | 解决方案                                           |
+| ---------------------- | -------------------------------------- | -------------------------------------------------- |
+| 旧工具名仍出现         | `list_daily is not a function`         | 检查 oh-my-opencode.json 和 opencode.json          |
+| Observer 有 write 权限 | Observer 自动保存                      | 检查 opencode.json agent 配置，确保无 memory_write |
+| 后端连接失败           | `Unable to connect to localhost:18008` | 检查端口是否从 17999 迁移                          |
+| 搜索无结果             | hybrid 模式返回空                      | 检查 MODELSCOPE_API_KEY 和后端健康                 |
+| WebSocket 断连         | 实时同步不工作                         | 检查 websocket.enabled 配置                        |
+| 图谱查询失败           | `memory_graph` 返回错误                | 确认后端 SurrealDB 运行正常                        |
 
 ---
 
@@ -1127,103 +1129,181 @@ incremental_sync dry_run=true
       "description": "全功能无限制智能体模板",
       "model": "zhipuai-coding-plan/glm-5-turbo",
       "tools": {
-        "memory_write": true, "memory_read": true,
-        "memory_search": true, "memory_suggest": true,
-        "memory_timeline": true, "memory_topics": true,
-        "memory_relate": true, "memory_graph": true, "memory_pin": true,
-        "index_status": true, "rebuild_index": true,
-        "incremental_sync": true, "sync_checkpoint": true,
-        "conflict_list": true, "conflict_resolve": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": true, "Bash": true, "WebFetch": true,
-        "Task": true, "TodoWrite": true, "Think": true
-      }
+        "memory_write": true,
+        "memory_read": true,
+        "memory_search": true,
+        "memory_suggest": true,
+        "memory_timeline": true,
+        "memory_topics": true,
+        "memory_relate": true,
+        "memory_graph": true,
+        "memory_pin": true,
+        "index_status": true,
+        "rebuild_index": true,
+        "incremental_sync": true,
+        "sync_checkpoint": true,
+        "conflict_list": true,
+        "conflict_resolve": true,
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": true,
+        "Bash": true,
+        "WebFetch": true,
+        "Task": true,
+        "TodoWrite": true,
+        "Think": true,
+      },
     },
     "ultrabrain": {
       "description": "超高难度、需要极限推理的复杂逻辑任务",
       "model": "zhipuai-coding-plan/glm-5.1",
       "tools": {
-        "memory_write": true, "memory_read": true,
-        "memory_search": true, "memory_suggest": true,
-        "memory_timeline": true, "memory_topics": true,
-        "memory_relate": true, "memory_graph": true, "memory_pin": true,
-        "index_status": true, "rebuild_index": true,
-        "incremental_sync": true, "sync_checkpoint": true,
-        "conflict_list": true, "conflict_resolve": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": true, "Bash": true, "WebFetch": true,
-        "Task": true, "TodoWrite": true, "Think": true
-      }
+        "memory_write": true,
+        "memory_read": true,
+        "memory_search": true,
+        "memory_suggest": true,
+        "memory_timeline": true,
+        "memory_topics": true,
+        "memory_relate": true,
+        "memory_graph": true,
+        "memory_pin": true,
+        "index_status": true,
+        "rebuild_index": true,
+        "incremental_sync": true,
+        "sync_checkpoint": true,
+        "conflict_list": true,
+        "conflict_resolve": true,
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": true,
+        "Bash": true,
+        "WebFetch": true,
+        "Task": true,
+        "TodoWrite": true,
+        "Think": true,
+      },
     },
     "deep": {
       "description": "深度自主调研与执行、复杂问题解决",
       "model": "zhipuai-coding-plan/glm-5-turbo",
       "tools": {
-        "memory_write": true, "memory_read": true,
-        "memory_search": true, "memory_suggest": true,
-        "memory_timeline": true, "memory_topics": true,
-        "memory_relate": true, "memory_graph": true, "memory_pin": true,
-        "index_status": true, "rebuild_index": true,
-        "incremental_sync": true, "sync_checkpoint": true,
-        "conflict_list": true, "conflict_resolve": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": true, "Bash": true, "WebFetch": true,
-        "Task": true, "TodoWrite": true, "Think": true
-      }
+        "memory_write": true,
+        "memory_read": true,
+        "memory_search": true,
+        "memory_suggest": true,
+        "memory_timeline": true,
+        "memory_topics": true,
+        "memory_relate": true,
+        "memory_graph": true,
+        "memory_pin": true,
+        "index_status": true,
+        "rebuild_index": true,
+        "incremental_sync": true,
+        "sync_checkpoint": true,
+        "conflict_list": true,
+        "conflict_resolve": true,
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": true,
+        "Bash": true,
+        "WebFetch": true,
+        "Task": true,
+        "TodoWrite": true,
+        "Think": true,
+      },
     },
     "artistry": {
       "description": "非常规创造性方法、创新解决方案",
       "model": "zhipuai-coding-plan/glm-5-turbo",
       "tools": {
-        "memory_write": true, "memory_read": true,
-        "memory_search": true, "memory_suggest": true,
-        "memory_timeline": true, "memory_topics": true,
-        "memory_relate": true, "memory_graph": true,
-        "index_status": true, "incremental_sync": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": false, "Bash": false, "WebFetch": true,
-        "Task": true, "TodoWrite": true, "Think": true
-      }
+        "memory_write": true,
+        "memory_read": true,
+        "memory_search": true,
+        "memory_suggest": true,
+        "memory_timeline": true,
+        "memory_topics": true,
+        "memory_relate": true,
+        "memory_graph": true,
+        "index_status": true,
+        "incremental_sync": true,
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": false,
+        "Bash": false,
+        "WebFetch": true,
+        "Task": true,
+        "TodoWrite": true,
+        "Think": true,
+      },
     },
     "quick": {
       "description": "简单任务 - 单文件更改、拼写修复",
       "model": "opencode/minimax-m2.5-free",
       "tools": {
-        "memory_write": true, "memory_read": true,
-        "memory_search": true, "memory_suggest": true,
+        "memory_write": true,
+        "memory_read": true,
+        "memory_search": true,
+        "memory_suggest": true,
         "memory_timeline": true,
         "index_status": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": true, "Bash": false, "WebFetch": false,
-        "Task": false, "TodoWrite": false, "Think": false
-      }
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": true,
+        "Bash": false,
+        "WebFetch": false,
+        "Task": false,
+        "TodoWrite": false,
+        "Think": false,
+      },
     },
     "writing": {
       "description": "文档、散文、技术写作",
       "model": "zhipuai-coding-plan/glm-5-turbo",
       "tools": {
-        "memory_write": true, "memory_read": true,
-        "memory_search": true, "memory_suggest": true,
-        "memory_timeline": true, "memory_topics": true,
-        "memory_relate": true, "memory_graph": true, "memory_pin": true,
-        "index_status": true, "incremental_sync": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": true, "Bash": false, "WebFetch": true,
-        "Task": false, "TodoWrite": false, "Think": true
-      }
+        "memory_write": true,
+        "memory_read": true,
+        "memory_search": true,
+        "memory_suggest": true,
+        "memory_timeline": true,
+        "memory_topics": true,
+        "memory_relate": true,
+        "memory_graph": true,
+        "memory_pin": true,
+        "index_status": true,
+        "incremental_sync": true,
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": true,
+        "Bash": false,
+        "WebFetch": true,
+        "Task": false,
+        "TodoWrite": false,
+        "Think": true,
+      },
     },
     "visual-engineering": {
       "description": "视觉工程与UI实现",
       "model": "zhipuai-coding-plan/glm-4.6v",
       "tools": {
-        "memory_write": true, "memory_read": true,
-        "memory_search": true, "memory_suggest": true,
-        "memory_timeline": true, "memory_topics": true,
-        "memory_relate": true, "memory_graph": true,
-        "index_status": true, "incremental_sync": true
-      }
-    }
-  }
+        "memory_write": true,
+        "memory_read": true,
+        "memory_search": true,
+        "memory_suggest": true,
+        "memory_timeline": true,
+        "memory_topics": true,
+        "memory_relate": true,
+        "memory_graph": true,
+        "index_status": true,
+        "incremental_sync": true,
+      },
+    },
+  },
 }
 ```
 
@@ -1238,19 +1318,28 @@ incremental_sync dry_run=true
     "~/.opencode/memory/USER.md",
     "~/.opencode/memory/IDENTITY.md",
     "~/.opencode/memory/TOOLS.md",
-    "~/.opencode/memory/MEMORY.md"
+    "~/.opencode/memory/MEMORY.md",
   ],
   "model": "provider-auth-big/glm-5",
   "plugin": ["oh-my-opencode@latest"],
   "tools": {
-    "memory_write": true, "memory_read": true,
-    "memory_search": true, "memory_suggest": true,
-    "memory_timeline": true, "memory_topics": true,
-    "memory_relate": true, "memory_graph": true, "memory_pin": true,
-    "index_status": true, "rebuild_index": true,
-    "incremental_sync": true, "full_sync": true,
-    "sync_checkpoint": true, "conflict_list": true, "conflict_resolve": true
-  }
+    "memory_write": true,
+    "memory_read": true,
+    "memory_search": true,
+    "memory_suggest": true,
+    "memory_timeline": true,
+    "memory_topics": true,
+    "memory_relate": true,
+    "memory_graph": true,
+    "memory_pin": true,
+    "index_status": true,
+    "rebuild_index": true,
+    "incremental_sync": true,
+    "full_sync": true,
+    "sync_checkpoint": true,
+    "conflict_list": true,
+    "conflict_resolve": true,
+  },
 }
 ```
 
@@ -1271,28 +1360,27 @@ export WS_ENABLED=true                            # WebSocket 开关
 
 ### D. 相关文档
 
-| 文档 | 路径 | 说明 |
-|------|------|------|
-| 最佳实践 | [BEST-PRACTICES-v2.1.md](./BEST-PRACTICES-v2.1.md) | 五层架构 + Atom/Entity/Reference 详细指南 |
-| API 契约 | [API-CONTRACT.md](./API-CONTRACT.md) | 工具↔后端 API 映射 |
-| 原版指南 | [OPENCODE-SETUP-GUIDE.md](./OPENCODE-SETUP-GUIDE.md) | 通用配置指南（模板版） |
-| 插件开发 | [../AGENTS.md](../AGENTS.md) | 插件开发指南 |
+| 文档     | 路径                                                 | 说明                                      |
+| -------- | ---------------------------------------------------- | ----------------------------------------- |
+| 最佳实践 | [BEST-PRACTICES-v2.1.md](./BEST-PRACTICES-v2.1.md)   | 五层架构 + Atom/Entity/Reference 详细指南 |
+| API 契约 | [API-CONTRACT.md](./API-CONTRACT.md)                 | 工具↔后端 API 映射                        |
+| 原版指南 | [OPENCODE-SETUP-GUIDE.md](./OPENCODE-SETUP-GUIDE.md) | 通用配置指南（模板版）                    |
+| 插件开发 | [../AGENTS.md](../AGENTS.md)                         | 插件开发指南                              |
 
 ### E. 版本历史
 
-| 版本 | 日期 | 变更 |
-|------|------|------|
+| 版本 | 日期       | 变更                               |
+| ---- | ---------- | ---------------------------------- |
 | v1.0 | 2026-04-23 | 初始版本，基于真实配置文件逆向分析 |
 
 ---
 
-*本文档基于以下真实配置文件分析生成：*
+_本文档基于以下真实配置文件分析生成：_
 
-- *`~/.config/opencode/oh-my-opencode.json`（771 行）*
-- *`~/.config/opencode/opencode.json`（125 行）*
-- *`~/.config/opencode/AGENTS.md`（全局代理指令）*
-- *`opencode-memory-plugin/plugin.js`（134 行，当前注册的 15 个工具）*
-- *`opencode-memory-plugin/agents/memory-automation.md`（123 行）*
-- *`opencode-memory-plugin/agents/memory-consolidate.md`（111 行）*
-- *`docs/BEST-PRACTICES-v2.1.md`（1002 行）*
-
+- _`~/.config/opencode/oh-my-opencode.json`（771 行）_
+- _`~/.config/opencode/opencode.json`（125 行）_
+- _`~/.config/opencode/AGENTS.md`（全局代理指令）_
+- _`opencode-memory-plugin/plugin.js`（134 行，当前注册的 15 个工具）_
+- _`opencode-memory-plugin/agents/memory-automation.md`（123 行）_
+- _`opencode-memory-plugin/agents/memory-consolidate.md`（111 行）_
+- _`docs/BEST-PRACTICES-v2.1.md`（1002 行）_

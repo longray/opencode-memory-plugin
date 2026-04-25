@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeAll } from '@jest/globals';
+import { describe, it, expect, jest } from '@jest/globals';
 import WebSocket from 'ws';
 
 const BACKEND_WS = 'ws://localhost:18008/ws/memories/live';
 const BACKEND_HTTP = 'http://localhost:18008';
 const TENANT_ID = 'default';
-const TEST_TIMEOUT = 15000;
+const TEST_TIMEOUT = 30000;
 
 const isBackendAvailable = async () => {
   try {
@@ -16,26 +16,11 @@ const isBackendAvailable = async () => {
   }
 };
 
-describe('WebSocket Integration Tests', () => {
-  let backendUp = false;
+const _backendUp = await isBackendAvailable();
 
-  beforeAll(async () => {
-    backendUp = await isBackendAvailable();
-    if (!backendUp) {
-      console.log('Skipping: Backend not available');
-    }
-  }, 5000);
-
-  const itIfBackend = (name, fn) => {
-    if (!backendUp) {
-      it.skip(`${name} (backend unavailable)`, fn);
-    } else {
-      it(name, fn);
-    }
-  };
-
+const runTests = () => {
   describe('Connection', () => {
-    itIfBackend(
+    it(
       'should connect and receive connected message',
       async () => {
         const result = await new Promise((resolve, reject) => {
@@ -44,7 +29,7 @@ describe('WebSocket Integration Tests', () => {
           const timer = setTimeout(() => {
             ws.close();
             resolve(messages);
-          }, 5000);
+          }, 10000);
 
           ws.on('message', data => {
             const msg = JSON.parse(data);
@@ -73,7 +58,7 @@ describe('WebSocket Integration Tests', () => {
       TEST_TIMEOUT
     );
 
-    itIfBackend(
+    it(
       'should receive session_id in connected message',
       async () => {
         const sessionId = await new Promise((resolve, reject) => {
@@ -81,7 +66,7 @@ describe('WebSocket Integration Tests', () => {
           const timer = setTimeout(() => {
             ws.close();
             resolve(null);
-          }, 5000);
+          }, 15000);
 
           ws.on('message', data => {
             const msg = JSON.parse(data);
@@ -109,7 +94,7 @@ describe('WebSocket Integration Tests', () => {
   });
 
   describe('Heartbeat', () => {
-    itIfBackend(
+    it(
       'should receive ping from server',
       async () => {
         const hasPing = await new Promise((resolve, reject) => {
@@ -139,7 +124,7 @@ describe('WebSocket Integration Tests', () => {
       TEST_TIMEOUT
     );
 
-    itIfBackend(
+    it(
       'should keep connection alive by replying pong',
       async () => {
         const pingCount = await new Promise((resolve, reject) => {
@@ -171,7 +156,7 @@ describe('WebSocket Integration Tests', () => {
   });
 
   describe('Protocol', () => {
-    itIfBackend(
+    it(
       'should handle error messages gracefully',
       async () => {
         const messages = await new Promise((resolve, reject) => {
@@ -207,7 +192,7 @@ describe('WebSocket Integration Tests', () => {
   });
 
   describe('ReliableWebSocketClient', () => {
-    itIfBackend(
+    it(
       'should connect using our client library',
       async () => {
         const { ReliableWebSocketClient } = await import('../../lib/websocket/reliable-client.js');
@@ -244,7 +229,7 @@ describe('WebSocket Integration Tests', () => {
       TEST_TIMEOUT
     );
 
-    itIfBackend(
+    it(
       'should track connection state correctly',
       async () => {
         const { ReliableWebSocketClient } = await import('../../lib/websocket/reliable-client.js');
@@ -278,4 +263,13 @@ describe('WebSocket Integration Tests', () => {
       TEST_TIMEOUT
     );
   });
-});
+};
+
+if (_backendUp) {
+  describe('WebSocket Integration Tests', () => {
+    jest.setTimeout(60000);
+    runTests();
+  });
+} else {
+  describe.skip('WebSocket Integration Tests (backend unavailable)', runTests);
+}

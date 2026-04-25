@@ -176,19 +176,16 @@ export class PrecomputeClient {
    */
   async searchSymbols({ query, type, project_id, fuzzy = false, limit = 20, tenant_id }) {
     const params = new URLSearchParams();
-    params.append('query', query);
+    params.append('tenant_id', tenant_id || this.client.tenantId);
+    if (query) params.append('query', query);
     if (type) params.append('type', type);
-    if (project_id) params.append('project_id', project_id);
-    if (tenant_id || this.client.tenantId) {
-      params.append('tenant_id', tenant_id || this.client.tenantId);
-    }
-    params.append('fuzzy', String(fuzzy));
-    params.append('limit', String(limit));
+    if (project_id) params.append('project', project_id);
+    if (limit) params.append('limit', String(limit));
 
-    const result = await this.client.http.get(`/api/v1/symbols/search?${params.toString()}`);
+    const result = await this.client.http.get(`/api/v1/atoms?${params.toString()}`);
 
     return {
-      symbols: result.symbols || [],
+      symbols: result.data || [],
       total: result.total || 0,
     };
   }

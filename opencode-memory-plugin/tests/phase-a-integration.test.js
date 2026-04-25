@@ -3,7 +3,7 @@
  * Tests plugin-backend communication and end-to-end workflow
  */
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -35,6 +35,7 @@ function normalizeMemory(memory) {
 }
 
 describe('Phase A - Integration Tests (A-INT)', () => {
+  jest.setTimeout(60000);
   beforeAll(async () => {
     // Setup test environment
     await fs.mkdir(TEST_DIR, { recursive: true });

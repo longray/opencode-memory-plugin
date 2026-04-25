@@ -245,8 +245,8 @@ export function formatProjectReportAsTable(report) {
     for (const risk of report.risks.slice(0, 10)) {
       const file = truncate(risk.file, 33);
       const complexity = String(risk.complexity);
-      const lines = String(risk.lines);
-      lines.push(`│ ${padEnd(file, 35)}${padEnd(complexity, 12)}${padEnd(lines, 13)}│`);
+      const lineCount = String(risk.lines);
+      lines.push(`│ ${padEnd(file, 35)}${padEnd(complexity, 12)}${padEnd(lineCount, 13)}│`);
     }
 
     if (report.risks.length > 10) {

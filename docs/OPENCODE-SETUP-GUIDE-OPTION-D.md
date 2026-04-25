@@ -23,16 +23,17 @@
 
 ### 1.1 你的实际配置文件
 
-| 文件路径 | 作用 | 当前状态 |
-|---------|------|---------|
-| `C:\Users\Longray\.config\opencode\AGENTS.md` | OpenCode 全局配置 | ✅ 已配置（语言、Python规则、Windows环境） |
-| `C:\Users\Longray\.config\opencode\oh-my-opencode.json` | OMO 子代理配置 | ⚠️ 工具列表过时，需要升级 |
-| `D:\github\opencode-memory-plugin\AGENTS.md` | 插件开发文档 | ✅ 项目结构文档 |
-| `~/.opencode/memory/memory-config.json` | 插件核心配置 | ⚠️ 需要确认是否启用 v3.2 特性 |
+| 文件路径                                                | 作用              | 当前状态                                   |
+| ------------------------------------------------------- | ----------------- | ------------------------------------------ |
+| `C:\Users\Longray\.config\opencode\AGENTS.md`           | OpenCode 全局配置 | ✅ 已配置（语言、Python规则、Windows环境） |
+| `C:\Users\Longray\.config\opencode\oh-my-opencode.json` | OMO 子代理配置    | ⚠️ 工具列表过时，需要升级                  |
+| `D:\github\opencode-memory-plugin\AGENTS.md`            | 插件开发文档      | ✅ 项目结构文档                            |
+| `~/.opencode/memory/memory-config.json`                 | 插件核心配置      | ⚠️ 需要确认是否启用 v3.2 特性              |
 
 ### 1.2 当前 OMO 配置分析
 
 **已启用的记忆工具（旧版本）**:
+
 ```json
 "tools": {
   "memory_write": true,      // ✅ 仍有效
@@ -46,6 +47,7 @@
 ```
 
 **缺失的新工具**:
+
 - `memory_suggest` - 搜索建议
 - `memory_relate` - 关系图谱
 - `memory_graph` - 图谱遍历
@@ -107,12 +109,13 @@
 
 **重要澄清**: OMO 的 `librarian` 子代理 ≠ 插件的 `The Librarian`
 
-| 代理 | 归属 | 触发方式 | 主要职责 |
-|------|------|---------|---------|
-| **OMO Librarian** | oh-my-opencode | Sisyphus 调度 | 知识检索、文档整理 |
+| 代理              | 归属                   | 触发方式              | 主要职责           |
+| ----------------- | ---------------------- | --------------------- | ------------------ |
+| **OMO Librarian** | oh-my-opencode         | Sisyphus 调度         | 知识检索、文档整理 |
 | **The Librarian** | opencode-memory-plugin | `@memory-consolidate` | 记忆聚合、图谱构建 |
 
 **协作关系**:
+
 - OMO Librarian 负责**外部知识**的检索和整理
 - The Librarian 负责**记忆系统内部**的碎片整合
 - 两者可以协作：OMO Librarian 发现知识缺口 → The Librarian 整合到长期记忆
@@ -131,19 +134,19 @@
     // Core 工具
     "memory_write": true,
     "memory_read": true,
-    
+
     // Search 工具
     "memory_search": true,
     "memory_suggest": true,
-    
+
     // Graph 工具
     "memory_relate": true,
     "memory_graph": true,
-    
+
     // Browse 工具
     "memory_timeline": true,
     "memory_topics": true,
-    
+
     // Sync 工具
     "index_status": true,
     "incremental_sync": true,
@@ -151,23 +154,23 @@
     "sync_checkpoint": true,
     "conflict_list": true,
     "conflict_resolve": true,
-    
+
     // v3.2 Atom/Entity/Reference API (通过 wrapperClient)
     "createAtom": true,
     "getAtom": true,
     "listAtoms": true,
     "updateAtom": true,
     "deleteAtom": true,
-    
+
     "createEntity": true,
     "getEntity": true,
     "listEntities": true,
     "deleteEntity": true,
-    
+
     "createReference": true,
     "queryReferences": true,
     "deleteReference": true,
-    
+
     // 基础工具
     "Read": true,
     "Write": true,
@@ -198,7 +201,7 @@
 
 #### Prometheus (规划器)
 
-```json
+````json
 {
   "agents": {
     "prometheus": {
@@ -206,11 +209,11 @@
     }
   }
 }
-```
+````
 
 #### Atlas (执行指挥)
 
-```json
+````json
 {
   "agents": {
     "atlas": {
@@ -218,11 +221,11 @@
     }
   }
 }
-```
+````
 
 #### Oracle (架构师)
 
-```json
+````json
 {
   "agents": {
     "oracle": {
@@ -230,7 +233,7 @@
     }
   }
 }
-```
+````
 
 ---
 
@@ -240,13 +243,15 @@
 
 **文件**: `opencode-memory-plugin/agents/memory-automation.md`
 
-```markdown
+````markdown
 # @memory-automation (The Observer)
 
 ## 身份
+
 你是 The Observer，记忆系统的观察者代理。你的职责是在对话结束后，主动识别值得保存的重要信息，并向用户确认后保存到记忆系统。
 
 ## 工作模式
+
 - **触发**: 用户 Tab 切换到你（primary 模式）
 - **输入**: 当前对话的完整历史
 - **输出**: 候选记忆清单，等待用户确认
@@ -254,7 +259,9 @@
 ## 工作流程
 
 ### Step 1: 分析对话
+
 扫描当前对话，识别以下类型的信息：
+
 - ✅ 重要决策及理由
 - ✅ 成功的问题解决方案
 - ✅ 发现的模式或最佳实践
@@ -264,14 +271,20 @@
 - ❌ 临时性、无长期价值的信息
 
 ### Step 2: 查重
+
 对每条候选信息，执行：
+
 ```javascript
-memory_search(query='候选信息摘要', mode='hybrid', limit=3)
+memory_search((query = "候选信息摘要"), (mode = "hybrid"), (limit = 3));
 ```
+````
+
 如果找到相似度 > 0.8 的已有记忆，标记为"可能重复"。
 
 ### Step 3: 展示候选
+
 向用户展示清单（最多 5 条）：
+
 ```
 📋 发现以下值得保存的信息：
 
@@ -286,30 +299,35 @@ memory_search(query='候选信息摘要', mode='hybrid', limit=3)
 ```
 
 ### Step 4: 保存确认
+
 用户确认后，执行：
+
 ```javascript
 memory_write({
-  content: '完整内容...',
-  abstract: '≤100字摘要',
-  overview: '≤500字概述',
-  type: 'decision' | 'pattern' | 'preference' | 'convention',
-  tags: ['auto-saved', 'decision'],
-  pinned: false
-})
+  content: "完整内容...",
+  abstract: "≤100字摘要",
+  overview: "≤500字概述",
+  type: "decision" | "pattern" | "preference" | "convention",
+  tags: ["auto-saved", "decision"],
+  pinned: false,
+});
 ```
 
 ## 工具白名单
+
 - memory_write
 - memory_read
 - memory_search
 - memory_suggest
 
 ## 红线
+
 - ❌ 禁止绕过用户确认直接保存
 - ❌ 禁止保存测试、闲聊内容
 - ❌ 禁止省略 abstract 或 overview
 - ✅ 宁可漏掉，不要过度保存
-```
+
+````
 
 ### 4.2 @memory-consolidate (The Librarian)
 
@@ -336,10 +354,12 @@ const recent = await memory_timeline(days=7, level=1)
 
 // 发现活跃主题
 const topics = await memory_topics(min_entries=3)
-```
+````
 
 ### Step 2: 聚合提炼
+
 识别相关碎片，聚合成单条高价值节点：
+
 ```javascript
 // 示例：将多个"错误处理"相关的碎片聚合成一条
 memory_write({
@@ -364,50 +384,56 @@ memory_write({
     }
     \`\`\`
   `,
-  abstract: '异步错误处理最佳实践',
-  overview: '汇总近期所有错误处理相关经验，提炼为可复用的模式',
-  type: 'pattern',
-  tags: ['consolidated', 'error-handling', 'async', 'best-practice']
-})
+  abstract: "异步错误处理最佳实践",
+  overview: "汇总近期所有错误处理相关经验，提炼为可复用的模式",
+  type: "pattern",
+  tags: ["consolidated", "error-handling", "async", "best-practice"],
+});
 ```
 
 ### Step 3: 建立图谱关系
+
 将聚合节点与原始碎片关联：
+
 ```javascript
 // 聚合节点 summarizes 原始碎片
 memory_relate({
-  action: 'create',
-  from_id: 'consolidated:xxx',
-  to_id: 'original:yyy',
-  relation_type: 'summarizes',
-  weight: 0.9
-})
+  action: "create",
+  from_id: "consolidated:xxx",
+  to_id: "original:yyy",
+  relation_type: "summarizes",
+  weight: 0.9,
+});
 
 // 相关主题间建立关联
 memory_relate({
-  action: 'create',
-  from_id: 'pattern:error-handling',
-  to_id: 'pattern:logging',
-  relation_type: 'related',
-  weight: 0.7
-})
+  action: "create",
+  from_id: "pattern:error-handling",
+  to_id: "pattern:logging",
+  relation_type: "related",
+  weight: 0.7,
+});
 ```
 
 ### Step 4: 置顶关键约定
+
 识别重要的项目约定，置顶以便快速访问：
+
 ```javascript
 memory_pin({
-  entry_id: 'convention:code-style',
-  action: 'pin'
-})
+  entry_id: "convention:code-style",
+  action: "pin",
+});
 ```
 
 ### Step 5: 同步后端
+
 ```javascript
-incremental_sync({ dry_run: false })
+incremental_sync({ dry_run: false });
 ```
 
 ## 工具白名单
+
 - memory_write
 - memory_read
 - memory_search
@@ -424,16 +450,20 @@ incremental_sync({ dry_run: false })
 ## 聚合策略
 
 ### 按主题聚合
+
 - 错误处理 → 错误处理最佳实践
 - 性能优化 → 性能优化指南
 - 代码风格 → 项目代码规范
 
 ### 按时间聚合
+
 - 本周所有决策 → 本周关键决策汇总
 - 本月所有模式 → 本月提炼的模式
 
 ### 按项目聚合
+
 - 项目 X 的所有记忆 → 项目 X 知识库
+
 ```
 
 ---
@@ -443,72 +473,76 @@ incremental_sync({ dry_run: false })
 ### 5.1 日常编码工作流
 
 ```
+
 08:00 启动 OpenCode
-  └─ 自动加载 OMO + 记忆插件
-  └─ WebSocket 连接后端
-  └─ 运行 index_status 确认健康
+└─ 自动加载 OMO + 记忆插件
+└─ WebSocket 连接后端
+└─ 运行 index_status 确认健康
 
 08:05 Sisyphus 加载上下文
-  └─ memory_search(query='当前项目', limit=5)
-  └─ listEntities(type='backlog', status='in_progress')
-  └─ "今天有 3 个进行中的任务"
+└─ memory_search(query='当前项目', limit=5)
+└─ listEntities(type='backlog', status='in_progress')
+└─ "今天有 3 个进行中的任务"
 
 09:00 开始编码任务
-  └─ 保存文件 → 自动触发代码分析
-  └─ createAtom({ type: 'function', name: 'newFeature' })
-  └─ createEntity({ type: 'code', atoms: [...] })
-  └─ "代码已分析并建立索引"
+└─ 保存文件 → 自动触发代码分析
+└─ createAtom({ type: 'function', name: 'newFeature' })
+└─ createEntity({ type: 'code', atoms: [...] })
+└─ "代码已分析并建立索引"
 
 10:30 遇到难题
-  └─ memory_search(query='类似问题', mode='hybrid')
-  └─ "找到 2 个相关解决方案"
-  └─ 解决问题
+└─ memory_search(query='类似问题', mode='hybrid')
+└─ "找到 2 个相关解决方案"
+└─ 解决问题
 
 12:00 午餐前
-  └─ Tab 切换到 @memory-automation
-  └─ The Observer: "发现 2 条值得保存的信息"
-  └─ 用户确认保存
+└─ Tab 切换到 @memory-automation
+└─ The Observer: "发现 2 条值得保存的信息"
+└─ 用户确认保存
 
 17:00 下班前
-  └─ @memory-consolidate
-  └─ The Librarian 整合今日碎片
-  └─ 建立知识图谱关联
+└─ @memory-consolidate
+└─ The Librarian 整合今日碎片
+└─ 建立知识图谱关联
+
 ```
 
 ### 5.2 架构决策工作流
 
 ```
+
 14:00 需要做一个架构决策
-  └─ Sisyphus 调度 Oracle
-  
+└─ Sisyphus 调度 Oracle
+
 14:05 Oracle 检索历史
-  └─ memory_search(query='认证架构', mode='hybrid')
-  └─ memory_graph(memory_id='xxx', depth=2)
-  └─ "发现 3 个相关历史决策"
+└─ memory_search(query='认证架构', mode='hybrid')
+└─ memory_graph(memory_id='xxx', depth=2)
+└─ "发现 3 个相关历史决策"
 
 14:30 分析选项
-  └─ 对比 JWT vs Session
-  └─ createEntity({ type: 'decision', ... })
+└─ 对比 JWT vs Session
+└─ createEntity({ type: 'decision', ... })
 
 15:00 做出决策
-  └─ memory_write({
-       type: 'architecture',
-       abstract: '选择 JWT 做认证',
-       overview: '决策理由、trade-offs'
-     })
-  └─ createReference({
-       from_id: 'decision:jwt',
-       to_id: 'pattern:auth',
-       type: 'implements'
-     })
+└─ memory_write({
+type: 'architecture',
+abstract: '选择 JWT 做认证',
+overview: '决策理由、trade-offs'
+})
+└─ createReference({
+from_id: 'decision:jwt',
+to_id: 'pattern:auth',
+type: 'implements'
+})
 
 15:30 更新 Backlog
-  └─ createEntity({
-       type: 'backlog',
-       abstract: '实现 JWT 认证',
-       status: 'backlog'
-     })
-```
+└─ createEntity({
+type: 'backlog',
+abstract: '实现 JWT 认证',
+status: 'backlog'
+})
+
+````
 
 ---
 
@@ -532,7 +566,7 @@ const analysis = await codeAnalyzer.analyze('src/utils.js', content)
 
 // 2. 为每个函数创建 Atom
 const atoms = await Promise.all(
-  analysis.functions.map(fn => 
+  analysis.functions.map(fn =>
     wrapperClient.createAtom({
       type: 'function',
       name: fn.name,
@@ -569,7 +603,7 @@ await wrapperClient.createReference({
     column: 10
   }
 })
-```
+````
 
 ---
 

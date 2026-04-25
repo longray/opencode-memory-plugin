@@ -730,9 +730,10 @@ export class WrapperClient {
    * @param {string} [filters.tenant_id] - 租户 ID
    * @returns {Promise<{atoms: Array, total: number}>}
    */
-  async listAtoms({ type, project, limit, tenant_id } = {}) {
+  async listAtoms({ type, project, limit, tenant_id, query } = {}) {
     const params = new URLSearchParams();
     params.append('tenant_id', tenant_id || this.tenantId);
+    if (query) params.append('query', query);
     if (type) params.append('type', type);
     if (project) params.append('project', project);
     if (limit) params.append('limit', limit.toString());
@@ -952,6 +953,31 @@ export class WrapperClient {
       () => this.http.delete(`/api/v1/references/${referenceId}?${params.toString()}`),
       this.maxRetries
     );
+  }
+
+  async verifyUploadCompleteness({ project, tenant_id } = {}) {
+    const atomsResult = await this.listAtoms({ project, tenant_id });
+    const refsResult = await this.queryReferences({ tenant_id });
+
+    const atoms = atomsResult.data || [];
+    const refs = refsResult.data || [];
+
+    const refAtomIds = new Set();
+    for (const ref of refs) {
+      if (ref.from_id) refAtomIds.add(ref.from_id);
+      if (ref.to_id) refAtomIds.add(ref.to_id);
+    }
+
+    const functions = atoms.filter(a => a.type === 'function');
+    const unreferenced = functions.filter(a => !refAtomIds.has(a.id));
+
+    return {
+      total_atoms: atomsResult.total,
+      total_functions: functions.length,
+      total_references: refsResult.total || 0,
+      unreferenced_functions: unreferenced.length,
+      completeness: refAtomIds.size > 0 ? 'PASS' : 'INCOMPLETE',
+    };
   }
 }
 

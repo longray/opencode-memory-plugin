@@ -91,22 +91,22 @@
 
 ### 1.2 三系统职责边界
 
-| 系统                       | 核心职责                       | 不做什么                   |
-| -------------------------- | ------------------------------ | -------------------------- |
-| **oh-my-opencode**         | 多智能体调度、模型路由、Hooks  | 不直接管理记忆文件         |
+| 系统                       | 核心职责                        | 不做什么                   |
+| -------------------------- | ------------------------------- | -------------------------- |
+| **oh-my-opencode**         | 多智能体调度、模型路由、Hooks   | 不直接管理记忆文件         |
 | **opencode-memory-plugin** | 记忆 CRUD、搜索、同步、代码分析 | 不做智能体编排             |
-| **后端服务**               | 向量搜索、图存储、预计算       | 不做 AI 推理、不做工具注册 |
+| **后端服务**               | 向量搜索、图存储、预计算        | 不做 AI 推理、不做工具注册 |
 
 **核心原则**：每层只做自己的事，通过标准接口协同。插件不知道 oh-my-opencode 的存在，oh-my-opencode 只调用插件的工具。
 
 ### 1.3 端口与服务映射
 
-| 服务           | 端口  | 协议      | 用途                        |
-| -------------- | ----- | --------- | --------------------------- |
-| 后端 API       | 18008 | HTTP      | Memory/Atom/Entity API      |
-| SurrealDB      | 8000  | WebSocket | 图数据库                    |
-| Meilisearch    | 7700  | HTTP      | 搜索引擎                    |
-| WebSocket Push | 18008 | WS        | 实时推送 /ws/memories/live  |
+| 服务           | 端口  | 协议      | 用途                       |
+| -------------- | ----- | --------- | -------------------------- |
+| 后端 API       | 18008 | HTTP      | Memory/Atom/Entity API     |
+| SurrealDB      | 8000  | WebSocket | 图数据库                   |
+| Meilisearch    | 7700  | HTTP      | 搜索引擎                   |
+| WebSocket Push | 18008 | WS        | 实时推送 /ws/memories/live |
 
 ---
 
@@ -144,16 +144,16 @@
 
 ### 2.2 关键区别
 
-| 维度                | OMO Agents                        | Plugin Agents               |
-| ------------------- | --------------------------------- | --------------------------- |
-| **定义位置**        | `oh-my-opencode.json`             | `agents/*.md` (插件内置)    |
-| **数量**            | 10+ 个                            | 2 个                        |
-| **主要职责**        | 编码、规划、审查、探索            | 记忆萃取、知识整合          |
-| **模型选择**        | 按类别动态路由                    | 固定模型 (claude-sonnet-4)  |
-| **工具范围**        | 继承 Category 的 tools + 基础工具 | 记忆工具白名单              |
-| **交互模式**        | Tab 切换 / subagent 自动调度      | Tab 切换 / @trigger         |
-| **记忆意识**        | 需通过 prompt_append 注入         | 原生记忆感知                |
-| **Human-in-the-loop** | 无（subagent 无法多轮交互）     | The Observer 需要用户确认   |
+| 维度                  | OMO Agents                        | Plugin Agents              |
+| --------------------- | --------------------------------- | -------------------------- |
+| **定义位置**          | `oh-my-opencode.json`             | `agents/*.md` (插件内置)   |
+| **数量**              | 10+ 个                            | 2 个                       |
+| **主要职责**          | 编码、规划、审查、探索            | 记忆萃取、知识整合         |
+| **模型选择**          | 按类别动态路由                    | 固定模型 (claude-sonnet-4) |
+| **工具范围**          | 继承 Category 的 tools + 基础工具 | 记忆工具白名单             |
+| **交互模式**          | Tab 切换 / subagent 自动调度      | Tab 切换 / @trigger        |
+| **记忆意识**          | 需通过 prompt_append 注入         | 原生记忆感知               |
+| **Human-in-the-loop** | 无（subagent 无法多轮交互）       | The Observer 需要用户确认  |
 
 ### 2.3 为什么需要两套系统
 
@@ -199,9 +199,15 @@
         "memory_pin": true,
         "incremental_sync": true,
         "index_status": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": true, "Bash": true, "WebFetch": true,
-        "Task": true, "TodoWrite": true, "Think": true
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": true,
+        "Bash": true,
+        "WebFetch": true,
+        "Task": true,
+        "TodoWrite": true,
+        "Think": true
       }
     },
     "ultrabrain": {
@@ -216,9 +222,15 @@
         "memory_timeline": true,
         "memory_topics": true,
         "index_status": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": true, "Bash": true, "WebFetch": true,
-        "Task": true, "TodoWrite": true, "Think": true
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": true,
+        "Bash": true,
+        "WebFetch": true,
+        "Task": true,
+        "TodoWrite": true,
+        "Think": true
       }
     },
     "deep": {
@@ -233,9 +245,15 @@
         "memory_relate": true,
         "memory_graph": true,
         "index_status": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": true, "Bash": true, "WebFetch": true,
-        "Task": true, "TodoWrite": true, "Think": true
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": true,
+        "Bash": true,
+        "WebFetch": true,
+        "Task": true,
+        "TodoWrite": true,
+        "Think": true
       }
     },
     "artistry": {
@@ -245,8 +263,13 @@
         "memory_read": true,
         "memory_search": true,
         "memory_suggest": true,
-        "Read": true, "Write": true, "Edit": true,
-        "WebFetch": true, "Task": true, "TodoWrite": true, "Think": true
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "WebFetch": true,
+        "Task": true,
+        "TodoWrite": true,
+        "Think": true
       }
     },
     "quick": {
@@ -255,8 +278,11 @@
         "memory_write": true,
         "memory_read": true,
         "memory_search": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": true, "Think": false
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": true,
+        "Think": false
       }
     },
     "writing": {
@@ -268,8 +294,12 @@
         "memory_suggest": true,
         "memory_timeline": true,
         "memory_topics": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": true, "WebFetch": true, "Think": true
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": true,
+        "WebFetch": true,
+        "Think": true
       }
     },
     "visual-engineering": {
@@ -277,8 +307,12 @@
       "tools": {
         "memory_read": true,
         "memory_search": true,
-        "Read": true, "Write": true, "Edit": true,
-        "LSP": true, "Bash": true, "WebFetch": true
+        "Read": true,
+        "Write": true,
+        "Edit": true,
+        "LSP": true,
+        "Bash": true,
+        "WebFetch": true
       }
     }
   }
@@ -287,19 +321,19 @@
 
 **工具分配原则**：
 
-| 工具               | 谁需要                    | 原因                       |
-| ------------------ | ------------------------- | -------------------------- |
-| `memory_search`    | 所有 Category             | 搜索历史是基础能力         |
-| `memory_read`      | 所有 Category             | 读取记忆是基础能力         |
-| `memory_write`     | 除 visual-engineering     | UI 代理通常不需要写入记忆  |
-| `memory_graph`     | ultrabrain, deep          | 图谱遍历用于复杂关联分析   |
-| `memory_relate`    | universal, deep           | 建立关系用于知识织网       |
-| `memory_timeline`  | universal, deep, writing  | 时间线用于了解历史         |
-| `memory_topics`    | universal, deep, writing  | 主题浏览用于知识发现       |
-| `memory_suggest`   | 大部分 Category           | 自动补全提升搜索体验       |
-| `memory_pin`       | universal                 | 置顶是管理操作             |
-| `incremental_sync` | universal                 | 同步是管理操作             |
-| `index_status`     | 大部分 Category           | 健康检查是基础能力         |
+| 工具               | 谁需要                   | 原因                      |
+| ------------------ | ------------------------ | ------------------------- |
+| `memory_search`    | 所有 Category            | 搜索历史是基础能力        |
+| `memory_read`      | 所有 Category            | 读取记忆是基础能力        |
+| `memory_write`     | 除 visual-engineering    | UI 代理通常不需要写入记忆 |
+| `memory_graph`     | ultrabrain, deep         | 图谱遍历用于复杂关联分析  |
+| `memory_relate`    | universal, deep          | 建立关系用于知识织网      |
+| `memory_timeline`  | universal, deep, writing | 时间线用于了解历史        |
+| `memory_topics`    | universal, deep, writing | 主题浏览用于知识发现      |
+| `memory_suggest`   | 大部分 Category          | 自动补全提升搜索体验      |
+| `memory_pin`       | universal                | 置顶是管理操作            |
+| `incremental_sync` | universal                | 同步是管理操作            |
+| `index_status`     | 大部分 Category          | 健康检查是基础能力        |
 
 ### 3.2 Agent prompt_append 记忆增强
 
@@ -347,19 +381,19 @@
 
 ### 3.3 Agent × Memory Tool 使用矩阵
 
-| Agent                  | search | write | read | graph | relate | timeline | topics | suggest | pin |
-| ---------------------- | ------ | ----- | ---- | ----- | ------ | -------- | ------ | ------- | --- |
-| **Sisyphus**           | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | ✅  |
-| **Prometheus**         | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | -   |
-| **Atlas**              | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | ✅  |
-| **Oracle**             | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | -   |
-| **Momus**              | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | -   |
-| **Librarian**          | ✅     | ✅    | ✅   | -     | -      | ✅       | ✅     | ✅      | -   |
-| **Explore**            | ✅     | ✅    | ✅   | -     | -      | -        | -      | ✅      | -   |
-| **Metis**              | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | -   |
-| **Multimodal-Looker**  | ✅     | -     | ✅   | -     | -      | -        | -      | -       | -   |
-| **Sisyphus-Junior**    | ✅     | ✅    | ✅   | -     | -      | -        | -      | -       | -   |
-| **OpenCode-Builder**   | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | ✅  |
+| Agent                 | search | write | read | graph | relate | timeline | topics | suggest | pin |
+| --------------------- | ------ | ----- | ---- | ----- | ------ | -------- | ------ | ------- | --- |
+| **Sisyphus**          | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | ✅  |
+| **Prometheus**        | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | -   |
+| **Atlas**             | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | ✅  |
+| **Oracle**            | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | -   |
+| **Momus**             | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | -   |
+| **Librarian**         | ✅     | ✅    | ✅   | -     | -      | ✅       | ✅     | ✅      | -   |
+| **Explore**           | ✅     | ✅    | ✅   | -     | -      | -        | -      | ✅      | -   |
+| **Metis**             | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | -   |
+| **Multimodal-Looker** | ✅     | -     | ✅   | -     | -      | -        | -      | -       | -   |
+| **Sisyphus-Junior**   | ✅     | ✅    | ✅   | -     | -      | -        | -      | -       | -   |
+| **OpenCode-Builder**  | ✅     | ✅    | ✅   | ✅    | ✅     | ✅       | ✅     | ✅      | ✅  |
 
 ---
 
@@ -405,6 +439,7 @@ tools:
 ## 识别标准
 
 值得保存的信息：
+
 - 用户明确表达的偏好或规则
 - 成功解决的问题方案
 - 重要的架构或技术决策（含理由）
@@ -412,6 +447,7 @@ tools:
 - 项目特定的约定或配置
 
 不值得保存的信息：
+
 - 闲聊、测试、临时问答
 - 通用编程知识（如 "什么是 Promise"）
 - 已在记忆中存在的重复信息
@@ -419,6 +455,7 @@ tools:
 ## 写入规范
 
 每条记忆必须包含三层：
+
 - **abstract**: ≤100 字符，一句话概括
 - **overview**: ≤500 字符，包含关键要点
 - **content**: 完整内容，包含上下文和示例
@@ -441,7 +478,7 @@ tools:
 
 **完整 Prompt 定义**：
 
-```markdown
+````markdown
 ---
 name: memory-consolidate
 alias: The Librarian
@@ -470,6 +507,7 @@ tools:
 memory_timeline(days=7, level=1) + memory_topics(min_entries=3)
 
 识别以下模式：
+
 - 同一主题的多条碎片记忆（可合并）
 - 未建立关联的相关记忆（可织网）
 - 高频访问但未置顶的关键约定（可置顶）
@@ -477,6 +515,7 @@ memory_timeline(days=7, level=1) + memory_topics(min_entries=3)
 ### Step 2: 聚合提炼
 
 对识别的碎片：
+
 1. memory_read(level=2) 读取完整内容
 2. 分析关联性，提炼核心知识
 3. memory_write 创建新的高价值节点
@@ -484,7 +523,7 @@ memory_timeline(days=7, level=1) + memory_topics(min_entries=3)
 ### Step 3: 织网
 
 memory_relate(action="create", from_id=新节点ID, to_id=碎片ID,
-  relation_type="summarizes", weight=0.8)
+relation_type="summarizes", weight=0.8)
 
 ### Step 4: 置顶
 
@@ -506,6 +545,7 @@ incremental_sync(dry_run=false)
 - 置顶条目: N 条
 - 同步状态: ✅ / ❌
 ```
+````
 
 ## 红线
 
@@ -514,7 +554,7 @@ incremental_sync(dry_run=false)
 - 禁止 memory_write 省略 abstract 或 overview
 - 禁止删除原始碎片（只建立 summarizes 关系）
 
-```
+````
 
 ---
 
@@ -560,7 +600,7 @@ incremental_sync(dry_run=false)
 │Timeline│ │SurrealDB │ │Meilisearch│
 │文件系统│ │图数据库  │ │搜索引擎  │
 └────────┘ └──────────┘ └──────────┘
-```
+````
 
 ### 5.2 工作流 A：日常编码 + 记忆
 
@@ -679,19 +719,19 @@ incremental_sync(dry_run=false)
 
 ### 6.1 任务路由矩阵
 
-| 任务类型       | 推荐主 Agent      | 记忆工具             | 辅助 Agent       |
-| -------------- | ----------------- | -------------------- | ---------------- |
-| **日常编码**   | Sisyphus          | search → write       | Sisyphus-Junior  |
-| **架构设计**   | Oracle            | graph → search → write | -              |
-| **代码审查**   | Metis / Momus     | search (历史问题)    | -                |
-| **项目规划**   | Prometheus        | timeline → topics    | -                |
-| **快速修复**   | Sisyphus-Junior   | search (规范)        | -                |
-| **原型探索**   | Explore           | search (避免重复)    | -                |
-| **文档编写**   | Librarian         | search → timeline    | -                |
-| **UI 实现**    | Multimodal-Looker | search (UI 规范)     | OpenCode-Builder |
-| **记忆萃取**   | The Observer      | search → write → pin | -                |
-| **知识整合**   | The Librarian     | 全部工具             | -                |
-| **代码重构**   | OpenCode-Builder  | search → graph → write | Momus (审查)   |
+| 任务类型     | 推荐主 Agent      | 记忆工具               | 辅助 Agent       |
+| ------------ | ----------------- | ---------------------- | ---------------- |
+| **日常编码** | Sisyphus          | search → write         | Sisyphus-Junior  |
+| **架构设计** | Oracle            | graph → search → write | -                |
+| **代码审查** | Metis / Momus     | search (历史问题)      | -                |
+| **项目规划** | Prometheus        | timeline → topics      | -                |
+| **快速修复** | Sisyphus-Junior   | search (规范)          | -                |
+| **原型探索** | Explore           | search (避免重复)      | -                |
+| **文档编写** | Librarian         | search → timeline      | -                |
+| **UI 实现**  | Multimodal-Looker | search (UI 规范)       | OpenCode-Builder |
+| **记忆萃取** | The Observer      | search → write → pin   | -                |
+| **知识整合** | The Librarian     | 全部工具               | -                |
+| **代码重构** | OpenCode-Builder  | search → graph → write | Momus (审查)     |
 
 ### 6.2 记忆工具选择决策树
 
@@ -721,15 +761,15 @@ incremental_sync(dry_run=false)
 
 ### 6.3 渐进加载最佳实践
 
-| Agent                | 推荐默认 Level | 原因                       |
-| -------------------- | --------------- | -------------------------- |
-| **Sisyphus**         | level=1         | 需要了解历史方案的大意     |
-| **Prometheus**       | level=1         | 规划需要概览而非细节       |
-| **Oracle**           | level=0 → 2    | 先扫描摘要再加载详情       |
-| **Explore**          | level=0         | 快速判断是否已探索过       |
-| **The Observer**     | level=1         | 查重需要了解概述           |
-| **The Librarian**    | level=1 → 2    | 先概述再加载完整内容       |
-| **Sisyphus-Junior**  | level=1         | 了解编码规范的大意         |
+| Agent               | 推荐默认 Level | 原因                   |
+| ------------------- | -------------- | ---------------------- |
+| **Sisyphus**        | level=1        | 需要了解历史方案的大意 |
+| **Prometheus**      | level=1        | 规划需要概览而非细节   |
+| **Oracle**          | level=0 → 2    | 先扫描摘要再加载详情   |
+| **Explore**         | level=0        | 快速判断是否已探索过   |
+| **The Observer**    | level=1        | 查重需要了解概述       |
+| **The Librarian**   | level=1 → 2    | 先概述再加载完整内容   |
+| **Sisyphus-Junior** | level=1        | 了解编码规范的大意     |
 
 ---
 
@@ -776,32 +816,32 @@ incremental_sync(dry_run=false)
 
 ### 7.2 安全性分析
 
-| 风险点                | 当前防护                          | 建议增强                  |
-| --------------------- | --------------------------------- | ------------------------- |
-| Agent 越权写入        | Plugin Agent 有工具白名单         | OMO Category 也限制写工具 |
-| 敏感信息泄露到后端    | PrivacyFilter 过滤 .env/.key     | 增加内容级敏感词过滤      |
-| WebSocket 劫持        | API Key 认证                      | 增加 TLS 加密             |
-| 批量写入攻击          | The Observer 限制最多 5 条        | 增加速率限制              |
-| 记忆污染              | Human-in-the-loop 确认            | 增加质量评分自动过滤      |
+| 风险点             | 当前防护                     | 建议增强                  |
+| ------------------ | ---------------------------- | ------------------------- |
+| Agent 越权写入     | Plugin Agent 有工具白名单    | OMO Category 也限制写工具 |
+| 敏感信息泄露到后端 | PrivacyFilter 过滤 .env/.key | 增加内容级敏感词过滤      |
+| WebSocket 劫持     | API Key 认证                 | 增加 TLS 加密             |
+| 批量写入攻击       | The Observer 限制最多 5 条   | 增加速率限制              |
+| 记忆污染           | Human-in-the-loop 确认       | 增加质量评分自动过滤      |
 
 ### 7.3 性能考量
 
-| 瓶颈点             | 当前方案                     | 优化建议                 |
-| ------------------ | ---------------------------- | ------------------------ |
-| 代码分析延迟       | 300ms debounce + 批量处理    | 增量分析（只分析变更）   |
-| 向量搜索延迟       | ModelScope API ~50-100ms     | 本地 Embedding 缓存      |
-| 上下文窗口占用     | 渐进加载 (level=0/1/2)       | 摘要优先策略             |
-| WebSocket 断线重连 | 指数退避，最多 10 次         | 增加断线期间本地缓存     |
-| 多 Agent 并发写入  | 无锁，依赖文件系统           | 增加写入队列             |
+| 瓶颈点             | 当前方案                  | 优化建议               |
+| ------------------ | ------------------------- | ---------------------- |
+| 代码分析延迟       | 300ms debounce + 批量处理 | 增量分析（只分析变更） |
+| 向量搜索延迟       | ModelScope API ~50-100ms  | 本地 Embedding 缓存    |
+| 上下文窗口占用     | 渐进加载 (level=0/1/2)    | 摘要优先策略           |
+| WebSocket 断线重连 | 指数退避，最多 10 次      | 增加断线期间本地缓存   |
+| 多 Agent 并发写入  | 无锁，依赖文件系统        | 增加写入队列           |
 
 ### 7.4 备选方案对比
 
-| 方案                  | 优势                   | 劣势                       | 适用场景   |
-| --------------------- | ---------------------- | -------------------------- | ---------- |
-| **当前架构** (OMO+Plugin) | 独立解耦，各自演进 | 两套代理系统，学习成本高   | 日常开发   |
-| **统一代理** (全部 OMO)   | 单一入口，统一管理 | Plugin Agent 需重写为 OMO  | 团队标准化 |
-| **纯 Plugin** (无 OMO)    | 简单直接，无额外依赖 | 缺少多智能体调度能力       | 轻量级使用 |
-| **MCP Server** (外部化)   | 标准化接口，可跨平台 | OpenCode 插件生态尚不成熟  | 跨工具集成 |
+| 方案                      | 优势                 | 劣势                      | 适用场景   |
+| ------------------------- | -------------------- | ------------------------- | ---------- |
+| **当前架构** (OMO+Plugin) | 独立解耦，各自演进   | 两套代理系统，学习成本高  | 日常开发   |
+| **统一代理** (全部 OMO)   | 单一入口，统一管理   | Plugin Agent 需重写为 OMO | 团队标准化 |
+| **纯 Plugin** (无 OMO)    | 简单直接，无额外依赖 | 缺少多智能体调度能力      | 轻量级使用 |
+| **MCP Server** (外部化)   | 标准化接口，可跨平台 | OpenCode 插件生态尚不成熟 | 跨工具集成 |
 
 ---
 
@@ -809,13 +849,13 @@ incremental_sync(dry_run=false)
 
 ### A. 配置文件位置汇总
 
-| 文件       | 路径                                  | 用途                 |
-| ---------- | ------------------------------------- | -------------------- |
-| OMO 配置   | ~/.config/opencode/oh-my-opencode.json | 智能体、模型、工具   |
-| 插件配置   | ~/.opencode/memory/memory-config.json | 记忆系统配置         |
-| 环境变量   | ~/.bashrc / ~/.zshrc                  | API Key、端口等      |
-| 启动文件   | ~/.opencode/memory/SOUL.md 等 9 个   | AI 个性、指令、偏好  |
-| 后端 Docker | docker-compose.yml                   | 后端服务部署         |
+| 文件        | 路径                                   | 用途                |
+| ----------- | -------------------------------------- | ------------------- |
+| OMO 配置    | ~/.config/opencode/oh-my-opencode.json | 智能体、模型、工具  |
+| 插件配置    | ~/.opencode/memory/memory-config.json  | 记忆系统配置        |
+| 环境变量    | ~/.bashrc / ~/.zshrc                   | API Key、端口等     |
+| 启动文件    | ~/.opencode/memory/SOUL.md 等 9 个     | AI 个性、指令、偏好 |
+| 后端 Docker | docker-compose.yml                     | 后端服务部署        |
 
 ### B. 相关文档
 

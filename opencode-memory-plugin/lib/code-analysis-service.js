@@ -559,6 +559,12 @@ export class AnalysisQueue {
         `[CodeAnalysis] Atom/Entity upload complete: ${createdAtoms.length} atoms, ${createdReferences.length} references in ${duration.toFixed(2)}ms`
       );
 
+      if (createdReferences.length === 0 && createdAtoms.some(a => a.type === 'function')) {
+        console.warn(
+          `[CodeAnalysis] INCOMPLETE: ${item.relativePath} has functions but 0 references. Call relations may be missing.`
+        );
+      }
+
       return { atoms: createdAtoms, entity, references: createdReferences, duration };
     } catch (error) {
       console.error(
@@ -811,6 +817,122 @@ export class AnalysisQueue {
     return this.memoryIdCache.getMemoryId(filePath);
   }
 
+  async uploadProject(projectRoot, options = {}) {
+    const startTime = performance.now();
+    const projectId = await resolveProjectId({ projectRoot });
+    const tenantId = this.wrapperClient.tenantId;
+    const { codeAnalyzer } = await import('./code-analyzer.js');
+    const fs = await import('fs');
+    const path = await import('path');
+
+    const SUPPORTED = new Set(['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.tsx']);
+    const SKIP = new Set(['node_modules', '.git', 'tests', 'memory', 'docs', 'scripts', 'agents', 'cli', 'bin']);
+
+    function walkDir(dir, files = []) {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (SKIP.has(entry.name)) continue;
+        if (entry.isDirectory()) walkDir(full, files);
+        else if (SUPPORTED.has(path.extname(entry.name))) files.push(full);
+      }
+      return files;
+    }
+
+    const files = walkDir(projectRoot);
+    console.log('[CodeAnalysis] uploadProject: ' + files.length + ' files in ' + projectRoot);
+
+    const globalNameToAtomId = new Map();
+    const relPathToEntityId = new Map();
+    const allResults = [];
+
+    for (const filePath of files) {
+      try {
+        const source = fs.readFileSync(filePath, 'utf-8');
+        if (source.split('\n').length > 1000) continue;
+
+        const result = await codeAnalyzer.analyze(filePath, source);
+        const relPath = path.relative(projectRoot, filePath).replace(/\\/g, '/');
+        const atomIds = [];
+
+        for (const func of result.functions || []) {
+          const atom = await this.wrapperClient.createAtom({
+            type: 'function', name: func.name,
+            content: `${func.name}(${(func.params || []).map(p => p.name || p).join(', ')})`,
+            params: func.params, return_type: func.return_type,
+            is_exported: func.is_exported, is_async: func.is_async,
+            start_line: func.start_line, end_line: func.end_line,
+            project: projectId, tenant_id: tenantId,
+          });
+          atomIds.push(atom.id);
+          globalNameToAtomId.set(func.name, atom.id);
+        }
+
+        for (const cls of result.classes || []) {
+          const atom = await this.wrapperClient.createAtom({
+            type: 'class', name: cls.name,
+            content: 'class ' + cls.name,
+            start_line: cls.start_line, end_line: cls.end_line,
+            project: projectId, tenant_id: tenantId,
+          });
+          atomIds.push(atom.id);
+          globalNameToAtomId.set(cls.name, atom.id);
+        }
+
+        if (atomIds.length > 0) {
+          const entity = await this.wrapperClient.createEntity({
+            type: 'code',
+            abstract: relPath + ': ' + (result.functions || []).length + ' fns, ' + (result.classes || []).length + ' cls',
+            file_path: relPath, atoms: atomIds,
+            language: result.language,
+            project: projectId, tenant_id: tenantId,
+          });
+          relPathToEntityId.set(relPath, entity.id);
+        }
+
+        allResults.push({ relPath, result });
+        console.log('  OK: ' + relPath + ' -> ' + atomIds.length + ' atoms');
+      } catch (e) {
+        console.error('  FAIL: ' + path.relative(projectRoot, filePath) + ': ' + e.message);
+      }
+    }
+
+    let refCount = 0;
+    for (const { relPath, result } of allResults) {
+      const fromId = relPathToEntityId.get(relPath);
+      if (!fromId) continue;
+
+      for (const call of result.calls || []) {
+        let targetId = globalNameToAtomId.get(call.target);
+        if (!targetId && call.target.includes('.')) {
+          targetId = globalNameToAtomId.get(call.target.split('.').pop());
+        }
+        if (!targetId) continue;
+        try {
+          await this.wrapperClient.createReference({
+            from_id: fromId,
+            to_id: targetId,
+            type: 'calls',
+            weight: 0.5,
+            metadata: { line: call.line, column: call.column, file_path: relPath },
+            tenant_id: tenantId,
+          });
+          refCount++;
+        } catch (_) {}
+      }
+    }
+
+    const duration = performance.now() - startTime;
+    console.log(
+      '[CodeAnalysis] uploadProject complete: ' +
+        allResults.length + ' files, ' +
+        globalNameToAtomId.size + ' atoms, ' +
+        refCount + ' references in ' +
+        duration.toFixed(2) + 'ms'
+    );
+
+    return { files: allResults.length, atoms: globalNameToAtomId.size, references: refCount, duration };
+  }
+
   async getSourceId(filePath) {
     await this.initCache();
     return this.memoryIdCache.getSourceId(filePath);
@@ -830,4 +952,8 @@ export function onFileSaved(filePath, projectRoot) {
 
 export function flushPendingUploads() {
   return analysisQueue.flushBatch();
+}
+
+export function uploadProject(projectRoot, options = {}) {
+  return analysisQueue.uploadProject(projectRoot, options);
 }

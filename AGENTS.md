@@ -29,7 +29,6 @@ D:/github/opencode-memory-plugin/
 │   │   ├── project-analyzer.js   # 项目级分析（健康度评级）
 │ │ ├── code-analysis-formatter.js # 输出格式化（table/tree/json）
 │ │ ├── code-analysis-service.js # 批量分析队列
-│ │ ├── code-fingerprint.js # 变更检测
 │ │ ├── privacy-filter.js # 敏感内容过滤
 │ │ ├── file-watcher.js # 文件系统监听
 │ │ └── memory-id-cache.js # Memory ID 缓存管理
@@ -502,7 +501,8 @@ $ grep "### BL-26" BACKLOG.md
 
 **问题**: 在 Windows 上运行测试时，WrapperClient 默认使用 `process.env.USERNAME`（如 "Longray"）作为 tenant_id，但后端查询可能默认使用 "default"，导致 tenant_id 不匹配。
 
-**症状**: 
+**症状**:
+
 - 上传成功（返回 memory_id）
 - 查询返回 `found: false`
 - 测试失败
@@ -512,7 +512,7 @@ $ grep "### BL-26" BACKLOG.md
 ```javascript
 wrapperClient = new WrapperClient({
   backend: {
-    tenant_id: 'default', // 显式指定，避免使用 USERNAME
+    tenant_id: "default", // 显式指定，避免使用 USERNAME
   },
 });
 ```

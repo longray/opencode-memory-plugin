@@ -152,9 +152,9 @@ describe('PrecomputeClient', () => {
   });
 
   describe('searchSymbols', () => {
-    it('should search symbols via backend API', async () => {
+    it('should search symbols via /api/v1/atoms', async () => {
       mockHttp.get.mockResolvedValue({
-        symbols: [{ name: 'main', type: 'function', file: 'src/main.js', line: 10 }],
+        data: [{ name: 'main', type: 'function', file: 'src/main.js', start_line: 10 }],
         total: 1,
       });
 
@@ -166,15 +166,21 @@ describe('PrecomputeClient', () => {
       expect(result.symbols).toHaveLength(1);
       expect(result.symbols[0].name).toBe('main');
       expect(result.total).toBe(1);
-    });
-
-    it('should pass fuzzy and limit parameters', async () => {
-      mockHttp.get.mockResolvedValue({ symbols: [], total: 0 });
-
-      await client.searchSymbols({ query: 'test', fuzzy: true, limit: 5 });
 
       const calledUrl = mockHttp.get.mock.calls[0][0];
-      expect(calledUrl).toContain('fuzzy=true');
+      expect(calledUrl).toContain('/api/v1/atoms');
+      expect(calledUrl).toContain('query=main');
+      expect(calledUrl).toContain('type=function');
+    });
+
+    it('should pass query and limit parameters', async () => {
+      mockHttp.get.mockResolvedValue({ data: [], total: 0 });
+
+      await client.searchSymbols({ query: 'test', limit: 5 });
+
+      const calledUrl = mockHttp.get.mock.calls[0][0];
+      expect(calledUrl).toContain('/api/v1/atoms');
+      expect(calledUrl).toContain('query=test');
       expect(calledUrl).toContain('limit=5');
     });
   });

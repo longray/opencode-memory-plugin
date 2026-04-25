@@ -333,6 +333,24 @@ export class CodeAnalyzer {
     return recommendations;
   }
 
+  /**
+   * 将 Oxc 字节偏移转换为行号
+   * Oxc AST 节点只提供 start/end 字节偏移，不提供 loc 属性。
+   * 通过计算偏移位置前的换行符数量推导行号。
+   * @param {string} sourceCode - 源代码文本
+   * @param {number} byteOffset - 字节偏移量
+   * @returns {number} 行号（1-based）
+   */
+  offsetToLine(sourceCode, byteOffset) {
+    if (!sourceCode || byteOffset == null || byteOffset < 0) return 0;
+    let line = 1;
+    const limit = Math.min(byteOffset, sourceCode.length);
+    for (let i = 0; i < limit; i++) {
+      if (sourceCode.charCodeAt(i) === 0x0a) line++;
+    }
+    return line;
+  }
+
   deduplicateFunctions(functions) {
     const seen = new Set();
     return functions.filter(func => {
@@ -355,8 +373,8 @@ export class CodeAnalyzer {
         const jsdoc = this.extractJSDoc(node.start, comments);
         functions.push({
           name: node.id?.name || 'anonymous',
-          start_line: node.loc?.start?.line ?? 0,
-          end_line: node.loc?.end?.line ?? 0,
+          start_line: this.offsetToLine(sourceCode, node.start),
+          end_line: this.offsetToLine(sourceCode, node.end),
           params: this.extractParams(node.params),
           return_type: node.returnType?.typeAnnotation?.typeName?.name,
           is_exported: parentExported,
@@ -381,8 +399,8 @@ export class CodeAnalyzer {
 
         classes.push({
           name: node.id?.name || 'anonymous',
-          start_line: node.loc?.start?.line ?? 0,
-          end_line: node.loc?.end?.line ?? 0,
+          start_line: this.offsetToLine(sourceCode, node.start),
+          end_line: this.offsetToLine(sourceCode, node.end),
           methods: classMethods,
           properties: classProperties,
           jsdoc,
@@ -409,8 +427,8 @@ export class CodeAnalyzer {
 
         interfaces.push({
           name: node.id?.name || 'anonymous',
-          start_line: node.loc?.start?.line ?? 0,
-          end_line: node.loc?.end?.line ?? 0,
+          start_line: this.offsetToLine(sourceCode, node.start),
+          end_line: this.offsetToLine(sourceCode, node.end),
           methods: interfaceMethods,
           properties: interfaceProperties,
           jsdoc,
@@ -422,6 +440,7 @@ export class CodeAnalyzer {
         imports.push({
           source: node.source?.value || '',
           imported_names: node.specifiers?.map(s => s.local?.name) || [],
+          start_line: this.offsetToLine(sourceCode, node.start),
         });
         break;
 
@@ -476,7 +495,7 @@ export class CodeAnalyzer {
     }
 
     for (const key in node) {
-      if (key === 'type' || key === 'loc' || key === 'range') continue;
+      if (key === 'type' || key === 'loc' || key === 'range' || key === 'declaration') continue;
       const value = node[key];
       if (Array.isArray(value)) {
         value.forEach(child =>

@@ -3,7 +3,7 @@
 **版本**: v2.0 (Merged Edition)  
 **更新时间**: 2026-04-23  
 **适用**: opencode-memory-plugin v3.2.0+, oh-my-opencode latest  
-**基于**: 真实配置文件逆向分析 + 架构集成设计  
+**基于**: 真实配置文件逆向分析 + 架构集成设计
 
 ---
 
@@ -36,13 +36,13 @@
 
 ### 1.2 核心价值主张
 
-| 能力 | 价值 |
-|------|------|
+| 能力         | 价值                           |
+| ------------ | ------------------------------ |
 | **完美记忆** | 跨会话保持上下文，不再重复解释 |
-| **智能检索** | 语义搜索找到你忘记存在的知识 |
-| **自动萃取** | The Observer 帮你捕获重要信息 |
-| **知识整合** | The Librarian 定期聚合碎片 |
-| **代码分析** | 保存文件时自动分析 AST |
+| **智能检索** | 语义搜索找到你忘记存在的知识   |
+| **自动萃取** | The Observer 帮你捕获重要信息  |
+| **知识整合** | The Librarian 定期聚合碎片     |
+| **代码分析** | 保存文件时自动分析 AST         |
 
 ### 1.3 五层架构速览
 
@@ -160,16 +160,16 @@
 
 ### 2.3 关键区别
 
-| 维度 | OMO Agents | Plugin Agents |
-|------|-----------|---------------|
-| **定义位置** | `oh-my-opencode.json` | `agents/*.md` (插件内置) |
-| **数量** | 10+ 个 | 2 个 |
-| **主要职责** | 编码、规划、审查、探索 | 记忆萃取、知识整合 |
-| **模型选择** | 按类别动态路由 | 固定模型 (claude-sonnet-4) |
-| **工具范围** | 继承 Category 的 tools + 基础工具 | 记忆工具白名单 |
-| **交互模式** | Tab 切换 / subagent 自动调度 | Tab 切换 / @trigger |
-| **记忆意识** | 需通过 prompt_append 注入 | 原生记忆感知 |
-| **Human-in-the-loop** | 无（subagent 无法多轮交互） | The Observer 需要用户确认 |
+| 维度                  | OMO Agents                        | Plugin Agents              |
+| --------------------- | --------------------------------- | -------------------------- |
+| **定义位置**          | `oh-my-opencode.json`             | `agents/*.md` (插件内置)   |
+| **数量**              | 10+ 个                            | 2 个                       |
+| **主要职责**          | 编码、规划、审查、探索            | 记忆萃取、知识整合         |
+| **模型选择**          | 按类别动态路由                    | 固定模型 (claude-sonnet-4) |
+| **工具范围**          | 继承 Category 的 tools + 基础工具 | 记忆工具白名单             |
+| **交互模式**          | Tab 切换 / subagent 自动调度      | Tab 切换 / @trigger        |
+| **记忆意识**          | 需通过 prompt_append 注入         | 原生记忆感知               |
+| **Human-in-the-loop** | 无（subagent 无法多轮交互）       | The Observer 需要用户确认  |
 
 ### 2.4 为什么需要两套系统
 
@@ -196,12 +196,12 @@
 
 ### 3.1 你的实际配置文件
 
-| 文件路径 | 作用 | 当前状态 |
-|---------|------|---------|
-| `C:\Users\Longray\.config\opencode\AGENTS.md` | OpenCode 全局配置 | ✅ 已配置（语言、Python规则、Windows环境） |
-| `C:\Users\Longray\.config\opencode\oh-my-opencode.json` | OMO 子代理配置 | ⚠️ 工具列表过时，需要升级 |
-| `D:\github\opencode-memory-plugin\AGENTS.md` | 插件开发文档 | ✅ 项目结构文档 |
-| `~/.opencode/memory/memory-config.json` | 插件核心配置 | ⚠️ 需要确认是否启用 v3.2 特性 |
+| 文件路径                                                | 作用              | 当前状态                                   |
+| ------------------------------------------------------- | ----------------- | ------------------------------------------ |
+| `C:\Users\Longray\.config\opencode\AGENTS.md`           | OpenCode 全局配置 | ✅ 已配置（语言、Python规则、Windows环境） |
+| `C:\Users\Longray\.config\opencode\oh-my-opencode.json` | OMO 子代理配置    | ⚠️ 工具列表过时，需要升级                  |
+| `D:\github\opencode-memory-plugin\AGENTS.md`            | 插件开发文档      | ✅ 项目结构文档                            |
+| `~/.opencode/memory/memory-config.json`                 | 插件核心配置      | ⚠️ 需要确认是否启用 v3.2 特性              |
 
 ### 3.2 当前 OMO 配置分析
 
@@ -239,29 +239,29 @@
 
 ### 3.4 工具版本对照表
 
-| 旧版工具 (v2.x) | 当前版本 (v3.2+) | 替换说明 |
-|----------------|-----------------|---------|
-| `list_daily` | `memory_timeline` | 时间线浏览，功能完全替代 |
-| `init_daily` | `memory_timeline` | 初始化逻辑已合并到 timeline |
-| `memory_search` | `memory_search` | ✅ 保留，新增 `memory_suggest` |
-| `memory_write` | `memory_write` | ✅ 保留，新增 `memory_pin` |
-| `memory_read` | `memory_read` | ✅ 保留，支持 level 渐进加载 |
-| `rebuild_index` | `rebuild_index` | ✅ 保留，新增 `incremental_sync` |
-| `index_status` | `index_status` | ✅ 保留 |
-| *(不存在)* | `memory_suggest` | 🆕 自动补全建议 |
-| *(不存在)* | `memory_timeline` | 🆕 按日期浏览记忆 |
-| *(不存在)* | `memory_topics` | 🆕 按主题浏览记忆 |
-| *(不存在)* | `memory_relate` | 🆕 创建/查询图关系 |
-| *(不存在)* | `memory_graph` | 🆕 图谱遍历 |
-| *(不存在)* | `memory_pin` | 🆕 置顶/取消置顶 |
-| *(不存在)* | `incremental_sync` | 🆕 增量同步 |
-| *(不存在)* | `full_sync` | 🆕 完整同步 |
-| *(不存在)* | `sync_checkpoint` | 🆕 同步检查点 |
-| *(不存在)* | `conflict_list` | 🆕 冲突列表 |
-| *(不存在)* | `conflict_resolve` | 🆕 冲突解决 |
-| *(不存在)* | `createAtom` | 🆕 v3.2 Atom API |
-| *(不存在)* | `createEntity` | 🆕 v3.2 Entity API |
-| *(不存在)* | `createReference` | 🆕 v3.2 Reference API |
+| 旧版工具 (v2.x) | 当前版本 (v3.2+)   | 替换说明                         |
+| --------------- | ------------------ | -------------------------------- |
+| `list_daily`    | `memory_timeline`  | 时间线浏览，功能完全替代         |
+| `init_daily`    | `memory_timeline`  | 初始化逻辑已合并到 timeline      |
+| `memory_search` | `memory_search`    | ✅ 保留，新增 `memory_suggest`   |
+| `memory_write`  | `memory_write`     | ✅ 保留，新增 `memory_pin`       |
+| `memory_read`   | `memory_read`      | ✅ 保留，支持 level 渐进加载     |
+| `rebuild_index` | `rebuild_index`    | ✅ 保留，新增 `incremental_sync` |
+| `index_status`  | `index_status`     | ✅ 保留                          |
+| _(不存在)_      | `memory_suggest`   | 🆕 自动补全建议                  |
+| _(不存在)_      | `memory_timeline`  | 🆕 按日期浏览记忆                |
+| _(不存在)_      | `memory_topics`    | 🆕 按主题浏览记忆                |
+| _(不存在)_      | `memory_relate`    | 🆕 创建/查询图关系               |
+| _(不存在)_      | `memory_graph`     | 🆕 图谱遍历                      |
+| _(不存在)_      | `memory_pin`       | 🆕 置顶/取消置顶                 |
+| _(不存在)_      | `incremental_sync` | 🆕 增量同步                      |
+| _(不存在)_      | `full_sync`        | 🆕 完整同步                      |
+| _(不存在)_      | `sync_checkpoint`  | 🆕 同步检查点                    |
+| _(不存在)_      | `conflict_list`    | 🆕 冲突列表                      |
+| _(不存在)_      | `conflict_resolve` | 🆕 冲突解决                      |
+| _(不存在)_      | `createAtom`       | 🆕 v3.2 Atom API                 |
+| _(不存在)_      | `createEntity`     | 🆕 v3.2 Entity API               |
+| _(不存在)_      | `createReference`  | 🆕 v3.2 Reference API            |
 
 ---
 
@@ -316,12 +316,12 @@ level=0 只返回 Abstract，一扫而过。找到感兴趣的再 `memory_read(e
 OpenCode 底部状态栏会显示当前智能体。
 按 **Tab** 可以在 primary 智能体之间切换：
 
-| 按 Tab | 切换到 | 用途 |
-|--------|--------|------|
-| → | Sisyphus | 主协调器，分配任务 |
-| → | Prometheus | 规划器，制定计划 |
-| → | Atlas | 执行指挥，调度工人 |
-| → | The Observer | 记忆观察者，捕获知识 |
+| 按 Tab | 切换到       | 用途                 |
+| ------ | ------------ | -------------------- |
+| →      | Sisyphus     | 主协调器，分配任务   |
+| →      | Prometheus   | 规划器，制定计划     |
+| →      | Atlas        | 执行指挥，调度工人   |
+| →      | The Observer | 记忆观察者，捕获知识 |
 
 subagent（如 Oracle、Momus、Explore）不通过 Tab 切换，而是由 Sisyphus 通过 Task 工具调度。
 
@@ -526,9 +526,9 @@ The Librarian: 开始知识整合仪式...
 
 ### 4.5 两个 Librarian 的区别（重要）
 
-| 代理 | 归属 | 触发方式 | 主要职责 |
-|------|------|---------|---------|
-| **OMO Librarian** | oh-my-opencode | Sisyphus 调度 | 知识检索、文档整理 |
+| 代理              | 归属                   | 触发方式              | 主要职责           |
+| ----------------- | ---------------------- | --------------------- | ------------------ |
+| **OMO Librarian** | oh-my-opencode         | Sisyphus 调度         | 知识检索、文档整理 |
 | **The Librarian** | opencode-memory-plugin | `@memory-consolidate` | 记忆聚合、图谱构建 |
 
 **协作关系**：
@@ -1004,14 +1004,14 @@ plugin agents (memory-automation.md / memory-consolidate.md)
 
 #### The Observer (memory-automation.md)
 
-```yaml
+````yaml
 ---
 name: memory-automation
 description: |
   The Observer - 对话后萃取重要信息，向用户确认后保存。
   Human-in-the-loop 流程：分析对话 → 查重 → 展示候选 → 用户确认 → 保存。
-model: claude-sonnet-4  # 指令遵循更强，避免跳过确认步骤
-type: primary           # 用户通过 Tab 键切换
+model: claude-sonnet-4 # 指令遵循更强，避免跳过确认步骤
+type: primary # 用户通过 Tab 键切换
 instructions: |
   你是 The Observer，负责从对话中萃取值得保存的信息。
 
@@ -1051,14 +1051,14 @@ instructions: |
      - tags: 相关标签
 
 tools:
-  - memory_search      # 查重
-  - memory_read        # 读取已有条目
-  - memory_suggest     # 标签建议
-  - memory_timeline    # 查看上下文
-  - memory_topics      # 主题发现
+  - memory_search # 查重
+  - memory_read # 读取已有条目
+  - memory_suggest # 标签建议
+  - memory_timeline # 查看上下文
+  - memory_topics # 主题发现
   # 注意：不包含 memory_write，避免自动保存
 ---
-```
+````
 
 #### The Librarian (memory-consolidate.md)
 
@@ -1069,7 +1069,7 @@ description: |
   The Librarian - 定期聚合碎片记忆，建立图谱关联和置顶。
   S.O.P.：扫描碎片 → 聚合提炼 → 织网关联 → 置顶关键 → 静默同步。
 model: claude-sonnet-4
-type: subagent          # 通过 @memory-consolidate 触发
+type: subagent # 通过 @memory-consolidate 触发
 instructions: |
   你是 The Librarian，负责定期整合碎片记忆，构建知识图谱。
 
@@ -1592,9 +1592,9 @@ conflict_list | xargs -I {} conflict_resolve conflict_id={} resolution="MERGE"
 
 ```javascript
 // 使用渐进加载减少数据传输
-memory_search(query="xxx", level=0)  // 只返回 Abstract
+memory_search((query = "xxx"), (level = 0)); // 只返回 Abstract
 // 确认相关后再加载详情
-memory_read(entry_id="xxx", level=2)  // 完整内容
+memory_read((entry_id = "xxx"), (level = 2)); // 完整内容
 ```
 
 #### 同步优化
@@ -1602,17 +1602,17 @@ memory_read(entry_id="xxx", level=2)  // 完整内容
 ```javascript
 // 日常使用增量同步（自动）
 // 大量变更时使用批量模式
-incremental_sync(batch_size=100)
+incremental_sync((batch_size = 100));
 ```
 
 #### 索引优化
 
 ```javascript
 // 定期重建索引（搜索变慢时）
-rebuild_index(force=true)
+rebuild_index((force = true));
 
 // 检查索引状态
-index_status(detailed=true)
+index_status((detailed = true));
 ```
 
 ---
@@ -1631,9 +1631,7 @@ index_status(detailed=true)
       "model": "anthropic/claude-3.5-sonnet"
     }
   },
-  "plugins": [
-    "oh-my-opencode@latest"
-  ],
+  "plugins": ["oh-my-opencode@latest"],
   "instructions": [
     "~/.opencode/memory/SOUL.md",
     "~/.opencode/memory/AGENTS.md",
@@ -1877,39 +1875,39 @@ class MyBackendClient {
 
 ### 10.3 15 个记忆工具完整清单
 
-| 类别 | 工具 | 用途 | 后端依赖 |
-|------|------|------|---------|
-| **Core** | `memory_write` | 写入记忆 | 同步 |
-| | `memory_read` | 读取记忆 | 本地 |
-| | `memory_pin` | 置顶/取消置顶 | 本地 |
-| **Search** | `memory_search` | 搜索记忆 | 优先后端 |
-| | `memory_suggest` | 自动补全建议 | 本地 |
-| **Graph** | `memory_relate` | 创建/查询关系 | ✅ 必须 |
-| | `memory_graph` | 图谱遍历 | ✅ 必须 |
-| **Browse** | `memory_timeline` | 时间线浏览 | 本地 |
-| | `memory_topics` | 主题发现 | 本地 |
-| **Sync** | `index_status` | 状态检查 | 混合 |
-| | `rebuild_index` | 重建索引 | ✅ 必须 |
-| | `incremental_sync` | 增量同步 | ✅ 必须 |
-| | `full_sync` | 全量同步 | ✅ 必须 |
-| | `sync_checkpoint` | 同步检查点 | ✅ 必须 |
-| **Conflict** | `conflict_list` | 冲突列表 | ✅ 必须 |
-| | `conflict_resolve` | 冲突解决 | ✅ 必须 |
+| 类别         | 工具               | 用途          | 后端依赖 |
+| ------------ | ------------------ | ------------- | -------- |
+| **Core**     | `memory_write`     | 写入记忆      | 同步     |
+|              | `memory_read`      | 读取记忆      | 本地     |
+|              | `memory_pin`       | 置顶/取消置顶 | 本地     |
+| **Search**   | `memory_search`    | 搜索记忆      | 优先后端 |
+|              | `memory_suggest`   | 自动补全建议  | 本地     |
+| **Graph**    | `memory_relate`    | 创建/查询关系 | ✅ 必须  |
+|              | `memory_graph`     | 图谱遍历      | ✅ 必须  |
+| **Browse**   | `memory_timeline`  | 时间线浏览    | 本地     |
+|              | `memory_topics`    | 主题发现      | 本地     |
+| **Sync**     | `index_status`     | 状态检查      | 混合     |
+|              | `rebuild_index`    | 重建索引      | ✅ 必须  |
+|              | `incremental_sync` | 增量同步      | ✅ 必须  |
+|              | `full_sync`        | 全量同步      | ✅ 必须  |
+|              | `sync_checkpoint`  | 同步检查点    | ✅ 必须  |
+| **Conflict** | `conflict_list`    | 冲突列表      | ✅ 必须  |
+|              | `conflict_resolve` | 冲突解决      | ✅ 必须  |
 
 ### 10.4 版本历史
 
-| 版本 | 日期 | 主要变更 |
-|------|------|---------|
-| v2.0 | 2026-04-23 | 合并 4 个方案为综合指南 |
+| 版本 | 日期       | 主要变更                 |
+| ---- | ---------- | ------------------------ |
+| v2.0 | 2026-04-23 | 合并 4 个方案为综合指南  |
 | v1.0 | 2026-04-23 | 初始版本（4 个独立方案） |
 
 ---
 
 **文档结束**
 
-*本指南融合了 4 个方案的最佳实践：*
+_本指南融合了 4 个方案的最佳实践：_
 
-- *Option A: 技术配置深度*
-- *Option B: 用户工作流体验*
-- *Option C: 架构设计系统*
-- *Option D: 实战应用示例*
+- _Option A: 技术配置深度_
+- _Option B: 用户工作流体验_
+- _Option C: 架构设计系统_
+- _Option D: 实战应用示例_

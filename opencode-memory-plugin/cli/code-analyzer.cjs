@@ -21,6 +21,7 @@ Usage: opencode-memory code-analyze [options] <file>
 Commands:
   <file>                    Analyze a single file
   --project                 Analyze all files in current project
+  --upload [dir]            Upload all project files to backend (atoms + entities + references)
   --language <lang> <file>  Analyze file with specified language
 
 Options:
@@ -35,8 +36,9 @@ Examples:
   opencode-memory code-analyze src/index.ts --format table
   opencode-memory code-analyze src/index.ts --format tree --save
   opencode-memory code-analyze --project
+  opencode-memory code-analyze --upload
+  opencode-memory code-analyze --upload ./my-project
   opencode-memory code-analyze --language python script.py
-  opencode-memory code-analyze src/index.ts --output result.json
 
 Supported Languages:
   ${SUPPORTED_LANGUAGES.join(', ')}
@@ -52,6 +54,7 @@ function parseArgs(args) {
     pretty: false,
     format: 'json',
     save: false,
+    upload: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -72,6 +75,8 @@ function parseArgs(args) {
       options.format = args[++i];
     } else if (arg === '--save' || arg === '-s') {
       options.save = true;
+    } else if (arg === '--upload' || arg === '-u') {
+      options.upload = true;
     } else if (!arg.startsWith('-') && !options.file) {
       options.file = arg;
     }
@@ -193,6 +198,9 @@ async function formatOutput(result, options) {
   // Handle project report
   if (result.type === 'project-report') {
     const { formatProjectReportAsTable } = await import('../lib/project-analyzer.js');
+    if (options.format === 'json') {
+      return JSON.stringify(result.report, null, options.pretty ? 2 : 0);
+    }
     return formatProjectReportAsTable(result.report);
   }
 
@@ -268,6 +276,29 @@ async function main() {
   validateOptions(options);
 
   let result;
+
+  if (options.upload) {
+    console.log('Uploading project to backend (two-pass: atoms/entities + references)...');
+    const { uploadProject } = await import('../lib/code-analysis-service.js');
+    const projectRoot = options.file || '.';
+    const result = await uploadProject(projectRoot, options);
+    console.log(
+      '\nUpload complete:\n' +
+        '  Files:      ' +
+        result.files +
+        '\n' +
+        '  Atoms:      ' +
+        result.atoms +
+        '\n' +
+        '  References: ' +
+        result.references +
+        '\n' +
+        '  Duration:   ' +
+        result.duration.toFixed(2) +
+        'ms'
+    );
+    process.exit(0);
+  }
 
   if (options.project) {
     console.log('Analyzing project...');

@@ -133,7 +133,8 @@ export function formatAsTree(result) {
       const isLast = i === functions.length - 1 && (!classes || classes.length === 0);
       const prefix = isLast ? '│   └── ' : '│   ├── ';
       const type = func.type ? ` [${func.type}]` : '';
-      lines.push(`${prefix}${func.name}() @ line ${func.line}${type}`);
+      const lineNum = func.line || func.start_line || '?';
+      lines.push(`${prefix}${func.name}() @ line ${lineNum}${type}`);
     }
   }
 
@@ -146,7 +147,8 @@ export function formatAsTree(result) {
       const cls = classes[i];
       const isLastClass = i === classes.length - 1;
       const classPrefix = isLastClass ? '    └── ' : '    ├── ';
-      lines.push(`${classPrefix}${cls.name} @ line ${cls.line}`);
+      const classLineNum = cls.line || cls.start_line || '?';
+      lines.push(`${classPrefix}${cls.name} @ line ${classLineNum}`);
 
       // Class methods
       if (cls.methods && cls.methods.length > 0) {
@@ -155,7 +157,8 @@ export function formatAsTree(result) {
           const isLastMethod = j === cls.methods.length - 1;
           const isLast = isLastClass && isLastMethod && (!calls || calls.length === 0);
           const methodPrefix = isLast ? '        └── ' : '        ├── ';
-          lines.push(`${methodPrefix}${method.name}() @ line ${method.line}`);
+          const methodLineNum = method.line || method.start_line || '?';
+          lines.push(`${methodPrefix}${method.name}() @ line ${methodLineNum}`);
         }
       }
     }
@@ -193,6 +196,9 @@ export function formatAsJson(result, pretty = false) {
  * 文本居中
  */
 function centerText(text, width) {
+  if (text.length >= width) {
+    return text.substring(0, width);
+  }
   const padding = width - text.length;
   const left = Math.floor(padding / 2);
   const right = padding - left;
