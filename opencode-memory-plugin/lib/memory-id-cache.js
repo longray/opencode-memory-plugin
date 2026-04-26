@@ -91,7 +91,17 @@ export class MemoryIdCache {
         mappings: Object.fromEntries(this.mappings),
       };
 
-      fs.writeFileSync(this.cacheFile, JSON.stringify(data, null, 2), 'utf-8');
+      fs.writeFileSync(this.cacheFile + '.tmp', JSON.stringify(data, null, 2), 'utf-8');
+      try {
+        fs.renameSync(this.cacheFile + '.tmp', this.cacheFile);
+      } catch (renameError) {
+        if (renameError.code === 'EXDEV') {
+          fs.copyFileSync(this.cacheFile + '.tmp', this.cacheFile);
+          fs.unlinkSync(this.cacheFile + '.tmp');
+        } else {
+          throw renameError;
+        }
+      }
       this.stats.lastSaved = new Date().toISOString();
 
       console.log(`[MemoryIdCache] Saved ${this.mappings.size} entries to ${this.cacheFile}`);

@@ -114,7 +114,7 @@ describe('tools/core.js', () => {
 
     it('should return error if entry_id is not found', async () => {
       const result = await memory_pin.execute({ entry_id: 'non-existent-id', action: 'pin' });
-      expect(result).toContain("❌ Error: Memory entry with ID 'non-existent-id' not found");
+      expect(result).toContain("Failed to update memory entry 'non-existent-id'");
     });
 
     it('should pin an existing memory entry', async () => {

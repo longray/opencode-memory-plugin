@@ -3,6 +3,21 @@ import path from 'path';
 import { generateLocalId } from './ulid.js';
 import { TIMELINE_DIR, MEMORY_DIR } from './constants.js';
 
+export function atomicWriteText(filePath, content) {
+  const tmpPath = filePath + '.tmp';
+  fs.writeFileSync(tmpPath, content, 'utf-8');
+  try {
+    fs.renameSync(tmpPath, filePath);
+  } catch (error) {
+    if (error.code === 'EXDEV') {
+      fs.copyFileSync(tmpPath, filePath);
+      fs.unlinkSync(tmpPath);
+    } else {
+      throw error;
+    }
+  }
+}
+
 export function buildEntryContent(data) {
   const tags = Array.isArray(data.tags) ? data.tags.join(', ') : data.tags || '';
   const meta = data.meta ? JSON.stringify(data.meta) : '[]';
@@ -71,7 +86,7 @@ export async function writeEntryToTimeline(layers, metadata) {
   }
 
   const filePath = path.join(dayDir, fileName);
-  fs.writeFileSync(filePath, content, 'utf-8');
+  atomicWriteText(filePath, content);
 
   const relativePath = filePath.replace(MEMORY_DIR + path.sep, '').replace(/\\/g, '/');
 

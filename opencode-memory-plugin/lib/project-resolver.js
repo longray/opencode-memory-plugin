@@ -289,7 +289,17 @@ export class ProjectResolver {
       fs.mkdirSync(MEMORY_DIR, { recursive: true });
     }
 
-    fs.writeFileSync(MAPPINGS_FILE, JSON.stringify(mappings, null, 2));
+    fs.writeFileSync(MAPPINGS_FILE + '.tmp', JSON.stringify(mappings, null, 2));
+    try {
+      fs.renameSync(MAPPINGS_FILE + '.tmp', MAPPINGS_FILE);
+    } catch (renameError) {
+      if (renameError.code === 'EXDEV') {
+        fs.copyFileSync(MAPPINGS_FILE + '.tmp', MAPPINGS_FILE);
+        fs.unlinkSync(MAPPINGS_FILE + '.tmp');
+      } else {
+        throw renameError;
+      }
+    }
   }
 
   /**

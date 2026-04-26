@@ -316,7 +316,18 @@ export async function saveTrieIndex(filePath) {
 
   try {
     const serialized = trieIndex.serialize();
-    fs.writeFileSync(filePath, JSON.stringify(serialized), 'utf-8');
+    const tmpPath = filePath + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(serialized), 'utf-8');
+    try {
+      fs.renameSync(tmpPath, filePath);
+    } catch (renameError) {
+      if (renameError.code === 'EXDEV') {
+        fs.copyFileSync(tmpPath, filePath);
+        fs.unlinkSync(tmpPath);
+      } else {
+        throw renameError;
+      }
+    }
     console.log(`[TrieIndex] Saved to ${filePath}`);
   } catch (e) {
     console.error('[TrieIndex] Error saving index:', e.message);

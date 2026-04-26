@@ -36,6 +36,9 @@ import {
   removeFromLinkMap,
   updateMemoryIndex,
   updateDayOverview,
+  withLinkMapLock,
+  readJsonSafe,
+  atomicWriteJson,
 } from './indexer.js';
 import { deleteEntryFile, getEntryById } from './storage.js';
 import { LINK_MAP_FILE } from './constants.js';
@@ -164,27 +167,40 @@ export async function writeMemory({
       { type, tags, project: project_id, source_id, meta }
     );
 
-    // 2. 更新 link-map
-    await updateLinkMap(
-      {
-        id: result.localId,
-        abstract,
-        overview,
-        type,
-        tags,
-        pinned,
-        synced: false,
-        memory_id: null,
-      },
-      result.filePath
-    );
+    try {
+      // 2. 更新 link-map
+      await updateLinkMap(
+        {
+          id: result.localId,
+          abstract,
+          overview,
+          type,
+          tags,
+          pinned,
+          synced: false,
+          memory_id: null,
+        },
+        result.filePath
+      );
 
-    // 3. 更新每日概览
-    const dayDir = path.dirname(result.filePath);
-    await updateDayOverview(dayDir, { abstract, type, fileName: result.fileName });
+      // 3. 更新每日概览
+      const dayDir = path.dirname(result.filePath);
+      await updateDayOverview(dayDir, { abstract, type, fileName: result.fileName });
 
-    // 4. 更新 MEMORY.md 索引
-    await updateMemoryIndex({ abstract, type }, result.localId);
+      // 4. 更新 MEMORY.md 索引
+      await updateMemoryIndex({ abstract, type }, result.localId);
+    } catch (pipelineError) {
+      // 回滚：步骤 2-4 失败时删除孤立文件
+      console.warn(
+        `[writeMemory] Pipeline failed after file write, rolling back: ${pipelineError.message}`
+      );
+      try {
+        deleteEntryFile(result.filePath);
+      } catch (rollbackError) {
+        console.error(`[writeMemory] Rollback failed: ${rollbackError.message}`);
+      }
+      throw pipelineError;
+    }
 
     // 5. 返回成功结果（不包含后端同步）
     return {
@@ -255,14 +271,15 @@ export async function syncMemoryToBackend({
     const memoryId = uploadResult.id;
 
     try {
-      const linkMap = JSON.parse(fs.readFileSync(LINK_MAP_FILE, 'utf-8'));
-      if (linkMap.entries[localId]) {
-        linkMap.entries[localId].synced = true;
-        linkMap.entries[localId].memory_id = memoryId;
-        const tmpPath = LINK_MAP_FILE + '.tmp';
-        fs.writeFileSync(tmpPath, JSON.stringify(linkMap, null, 2), 'utf-8');
-        fs.renameSync(tmpPath, LINK_MAP_FILE);
-      }
+      await withLinkMapLock(() => {
+        if (!fs.existsSync(LINK_MAP_FILE)) return;
+        const linkMap = readJsonSafe(LINK_MAP_FILE);
+        if (linkMap.entries && linkMap.entries[localId]) {
+          linkMap.entries[localId].synced = true;
+          linkMap.entries[localId].memory_id = memoryId;
+          atomicWriteJson(LINK_MAP_FILE, linkMap);
+        }
+      });
     } catch (linkMapError) {
       console.warn(
         `[syncMemoryToBackend] Upload succeeded (${memoryId}) but link-map update failed: ${linkMapError.message}. Entry will be re-synced on next run.`
@@ -279,10 +296,11 @@ export async function syncMemoryToBackend({
     if (error.name === 'DuplicateError') {
       const dupType = error.duplicateType === 'hash' ? '完全重复' : '语义相似';
 
-      // 删除本地文件
-      deleteEntryFile(filePath);
+      console.warn(
+        `[syncMemoryToBackend] Duplicate detected (${dupType}), rolling back local entry ${localId}`
+      );
 
-      // 从 link-map 移除
+      deleteEntryFile(filePath);
       await removeFromLinkMap(localId);
 
       return {

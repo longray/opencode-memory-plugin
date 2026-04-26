@@ -3,7 +3,7 @@ import { writeAndSyncMemory } from '../lib/memory-core.js';
 import { getConfig, getLinkMap, resolveTenantId } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
 import { resolveProjectId } from '../lib/project-resolver.js';
-import { atomicWriteJson } from '../lib/indexer.js';
+import { atomicWriteJson, withLinkMapLock } from '../lib/indexer.js';
 import { LINK_MAP_FILE } from '../lib/constants.js';
 
 function normalizeTags(tags) {
@@ -63,14 +63,6 @@ export const memory_write = tool({
       return result.message;
     }
 
-    if (args.pinned) {
-      const linkMap = getLinkMap();
-      if (linkMap.entries[result.localId]) {
-        linkMap.entries[result.localId].pinned = true;
-        atomicWriteJson(LINK_MAP_FILE, linkMap);
-      }
-    }
-
     return `✅ Memory saved
 - ID: ${result.localId}
 - Abstract: ${abstract.substring(0, 50)}...
@@ -97,16 +89,17 @@ export const memory_pin = tool({
       return "❌ Error: action must be either 'pin' or 'unpin'.";
     }
 
-    const linkMap = getLinkMap();
-    if (!linkMap.entries || !linkMap.entries[entry_id]) {
-      return `❌ Error: Memory entry with ID '${entry_id}' not found.`;
-    }
-
     const isPinned = action === 'pin';
-    linkMap.entries[entry_id].pinned = isPinned;
 
     try {
-      atomicWriteJson(LINK_MAP_FILE, linkMap);
+      await withLinkMapLock(() => {
+        const linkMap = getLinkMap();
+        if (!linkMap.entries || !linkMap.entries[entry_id]) {
+          throw new Error(`Memory entry with ID '${entry_id}' not found.`);
+        }
+        linkMap.entries[entry_id].pinned = isPinned;
+        atomicWriteJson(LINK_MAP_FILE, linkMap);
+      });
       return `✅ Successfully ${isPinned ? 'pinned' : 'unpinned'} memory entry '${entry_id}'.`;
     } catch (e) {
       return `❌ Error: Failed to update memory entry '${entry_id}': ${e.message}`;

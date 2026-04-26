@@ -38,7 +38,18 @@ function writeQueue(queue) {
     if (!fs.existsSync(MEMORY_DIR)) {
       fs.mkdirSync(MEMORY_DIR, { recursive: true });
     }
-    fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue, null, 2));
+    const tmpPath = QUEUE_FILE + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(queue, null, 2));
+    try {
+      fs.renameSync(tmpPath, QUEUE_FILE);
+    } catch (renameError) {
+      if (renameError.code === 'EXDEV') {
+        fs.copyFileSync(tmpPath, QUEUE_FILE);
+        fs.unlinkSync(tmpPath);
+      } else {
+        throw renameError;
+      }
+    }
   } catch (e) {
     console.error('Failed to write upload queue:', e.message);
   }

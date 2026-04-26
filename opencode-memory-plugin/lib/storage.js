@@ -2,6 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import { MEMORY_DIR, LINK_MAP_FILE, resolveSafePath } from './constants.js';
 
+let linkMapCache = null;
+let linkMapMtime = 0;
+
+export function invalidateLinkMapCache() {
+  linkMapCache = null;
+  linkMapMtime = 0;
+}
+
 export function getConfig() {
   try {
     const configPath = path.join(MEMORY_DIR, 'memory-config.json');
@@ -25,7 +33,13 @@ export function getLinkMap() {
     return { version: '2.4.0', entries: {} };
   }
   try {
-    return JSON.parse(fs.readFileSync(LINK_MAP_FILE, 'utf-8'));
+    const stat = fs.statSync(LINK_MAP_FILE);
+    if (linkMapCache && stat.mtimeMs === linkMapMtime) {
+      return linkMapCache;
+    }
+    linkMapCache = JSON.parse(fs.readFileSync(LINK_MAP_FILE, 'utf-8'));
+    linkMapMtime = stat.mtimeMs;
+    return linkMapCache;
   } catch (error) {
     console.warn(`[storage] Failed to parse link-map: ${error.message}`);
     return { version: '2.4.0', entries: {} };

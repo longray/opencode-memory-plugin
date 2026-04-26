@@ -2,6 +2,22 @@ import fs from 'fs';
 import path from 'path';
 import { copyFileSync, writeFileSync, renameSync } from 'fs';
 import { LINK_MAP_FILE, MEMORY_FILE, MEMORY_DIR, CONFIG_FILE } from './constants.js';
+import { invalidateLinkMapCache } from './storage.js';
+
+export function atomicWriteText(filePath, content) {
+  const tmpPath = filePath + '.tmp';
+  writeFileSync(tmpPath, content, 'utf-8');
+  try {
+    renameSync(tmpPath, filePath);
+  } catch (error) {
+    if (error.code === 'EXDEV') {
+      copyFileSync(tmpPath, filePath);
+      fs.unlinkSync(tmpPath);
+    } else {
+      throw error;
+    }
+  }
+}
 
 let linkMapLock = Promise.resolve();
 
@@ -17,6 +33,9 @@ export function atomicWriteJson(filePath, data) {
     } else {
       throw error;
     }
+  }
+  if (filePath === LINK_MAP_FILE) {
+    invalidateLinkMapCache();
   }
 }
 
@@ -37,7 +56,7 @@ export async function withLinkMapLock(fn) {
   }
 }
 
-function readJsonSafe(filePath) {
+export function readJsonSafe(filePath) {
   const raw = fs.readFileSync(filePath, 'utf-8');
   const parsed = JSON.parse(raw);
   if (!parsed || typeof parsed !== 'object') {
@@ -74,49 +93,53 @@ export async function updateDayOverview(dayDir, entry) {
   const count = lines.filter(l => l.startsWith('- [')).length;
   lines[0] = `# ${dateStr} 记忆概览（${count} entries）`;
 
-  fs.writeFileSync(overviewPath, lines.join('\n'), 'utf-8');
+  atomicWriteText(overviewPath, lines.join('\n'));
 }
 
 export async function updateLinkMap(entry, filePath) {
-  let linkMap = { version: '2.4.0', entries: {} };
+  return withLinkMapLock(() => {
+    let linkMap = { version: '2.4.0', entries: {} };
 
-  if (fs.existsSync(LINK_MAP_FILE)) {
-    try {
-      linkMap = readJsonSafe(LINK_MAP_FILE);
-    } catch {
-      // ignore
+    if (fs.existsSync(LINK_MAP_FILE)) {
+      try {
+        linkMap = readJsonSafe(LINK_MAP_FILE);
+      } catch {
+        // ignore
+      }
     }
-  }
 
-  const relativePath = filePath.replace(MEMORY_DIR + path.sep, '').replace(/\\/g, '/');
+    const relativePath = filePath.replace(MEMORY_DIR + path.sep, '').replace(/\\/g, '/');
 
-  linkMap.entries[entry.id] = {
-    id: entry.id,
-    path: relativePath,
-    abstract: entry.abstract,
-    overview: entry.overview,
-    type: entry.type,
-    tags: entry.tags || [],
-    pinned: entry.pinned || false,
-    synced: entry.synced || false,
-    memory_id: entry.memory_id || null,
-  };
+    linkMap.entries[entry.id] = {
+      id: entry.id,
+      path: relativePath,
+      abstract: entry.abstract,
+      overview: entry.overview,
+      type: entry.type,
+      tags: entry.tags || [],
+      pinned: entry.pinned || false,
+      synced: entry.synced || false,
+      memory_id: entry.memory_id || null,
+    };
 
-  atomicWriteJson(LINK_MAP_FILE, linkMap);
+    atomicWriteJson(LINK_MAP_FILE, linkMap);
+  });
 }
 
 export async function removeFromLinkMap(localId) {
-  if (!fs.existsSync(LINK_MAP_FILE)) return;
+  return withLinkMapLock(() => {
+    if (!fs.existsSync(LINK_MAP_FILE)) return;
 
-  try {
-    const linkMap = readJsonSafe(LINK_MAP_FILE);
-    if (linkMap.entries && linkMap.entries[localId]) {
-      delete linkMap.entries[localId];
-      atomicWriteJson(LINK_MAP_FILE, linkMap);
+    try {
+      const linkMap = readJsonSafe(LINK_MAP_FILE);
+      if (linkMap.entries && linkMap.entries[localId]) {
+        delete linkMap.entries[localId];
+        atomicWriteJson(LINK_MAP_FILE, linkMap);
+      }
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore
-  }
+  });
 }
 
 /**
@@ -234,7 +257,7 @@ ${recentEntriesSection}
 *此文件由 memory_write 工具自动更新*
 `;
 
-    fs.writeFileSync(MEMORY_FILE, indexContent, 'utf-8');
+    atomicWriteText(MEMORY_FILE, indexContent);
   } catch (e) {
     console.error('[updateMemoryIndex] Error:', e.message);
   }
