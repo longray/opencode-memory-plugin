@@ -2,21 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import { generateLocalId } from './ulid.js';
 import { TIMELINE_DIR, MEMORY_DIR } from './constants.js';
+import { atomicWriteText } from './atomic-write.js';
+import { parseFrontmatter, extractSections } from './extractor.js';
 
-export function atomicWriteText(filePath, content) {
-  const tmpPath = filePath + '.tmp';
-  fs.writeFileSync(tmpPath, content, 'utf-8');
-  try {
-    fs.renameSync(tmpPath, filePath);
-  } catch (error) {
-    if (error.code === 'EXDEV') {
-      fs.copyFileSync(tmpPath, filePath);
-      fs.unlinkSync(tmpPath);
-    } else {
-      throw error;
-    }
-  }
-}
+export { atomicWriteText };
 
 export function buildEntryContent(data) {
   const tags = Array.isArray(data.tags) ? data.tags.join(', ') : data.tags || '';
@@ -100,44 +89,16 @@ export function parseEntryFromFile(filePath) {
   try {
     content = fs.readFileSync(filePath, 'utf-8');
   } catch {
+    // File may not exist or be unreadable — expected, return null
     return null;
   }
 
   if (!content || !content.trim()) return null;
 
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatter = parseFrontmatter(content);
+  if (!frontmatter) return null;
 
-  if (!frontmatterMatch) return null;
+  const sections = extractSections(content);
 
-  const frontmatter = {};
-  frontmatterMatch[1].split('\n').forEach(line => {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) return;
-
-    const k = line.substring(0, colonIndex).trim();
-    const v = line.substring(colonIndex + 1).trim();
-
-    if (!k) return;
-
-    if (k === 'meta' && v.startsWith('[')) {
-      try {
-        frontmatter[k] = JSON.parse(v);
-      } catch {
-        frontmatter[k] = v;
-      }
-    } else {
-      frontmatter[k] = v;
-    }
-  });
-
-  const abstractMatch = content.match(/# ≡≡≡ Abstract ≡≡≡\n```\n([\s\S]*?)```/);
-  const overviewMatch = content.match(/# ≡≡≡ Overview ≡≡≡\n```\n([\s\S]*?)```/);
-  const contentMatch = content.match(/# ≡≡≡ Contents ≡≡≡\n```\n([\s\S]*?)```/);
-
-  return {
-    frontmatter,
-    abstract: abstractMatch ? abstractMatch[1].trim() : '',
-    overview: overviewMatch ? overviewMatch[1].trim() : '',
-    content: contentMatch ? contentMatch[1].trim() : '',
-  };
+  return { frontmatter, ...sections };
 }

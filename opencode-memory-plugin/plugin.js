@@ -17,6 +17,10 @@ import { startFileWatcher } from './lib/file-watcher.js';
 import { getConfig } from './lib/storage.js';
 import { getWebSocketUrl } from './lib/config.js';
 import { ReliableWebSocketClient } from './lib/websocket/reliable-client.js';
+import {
+  WS_HEARTBEAT_INTERVAL_MS,
+  WS_RECONNECT_BASE_DELAY_MS,
+} from './lib/constants.js';
 
 let _wsClient = null;
 
@@ -77,9 +81,9 @@ export const MemoryPlugin = async ctx => {
       _wsClient = new ReliableWebSocketClient(wsUrl, {
         tenantId: config.backend?.tenant_id || 'default',
         token: apiKey,
-        heartbeatInterval: config.websocket?.heartbeatInterval || 30000,
+        heartbeatInterval: config.websocket?.heartbeatInterval || WS_HEARTBEAT_INTERVAL_MS,
         reconnectMaxAttempts: config.websocket?.reconnectMaxAttempts || 10,
-        reconnectBaseDelay: config.websocket?.reconnectBaseDelay || 1000,
+        reconnectBaseDelay: config.websocket?.reconnectBaseDelay || WS_RECONNECT_BASE_DELAY_MS,
       });
 
       _wsClient.on('connected', data => {

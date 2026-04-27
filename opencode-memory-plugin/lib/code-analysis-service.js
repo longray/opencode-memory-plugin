@@ -12,6 +12,12 @@ import { readFile } from 'fs/promises';
 import { extname, relative, basename } from 'path';
 import { createHash } from 'crypto';
 import { analyzeWithQuery } from './tree-sitter-parser.js';
+import {
+  QUEUE_TIMEOUT_MS as DEFAULT_QUEUE_TIMEOUT_MS,
+  QUEUE_POLL_DELAY_MS,
+  DEFAULT_DEBOUNCE_MS,
+  DEFAULT_BATCH_DELAY_MS,
+} from './constants.js';
 
 function readCodeAnalysisConfig() {
   return getConfig().code_analysis || {};
@@ -32,11 +38,11 @@ const SUPPORTED_EXTENSIONS = [
 ];
 
 const _cfg = readCodeAnalysisConfig();
-const DEBOUNCE_MS = _cfg.debounce_ms || 300;
-const BATCH_DELAY_MS = _cfg.batch_delay_ms || 2000;
+const DEBOUNCE_MS = _cfg.debounce_ms || DEFAULT_DEBOUNCE_MS;
+const BATCH_DELAY_MS = _cfg.batch_delay_ms || DEFAULT_BATCH_DELAY_MS;
 const BATCH_MAX_SIZE = _cfg.batch_max_size || 10;
 const MAX_CONCURRENT = _cfg.max_concurrent || 2;
-const QUEUE_TIMEOUT_MS = _cfg.queue_timeout_ms || 5000;
+const QUEUE_TIMEOUT_MS = _cfg.queue_timeout_ms || DEFAULT_QUEUE_TIMEOUT_MS;
 const MAX_QUEUE_SIZE = _cfg.queue_max_size || 10;
 
 // BL-CA-41: Enable new Atom/Entity/Reference API
@@ -153,7 +159,7 @@ export class AnalysisQueue {
 
       const availableSlots = MAX_CONCURRENT - this.concurrentCount;
       if (availableSlots <= 0) {
-        setTimeout(() => this.processQueue(), 100);
+        setTimeout(() => this.processQueue(), QUEUE_POLL_DELAY_MS);
         return;
       }
 
@@ -164,7 +170,7 @@ export class AnalysisQueue {
       }
 
       if (this.queue.length > 0) {
-        setTimeout(() => this.processQueue(), 100);
+        setTimeout(() => this.processQueue(), QUEUE_POLL_DELAY_MS);
       }
     } catch (error) {
       console.error(`[CodeAnalysis] Queue processing failed: ${error.message}`);

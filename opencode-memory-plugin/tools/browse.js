@@ -1,6 +1,13 @@
 import { tool } from '@opencode-ai/plugin/tool';
 import { getLinkMap } from '../lib/storage.js';
 
+/**
+ * Views memories organized by timeline (date).
+ * @param {Object} args - The arguments for viewing the timeline
+ * @param {number} [args.days=7] - Number of days to show
+ * @param {number} [args.level=1] - Level of detail: 0=abstract, 1=overview, 2=full
+ * @returns {Promise<string>} Timeline of memories
+ */
 export const memory_timeline = tool({
   description: 'View memories organized by timeline (date)',
   args: {
@@ -60,6 +67,12 @@ export const memory_timeline = tool({
   },
 });
 
+/**
+ * Lists all topics with entry counts.
+ * @param {Object} args - The arguments for viewing topics
+ * @param {number} [args.min_entries=1] - Minimum number of entries for a topic to be included
+ * @returns {Promise<string>} List of topics with their entry counts
+ */
 export const memory_topics = tool({
   description: 'List all topics with entry counts',
   args: {

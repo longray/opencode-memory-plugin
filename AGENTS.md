@@ -516,3 +516,30 @@ wrapperClient = new WrapperClient({
   },
 });
 ```
+
+---
+
+# AGENTS.md - 项目级 Agent 行为规则
+
+## 规则 1：自动生成 project.md
+当用户说"生成 project.md"、"更新项目上下文"、"扫描现有代码"等时：
+- 自动调用 skill("project-context-writer")
+- 不要直接写文件，先走 brainstorming → 扫描 → writing-plans 的完整流程
+
+## 规则 2：OpenSpec 变更自动走 OMO
+当用户处于 openspec/changes/*/ 目录上下文，或输入 /opsx:apply、/opsx:continue 时：
+- 自动调用 skill("opsx-execute")
+- 传入变更名称作为参数
+- 禁止直接单 agent 编码，必须经过 Sisyphus 调度
+
+## 规则 3：存量项目约束（全局）
+所有涉及本项目的编码任务必须遵守：
+1. 向后兼容 —— 旧 API 不能断，新字段必须 optional
+2. 数据库迁移只增不减
+3. 修改现有函数前，必须先读原函数签名和测试
+4. 优先写适配层，不要直接改旧数据格式
+
+## 规则 4：Superpowers 调用规范
+当需要 Superpowers 技能时：
+- 如果 OMO 未启用：直接 `skill("brainstorming")`
+- 如果 OMO 已启用：使用 `skill("superpowers/brainstorming")` 避免冲突

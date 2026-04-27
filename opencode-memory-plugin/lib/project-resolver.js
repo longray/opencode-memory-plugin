@@ -17,13 +17,13 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { execSync } from 'child_process';
+import { atomicWriteJson } from './atomic-write.js';
+import { MEMORY_DIR, CACHE_TTL_MS, GIT_COMMAND_TIMEOUT_MS } from './constants.js';
+import { logDebug } from './logger.js';
 
-const HOME = process.env.HOME || process.env.USERPROFILE;
-const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
 const MAPPINGS_FILE = path.join(MEMORY_DIR, 'project-mappings.json');
 
 const gitRemoteCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 function normalizePath(p) {
   return path.resolve(p).toLowerCase().replace(/\\/g, '/');
@@ -85,8 +85,8 @@ function readPackageJson(cwd) {
       const content = fs.readFileSync(pkgPath, 'utf-8');
       return JSON.parse(content);
     }
-  } catch {
-    // ignore
+  } catch (e) {
+    logDebug('project-resolver', 'Failed to read package.json', { cwd, error: e.message });
   }
   return null;
 }
@@ -96,7 +96,7 @@ function getGitRemote(cwd, retries = 2) {
 
   if (gitRemoteCache.has(normalizedCwd)) {
     const cached = gitRemoteCache.get(normalizedCwd);
-    if (Date.now() - cached.timestamp < CACHE_TTL) {
+    if (Date.now() - cached.timestamp < CACHE_TTL_MS) {
       return cached.value;
     }
     gitRemoteCache.delete(normalizedCwd);
@@ -107,14 +107,15 @@ function getGitRemote(cwd, retries = 2) {
       const result = execSync('git remote get-url origin', {
         cwd,
         encoding: 'utf-8',
-        timeout: 5000,
+        timeout: GIT_COMMAND_TIMEOUT_MS,
         stdio: ['pipe', 'pipe', 'pipe'],
       });
       const trimmed = result.trim();
       gitRemoteCache.set(normalizedCwd, { value: trimmed, timestamp: Date.now() });
       return trimmed;
-    } catch {
+    } catch (e) {
       if (i === retries) {
+        logDebug('project-resolver', 'Git remote command failed after retries', { cwd, error: e.message });
         return null;
       }
     }
@@ -131,8 +132,8 @@ function readProjectMappings() {
       const content = fs.readFileSync(MAPPINGS_FILE, 'utf-8');
       return JSON.parse(content);
     }
-  } catch {
-    // ignore
+  } catch (e) {
+    logDebug('project-resolver', 'Failed to read project-mappings.json, using empty mappings', { error: e.message });
   }
   return { mappings: {} };
 }
@@ -289,17 +290,7 @@ export class ProjectResolver {
       fs.mkdirSync(MEMORY_DIR, { recursive: true });
     }
 
-    fs.writeFileSync(MAPPINGS_FILE + '.tmp', JSON.stringify(mappings, null, 2));
-    try {
-      fs.renameSync(MAPPINGS_FILE + '.tmp', MAPPINGS_FILE);
-    } catch (renameError) {
-      if (renameError.code === 'EXDEV') {
-        fs.copyFileSync(MAPPINGS_FILE + '.tmp', MAPPINGS_FILE);
-        fs.unlinkSync(MAPPINGS_FILE + '.tmp');
-      } else {
-        throw renameError;
-      }
-    }
+    atomicWriteJson(MAPPINGS_FILE, mappings);
   }
 
   /**

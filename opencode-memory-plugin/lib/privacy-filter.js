@@ -1,4 +1,5 @@
 import { statSync } from 'fs';
+import { MAX_FILE_SIZE } from './constants.js';
 
 const EXCLUDED_PATTERNS = [
   /[\\/]\.env$/,
@@ -43,7 +44,7 @@ const SENSITIVE_PATTERNS = [
   { pattern: /eyJ[A-Za-z0-9_-]{20,}/, type: 'base64_secret' },
 ];
 
-const MAX_FILE_SIZE = 1024 * 1024;
+
 
 export function isExcludedFile(filePath) {
   const normalizedPath = filePath.replace(/\\/g, '/');

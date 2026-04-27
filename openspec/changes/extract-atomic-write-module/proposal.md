@@ -30,3 +30,33 @@ Additionally, the `writeLog` function is duplicated between `wrapper-client.js` 
 - **Tests**: New test file `tests/atomic-write.test.js`
 - **Security**: Eliminates potential API key leakage in sync.js logs
 - **Maintenance**: Single source of truth for atomic write pattern
+
+---
+
+## Status
+
+**Completed**: 2026-04-27
+
+**Outcome**: ✅ Success
+
+**Summary**:
+- Created `lib/atomic-write.js` with `atomicWriteText()` and `atomicWriteJson()`
+- Enhanced `lib/logger.js` with `redactSensitive()` and `writeLog()`
+- Replaced 6 EXDEV duplicates across 5 files
+- Unified `writeLog()` in `wrapper-client.js`
+- Net code reduction: ~47 lines
+- All 483 tests passed, 0 LSP errors
+
+**Modified Files**:
+1. `lib/atomic-write.js` (new, +47 lines)
+2. `lib/logger.js` (+35 lines)
+3. `lib/entry.js` (import change)
+4. `lib/indexer.js` (import + re-export)
+5. `lib/memory-id-cache.js` (use atomicWriteJson)
+6. `lib/project-resolver.js` (use atomicWriteJson)
+7. `lib/trie-index.js` (use atomicWriteText)
+8. `lib/wrapper-client.js` (import writeLog from logger)
+
+**Key Insight**: Backward compatibility requires re-export pattern - `indexer.js` re-exports from `atomic-write.js` because `tools/core.js`, `lib/memory-core.js`, and tests import from `indexer.js`.
+
+**Task 4.2 Cancelled**: `lib/sync.js` does not exist (writeLog only in wrapper-client.js).

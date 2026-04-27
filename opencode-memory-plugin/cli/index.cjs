@@ -7,6 +7,8 @@
  * Usage: opencode-memory <command> [options]
  */
 
+import { logInfo, logError, logWarn } from '../lib/logger.js';
+
 const VERSION = 'v3.2.0';
 
 const commands = {
@@ -32,14 +34,7 @@ const commands = {
 const aliases = { list: 'timeline' };
 
 function log(msg, color = '') {
-  const colors = {
-    green: '\x1b[32m',
-    red: '\x1b[31m',
-    yellow: '\x1b[33m',
-    blue: '\x1b[34m',
-    reset: '\x1b[0m',
-  };
-  console.log(`${colors[color] || ''}${msg}${colors.reset || ''}`);
+  logInfo('cli', msg, { color });
 }
 
 function parseTags(raw) {
@@ -51,89 +46,39 @@ function parseTags(raw) {
 }
 
 function showHelp() {
-  console.log(`
-OpenCode Memory Plugin - CLI Tool ${VERSION}
+  logInfo('cli', `
+┌─────────────────────────────────────────────────────────────┐
+│                        OpenCode Memory CLI                  │
+│                    Persistent Memory System                 │
+└─────────────────────────────────────────────────────────────┘
 
-Usage: opencode-memory <command> [options]
+Version: ${VERSION}
 
-Core Commands:
-  write <content> [options]    Write entry to memory
-    --type <type>              Entry type (default: general)
-    --tags <tags>              Comma-separated tags
-    --abstract <text>          Abstract (required, ≤100 chars)
-    --overview <text>          Overview (required, ≤500 chars)
-
-  read [options]               Read entry from memory
-    --id <entry_id>            Entry ID (required)
-    --level <0|1|2>            0=abstract, 1=overview, 2=full (default: 2)
-
-  search <query> [options]     Search memory
-    --mode <mode>              keyword, vector, hybrid (default: hybrid)
-    --limit <n>                Max results (default: 10)
-    --level <0|1|2>            Content depth (default: 0)
-
-  suggest <prefix> [options]   Autocomplete suggestions
-    --limit <n>                Max suggestions (default: 10)
-
-Browse Commands:
-  timeline [options]           Browse memories by date
-    --days <n>                 Last N days (default: 7)
-    --level <0|1|2>            Content depth (default: 1)
-
-  topics [options]             Browse memories by topic
-    --min <n>                  Min entries per topic (default: 3)
-
-Graph Commands:
-  relate [options]             Create or query memory relations
-    --action <create|query>    Action (default: create)
-    --from-id <id>             Source entry ID
-    --to-id <id>               Target entry ID
-    --type <relation_type>     Relation type (default: related)
-    --weight <0-1>             Relation weight (default: 0.5)
-
-  graph [options]              Traverse memory graph
-    --memory-id <id>           Entry ID (required)
-    --depth <n>                Traversal depth (default: 2)
-    --limit <n>                Max results (default: 20)
-
-  pin [options]                Pin or unpin a memory entry
-    --entry-id <id>            Entry ID (required)
-    --action <pin|unpin>       Action (default: pin)
-
-Sync Commands:
-  status [options]             Show system status
-    --detailed                Show pending entries
-
-  sync [options]               Sync memories to backend
-    --full                     Full sync (default: incremental)
-    --dry-run                  Preview only
-    --auto-clean               Auto-clean skipped duplicates (full only)
-
-  rebuild [options]            Rebuild backend index
-    --force                    Force rebuild all
-    --dry-run                  Preview only
-
-  checkpoint [options]         View sync checkpoints
-    --action <action>          Action: list (default: list)
-    --limit <n>                Max entries (default: 20)
-
-  conflicts [options]          Manage sync conflicts
-    --limit <n>                Max conflicts (default: 10)
-    --resolve                  Resolve a conflict
-    --conflict-id <id>         Conflict ID (with --resolve)
-    --resolution <strategy>    use_local | use_backend (with --resolve)
-
-Utility:
-  init                         Initialize today's timeline directory
-  help                         Show this help message
+Commands:
+  write    Write to memory
+  read     Read from memory  
+  search   Search memory
+  timeline Browse memories by date
+  topics   Browse memories by topic
+  relate   Create relations between memories
+  graph    Traverse memory graph
+  pin      Pin/unpin memories
+  suggest  Get search suggestions
+  init     Initialize memory system
+  status   Check system status
+  sync     Sync memories to backend
+  rebuild  Rebuild vector index
+  checkpoint  View sync checkpoints
+  conflicts   List sync conflicts
+  help     Show this help
 
 Examples:
-  opencode-memory write "User prefers TypeScript" --abstract "TS preference" --overview "User likes TS" --tags "ts,preference"
-  opencode-memory read --id 01KMK5N77WBW6J78Y1WAQ5BNMQ --level 0
-  opencode-memory search "async error handling" --mode hybrid
-  opencode-memory timeline --days 14
-  opencode-memory sync
-  opencode-memory status --detailed
+  opencode-memory write "User prefers TypeScript" --type "preference"
+  opencode-memory search "typescript"
+  opencode-memory timeline --days 7
+  opencode-memory status
+
+For detailed help on a command: opencode-memory <command> --help
 `);
 }
 
@@ -255,7 +200,7 @@ async function timelineCommand(args) {
       days: parseInt(args.days) || 7,
       level: parseInt(args.level) || 1,
     });
-    console.log(result);
+    logInfo('cli-timeline', result);
   } catch (e) {
     log(`❌ Timeline failed: ${e.message}`, 'red');
     process.exit(1);
@@ -268,7 +213,7 @@ async function topicsCommand(args) {
     const result = await memory_topics.execute({
       min_entries: parseInt(args.min) || 3,
     });
-    console.log(result);
+    logInfo('cli-topics', result);
   } catch (e) {
     log(`❌ Topics failed: ${e.message}`, 'red');
     process.exit(1);
@@ -294,7 +239,7 @@ async function relateCommand(args) {
         relation_type: args.type || 'related',
         weight: parseFloat(args.weight) || 0.5,
       });
-      console.log(result);
+      logInfo('cli-relate-create', result);
     } catch (e) {
       log(`❌ Relate failed: ${e.message}`, 'red');
       process.exit(1);
@@ -310,7 +255,7 @@ async function relateCommand(args) {
         action: 'query',
         from_id: args['from-id'],
       });
-      console.log(result);
+      logInfo('cli-relate-query', result);
     } catch (e) {
       log(`❌ Relate query failed: ${e.message}`, 'red');
       process.exit(1);
@@ -335,7 +280,7 @@ async function graphCommand(args) {
       depth: parseInt(args.depth) || 2,
       limit: parseInt(args.limit) || 20,
     });
-    console.log(result);
+    logInfo('cli-graph', result);
   } catch (e) {
     log(`❌ Graph failed: ${e.message}`, 'red');
     process.exit(1);
@@ -355,7 +300,7 @@ async function pinCommand(args) {
       entry_id: args['entry-id'],
       action: args.action || 'pin',
     });
-    console.log(result);
+    logInfo('cli-pin', result);
   } catch (e) {
     log(`❌ Pin failed: ${e.message}`, 'red');
     process.exit(1);
@@ -370,7 +315,7 @@ async function statusCommand(args) {
     const result = await index_status.execute({
       detailed: !!args.detailed,
     });
-    console.log(result);
+    logInfo('cli-status', result);
   } catch (e) {
     log(`❌ Status failed: ${e.message}`, 'red');
     process.exit(1);
@@ -386,12 +331,12 @@ async function syncCommand(args) {
         dry_run: !!args['dry-run'],
         auto_clean: !!args['auto-clean'],
       });
-      console.log(result);
+      logInfo('cli-sync-full', result);
     } else {
       const result = await incremental_sync.execute({
         dry_run: !!args['dry-run'],
       });
-      console.log(result);
+      logInfo('cli-sync-incremental', result);
     }
   } catch (e) {
     log(`❌ Sync failed: ${e.message}`, 'red');
@@ -406,7 +351,7 @@ async function rebuildCommand(args) {
       force: !!args.force,
       dry_run: !!args['dry-run'],
     });
-    console.log(result);
+    logInfo('cli-rebuild', result);
   } catch (e) {
     log(`❌ Rebuild failed: ${e.message}`, 'red');
     process.exit(1);
@@ -420,7 +365,7 @@ async function checkpointCommand(args) {
       action: args.action || 'list',
       limit: parseInt(args.limit) || 20,
     });
-    console.log(result);
+    logInfo('cli-checkpoint', result);
   } catch (e) {
     log(`❌ Checkpoint failed: ${e.message}`, 'red');
     process.exit(1);
@@ -440,12 +385,12 @@ async function conflictsCommand(args) {
         conflict_id: args['conflict-id'],
         resolution: args.resolution,
       });
-      console.log(result);
+      logInfo('cli-conflict-resolve', result);
     } else {
       const result = await conflict_list.execute({
         limit: parseInt(args.limit) || 10,
       });
-      console.log(result);
+      logInfo('cli-conflict-list', result);
     }
   } catch (e) {
     log(`❌ Conflicts failed: ${e.message}`, 'red');
@@ -535,7 +480,7 @@ async function main() {
     await handler(args);
   } catch (e) {
     log(`Error: ${e.message}`, 'red');
-    console.error(e);
+    logError('cli-main', 'Command execution error', e);
     process.exit(1);
   }
 }

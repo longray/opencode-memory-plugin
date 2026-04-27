@@ -7,6 +7,15 @@ import WebSocket from 'ws';
 import { StateManager, WebSocketState } from './state-manager.js';
 import { HeartbeatManager } from './heartbeat.js';
 import { AckManager } from './ack-manager.js';
+import { logDebug } from '../logger.js';
+import {
+  WS_RECONNECT_BASE_DELAY_MS,
+  WS_RECONNECT_MAX_DELAY_MS,
+  WS_RECONNECT_JITTER_MS,
+  WS_HEARTBEAT_INTERVAL_MS,
+  WS_HEARTBEAT_TIMEOUT_MS,
+  WS_ACK_TIMEOUT_MS,
+} from '../constants.js';
 
 const MAX_QUEUE_SIZE = 1000;
 
@@ -17,8 +26,8 @@ export class ReliableWebSocketClient {
     this.token = options.token || null;
 
     this.reconnectOptions = {
-      baseDelay: options.reconnectBaseDelay || 1000,
-      maxDelay: options.reconnectMaxDelay || 300000,
+      baseDelay: options.reconnectBaseDelay || WS_RECONNECT_BASE_DELAY_MS,
+      maxDelay: options.reconnectMaxDelay || WS_RECONNECT_MAX_DELAY_MS,
       maxAttempts: options.reconnectMaxAttempts || 10,
       jitter: options.reconnectJitter !== false,
     };
@@ -27,12 +36,12 @@ export class ReliableWebSocketClient {
     this.ws = null;
     this.stateManager = new StateManager();
     this.heartbeatManager = new HeartbeatManager({
-      interval: options.heartbeatInterval || 30000,
-      timeout: options.heartbeatTimeout || 5000,
+      interval: options.heartbeatInterval || WS_HEARTBEAT_INTERVAL_MS,
+      timeout: options.heartbeatTimeout || WS_HEARTBEAT_TIMEOUT_MS,
       maxMissed: options.heartbeatMaxMissed || 2,
     });
     this.ackManager = new AckManager({
-      timeout: options.ackTimeout || 5000,
+      timeout: options.ackTimeout || WS_ACK_TIMEOUT_MS,
       maxRetries: options.ackMaxRetries || 3,
     });
 
@@ -265,7 +274,7 @@ export class ReliableWebSocketClient {
     delay = Math.min(delay, maxDelay);
 
     if (jitter) {
-      delay += Math.random() * 1000;
+      delay += Math.random() * WS_RECONNECT_JITTER_MS;
     }
 
     return Math.floor(delay);
@@ -308,7 +317,8 @@ export class ReliableWebSocketClient {
       }
       try {
         this.ws.send(JSON.stringify(message));
-      } catch {
+      } catch (e) {
+        logDebug('ws-client', 'WebSocket send failed, re-queuing message', { error: e.message });
         this.messageQueue.unshift(message);
         break;
       }

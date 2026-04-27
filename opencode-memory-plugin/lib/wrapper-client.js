@@ -46,56 +46,12 @@
  * @property {string} [project_id] - 项目 ID
  */
 
-import fs from 'fs';
-import path from 'path';
-
-const HOME = process.env.HOME || process.env.USERPROFILE;
-const LOG_FILE = path.join(HOME, '.opencode', 'memory', 'memory.log');
-
-/**
- * 写入日志到 memory.log
- */
-const SENSITIVE_KEYS = new Set([
-  'WRAPPER_MEILI_API_KEY',
-  'authorization',
-  'api_key',
-  'apikey',
-  'token',
-  'password',
-  'secret',
-  'credential',
-  'private_key',
-  'access_token',
-]);
-
-function redactSensitive(data) {
-  if (!data || typeof data !== 'object') return data;
-  const redacted = { ...data };
-  for (const key of Object.keys(redacted)) {
-    if (SENSITIVE_KEYS.has(key.toLowerCase())) {
-      redacted[key] = '[REDACTED]';
-    }
-    if (key === 'headers' && typeof redacted[key] === 'object') {
-      const headers = { ...redacted[key] };
-      for (const h of Object.keys(headers)) {
-        if (SENSITIVE_KEYS.has(h.toLowerCase())) headers[h] = '[REDACTED]';
-      }
-      redacted[key] = headers;
-    }
-  }
-  return redacted;
-}
-
-function writeLog(level, category, message, data = null) {
-  const timestamp = new Date().toISOString();
-  const safeData = level === 'DEBUG' ? null : redactSensitive(data);
-  const logLine = `[${timestamp}] [${level}] [${category}] ${message}${safeData ? ' ' + JSON.stringify(safeData) : ''}\n`;
-  try {
-    fs.appendFileSync(LOG_FILE, logLine);
-  } catch {
-    console.log(logLine.trim());
-  }
-}
+import { writeLog, logWarn } from './logger.js';
+import {
+  DEFAULT_HTTP_TIMEOUT_MS,
+  RETRY_BASE_DELAY_MS,
+} from './constants.js';
+import { DEFAULT_API_PORT } from './constants.js';
 
 function logInfo(category, message, data) {
   writeLog('INFO', category, message, data);
@@ -133,7 +89,7 @@ export class DuplicateError extends WrapperError {
  * HTTP 请求包装类
  */
 class HTTPClient {
-  constructor(baseUrl, timeout = 30000) {
+  constructor(baseUrl, timeout = DEFAULT_HTTP_TIMEOUT_MS) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.timeout = timeout;
   }
@@ -224,7 +180,7 @@ class HTTPClient {
 /**
  * 重试策略
  */
-async function withRetry(fn, maxRetries = 3, baseDelay = 1000) {
+async function withRetry(fn, maxRetries = 3, baseDelay = RETRY_BASE_DELAY_MS) {
   let lastError;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -253,7 +209,7 @@ export class WrapperClient {
   constructor(config = {}) {
     // v3.2: Default port changed from 17999 to 18008
     // Backward compatible: Use API_PORT env var or MEMORY_BACKEND_URL to override
-    const apiPort = process.env.API_PORT || '18008';
+    const apiPort = process.env.API_PORT || DEFAULT_API_PORT;
     const defaultUrl = `http://localhost:${apiPort}`;
     this.baseUrl = config.backend?.url || process.env.MEMORY_BACKEND_URL || defaultUrl;
     this.tenantId =
@@ -261,7 +217,7 @@ export class WrapperClient {
       process.env.MEMORY_TENANT_ID ||
       process.env.USERNAME ||
       'default';
-    this.timeout = config.backend?.timeout || 30000;
+    this.timeout = config.backend?.timeout || DEFAULT_HTTP_TIMEOUT_MS;
     this.maxRetries = config.backend?.max_retries || 3;
 
     this.http = new HTTPClient(this.baseUrl, this.timeout);
@@ -647,7 +603,8 @@ export class WrapperClient {
         () => this.http.post('/api/v1/sync/conflicts/list', body),
         this.maxRetries
       );
-    } catch {
+    } catch (e) {
+      logWarn('wrapper-client', 'Failed to list conflicts, returning empty', { error: e.message });
       return [];
     }
   }
@@ -1024,13 +981,30 @@ let wrapperClientInstance = null;
 export function getWrapperClient(config) {
   if (!wrapperClientInstance) {
     wrapperClientInstance = new WrapperClient(config);
+  } else if (config?.forceNew) {
+    wrapperClientInstance = new WrapperClient(config);
   } else if (
     config?.backend?.tenant_id &&
     config.backend.tenant_id !== wrapperClientInstance.tenantId
   ) {
     console.warn(
-      `[WrapperClient] Ignoring tenant_id change: ${wrapperClientInstance.tenantId} → ${config.backend.tenantId}. Use forceNew=true if needed.`
+      `[WrapperClient] Ignoring tenant_id change: ${wrapperClientInstance.tenantId} → ${config.backend.tenant_id}. Use forceNew=true if needed.`
     );
+  }
+  return wrapperClientInstance;
+}
+
+/**
+ * 重置 WrapperClient 单例实例
+ * 用于在 tenant_id 变更或其他需要重新初始化的情况下使用
+ */
+export function resetWrapperClient(config = null) {
+  if (config) {
+    // 使用新配置创建新实例
+    wrapperClientInstance = new WrapperClient(config);
+  } else {
+    // 完全重置，下次调用 getWrapperClient 时会使用新的默认配置
+    wrapperClientInstance = null;
   }
   return wrapperClientInstance;
 }

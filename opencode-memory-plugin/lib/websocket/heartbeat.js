@@ -4,9 +4,11 @@
  * If no server ping received within timeout × maxMissed, triggers reconnect.
  */
 
+import { WS_HEARTBEAT_INTERVAL_MS } from '../constants.js';
+
 export class HeartbeatManager {
   constructor(options = {}) {
-    this.interval = options.interval || 30000;
+    this.interval = options.interval || WS_HEARTBEAT_INTERVAL_MS;
     this.maxMissed = options.maxMissed || 2;
 
     this.missedCount = 0;

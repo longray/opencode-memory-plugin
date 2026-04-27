@@ -131,7 +131,9 @@ ${entry.content}
             files.push({ path: path.join(dayDir, f), layer: 'L2' });
           }
         }
-      } catch {}
+    } catch {
+      // date dir may not exist
+    }
     }
 
     return files;
@@ -148,7 +150,9 @@ describe('Phase A - Timeline Storage', () => {
     // Cleanup
     try {
       await fs.rm(TEST_DIR, { recursive: true, force: true });
-    } catch {}
+    } catch {
+      // ignore if dir was never created
+    }
   });
 
   describe('generateEntryId', () => {

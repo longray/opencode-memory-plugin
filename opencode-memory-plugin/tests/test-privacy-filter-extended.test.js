@@ -32,7 +32,7 @@ afterEach(() => {
     try {
       fs.unlinkSync(f);
     } catch {
-      /* ignore */
+      /* temp file may already be deleted */
     }
   }
   tmpFiles.length = 0;

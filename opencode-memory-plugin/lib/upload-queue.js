@@ -9,9 +9,9 @@
 
 import fs from 'fs';
 import path from 'path';
+import { MEMORY_DIR } from './constants.js';
+import { logDebug } from './logger.js';
 
-const HOME = process.env.HOME || process.env.USERPROFILE;
-const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
 const QUEUE_FILE = path.join(MEMORY_DIR, 'upload-queue.json');
 const MAX_RETRY = 3;
 
@@ -24,8 +24,8 @@ function readQueue() {
       const content = fs.readFileSync(QUEUE_FILE, 'utf-8');
       return JSON.parse(content);
     }
-  } catch {
-    // ignore
+  } catch (e) {
+    logDebug('upload-queue', 'Failed to read upload queue, using empty', { error: e.message });
   }
   return { failed_uploads: [] };
 }

@@ -378,10 +378,10 @@ console.warn(`[memory-core] ...`);
 
 ### 🔴 Critical（5 项）
 
-| #   | 问题                         | 位置                                                                                          | 影响                                    |
-| --- | ---------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------- |
-| C1  | **EXDEV 处理重复**           | 6 处 (`entry.js`, `indexer.js`, `memory-id-cache.js`, `project-resolver.js`, `trie-index.js`) | 应提取为 `lib/atomic-write.js` 共用函数 |
-| C2  | **writeLog 重复且缺少脱敏**  | `wrapper-client.js`, `sync.js`                                                                | `sync.js` 版本可能泄露 API key 到日志   |
+| #   | 问题                         | 位置                                                                                          | 影响                                    | 状态 |
+| --- | ---------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------- | ---- |
+| C1  | **EXDEV 处理重复**           | 6 处 (`entry.js`, `indexer.js`, `memory-id-cache.js`, `project-resolver.js`, `trie-index.js`) | 应提取为 `lib/atomic-write.js` 共用函数 | ✅ 已修复 (2026-04-27) |
+| C2  | **writeLog 重复且缺少脱敏**  | `wrapper-client.js`, `sync.js`                                                                | `sync.js` 版本可能泄露 API key 到日志   | ✅ 已修复 (2026-04-27) - sync.js 不存在，wrapper-client.js 已统一 |
 | C3  | **frontmatter 解析重复**     | `entry.js`, `extractor.js`                                                                    | 逻辑几乎相同，应统一                    |
 | C4  | **atomicWriteText 重复**     | `entry.js`, `indexer.js`                                                                      | 完全相同的函数定义                      |
 | C5  | **HOME/MEMORY_DIR 重复计算** | 4 处                                                                                          | 应统一从 constants 导入                 |

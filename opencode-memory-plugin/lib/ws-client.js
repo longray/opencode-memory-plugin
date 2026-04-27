@@ -7,11 +7,12 @@
  */
 
 import WebSocket from 'ws';
+import { WS_RECONNECT_BASE_DELAY_MS } from './constants.js';
 
 // WebSocket connection state
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
-const RECONNECT_DELAY = 5000;
+const RECONNECT_DELAY = WS_RECONNECT_BASE_DELAY_MS;
 
 // Callbacks for different message types
 const messageHandlers = new Map();

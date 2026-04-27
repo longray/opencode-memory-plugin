@@ -5,6 +5,7 @@
  * This script runs automatically on npm install or can be run manually
  */
 
+import { logError, logInfo } from '../lib/logger.js';
 const fs = require('fs');
 const path = require('path');
 
@@ -366,6 +367,6 @@ try {
 } catch (error) {
   log(`\n✗ Installation failed: ${error.message}`, 'red');
   log(`\nError details:`, 'red');
-  console.error(error);
+  logError('install', 'Installation failed', error);
   process.exit(1);
 }

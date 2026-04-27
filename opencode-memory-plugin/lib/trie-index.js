@@ -6,16 +6,15 @@
 import fs from 'fs';
 import path from 'path';
 import { Trie } from './trie.js';
+import { atomicWriteText } from './atomic-write.js';
+import { MEMORY_DIR, CACHE_TTL_MS } from './constants.js';
 
-// Memory directories (duplicated from plugin.js to avoid circular imports)
-const HOME = process.env.HOME || process.env.USERPROFILE;
-const MEMORY_DIR = path.join(HOME, '.opencode', 'memory');
 const ACTIVE_DIR = path.join(MEMORY_DIR, 'active');
 
 // Global trie index instance
 let trieIndex = null;
 let lastBuildTime = 0;
-const INDEX_TTL = 5 * 60 * 1000; // Rebuild every 5 minutes
+const INDEX_TTL = CACHE_TTL_MS;
 
 /**
  * Tokenize text into searchable keywords
@@ -316,18 +315,7 @@ export async function saveTrieIndex(filePath) {
 
   try {
     const serialized = trieIndex.serialize();
-    const tmpPath = filePath + '.tmp';
-    fs.writeFileSync(tmpPath, JSON.stringify(serialized), 'utf-8');
-    try {
-      fs.renameSync(tmpPath, filePath);
-    } catch (renameError) {
-      if (renameError.code === 'EXDEV') {
-        fs.copyFileSync(tmpPath, filePath);
-        fs.unlinkSync(tmpPath);
-      } else {
-        throw renameError;
-      }
-    }
+    atomicWriteText(filePath, JSON.stringify(serialized));
     console.log(`[TrieIndex] Saved to ${filePath}`);
   } catch (e) {
     console.error('[TrieIndex] Error saving index:', e.message);

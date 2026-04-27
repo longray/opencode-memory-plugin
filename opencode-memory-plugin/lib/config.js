@@ -2,6 +2,11 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
+import {
+  WS_HEARTBEAT_INTERVAL_MS,
+  WS_RECONNECT_BASE_DELAY_MS,
+  SYNC_INTERVAL_MS,
+} from './constants.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,9 +30,9 @@ export const config = {
   },
   websocket: {
     enabled: process.env.WS_ENABLED !== 'false',
-    heartbeatInterval: parseInt(process.env.WS_HEARTBEAT_INTERVAL || '30000', 10),
+    heartbeatInterval: parseInt(process.env.WS_HEARTBEAT_INTERVAL || String(WS_HEARTBEAT_INTERVAL_MS), 10),
     reconnectMaxAttempts: parseInt(process.env.WS_RECONNECT_MAX_ATTEMPTS || '10', 10),
-    reconnectBaseDelay: parseInt(process.env.WS_RECONNECT_BASE_DELAY || '1000', 10),
+    reconnectBaseDelay: parseInt(process.env.WS_RECONNECT_BASE_DELAY || String(WS_RECONNECT_BASE_DELAY_MS), 10),
   },
   log: {
     level: process.env.LOG_LEVEL || 'info',
@@ -35,7 +40,7 @@ export const config = {
   },
   sync: {
     autoSync: process.env.AUTO_SYNC !== 'false',
-    syncInterval: parseInt(process.env.SYNC_INTERVAL || '300000', 10),
+    syncInterval: parseInt(process.env.SYNC_INTERVAL || String(SYNC_INTERVAL_MS), 10),
   },
 };
 

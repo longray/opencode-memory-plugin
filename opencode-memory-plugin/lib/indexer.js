@@ -1,43 +1,26 @@
 import fs from 'fs';
 import path from 'path';
-import { copyFileSync, writeFileSync, renameSync } from 'fs';
-import { LINK_MAP_FILE, MEMORY_FILE, MEMORY_DIR, CONFIG_FILE } from './constants.js';
+import { LINK_MAP_FILE, MEMORY_FILE, MEMORY_DIR, CONFIG_FILE, MAX_OVERVIEW_LINES, LINK_MAP_VERSION } from './constants.js';
+import { logDebug } from './logger.js';
 import { invalidateLinkMapCache } from './storage.js';
+import { atomicWriteText as _atomicWriteText, atomicWriteJson as _atomicWriteJson } from './atomic-write.js';
 
-export function atomicWriteText(filePath, content) {
-  const tmpPath = filePath + '.tmp';
-  writeFileSync(tmpPath, content, 'utf-8');
-  try {
-    renameSync(tmpPath, filePath);
-  } catch (error) {
-    if (error.code === 'EXDEV') {
-      copyFileSync(tmpPath, filePath);
-      fs.unlinkSync(tmpPath);
-    } else {
-      throw error;
-    }
-  }
-}
+// Re-export for backward compatibility (tools/core.js, lib/memory-core.js, tests import from here)
+export { _atomicWriteText as atomicWriteText };
 
-let linkMapLock = Promise.resolve();
-
-export function atomicWriteJson(filePath, data) {
-  const tmpPath = filePath + '.tmp';
-  writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
-  try {
-    renameSync(tmpPath, filePath);
-  } catch (error) {
-    if (error.code === 'EXDEV') {
-      copyFileSync(tmpPath, filePath);
-      fs.unlinkSync(tmpPath);
-    } else {
-      throw error;
-    }
-  }
+/**
+ * Atomically write JSON file with link-map cache invalidation.
+ * @param {string} filePath - Target file path
+ * @param {object} data - Data to serialize
+ */
+export function atomicWriteJson(filePath, data, space = 2) {
+  _atomicWriteJson(filePath, data, space);
   if (filePath === LINK_MAP_FILE) {
     invalidateLinkMapCache();
   }
 }
+
+let linkMapLock = Promise.resolve();
 
 /**
  * Serialize all link-map mutations to prevent TOCTOU race conditions.
@@ -61,7 +44,7 @@ export function readJsonSafe(filePath) {
   const parsed = JSON.parse(raw);
   if (!parsed || typeof parsed !== 'object') {
     console.warn(`[indexer] Invalid JSON structure in ${filePath}, resetting`);
-    return { version: '2.4.0', entries: {} };
+    return { version: LINK_MAP_VERSION, entries: {} };
   }
   return parsed;
 }
@@ -86,8 +69,8 @@ export async function updateDayOverview(dayDir, entry) {
     lines.push(line);
   }
 
-  if (lines.length > 102) {
-    lines.splice(102);
+  if (lines.length > MAX_OVERVIEW_LINES) {
+    lines.splice(MAX_OVERVIEW_LINES);
   }
 
   const count = lines.filter(l => l.startsWith('- [')).length;
@@ -98,13 +81,13 @@ export async function updateDayOverview(dayDir, entry) {
 
 export async function updateLinkMap(entry, filePath) {
   return withLinkMapLock(() => {
-    let linkMap = { version: '2.4.0', entries: {} };
+    let linkMap = { version: LINK_MAP_VERSION, entries: {} };
 
     if (fs.existsSync(LINK_MAP_FILE)) {
       try {
         linkMap = readJsonSafe(LINK_MAP_FILE);
-      } catch {
-        // ignore
+      } catch (e) {
+        logDebug('indexer', 'Failed to read link-map, using fresh one', { error: e.message });
       }
     }
 
@@ -136,8 +119,8 @@ export async function removeFromLinkMap(localId) {
         delete linkMap.entries[localId];
         atomicWriteJson(LINK_MAP_FILE, linkMap);
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      logDebug('indexer', 'Failed to remove from link-map', { localId, error: e.message });
     }
   });
 }
@@ -186,8 +169,8 @@ export async function updateMemoryIndex() {
     if (fs.existsSync(LINK_MAP_FILE)) {
       try {
         linkMap = JSON.parse(fs.readFileSync(LINK_MAP_FILE, 'utf-8'));
-      } catch {
-        // ignore
+      } catch (e) {
+        logDebug('indexer', 'Failed to read link-map for index update, using empty', { error: e.message });
       }
     }
 
@@ -223,8 +206,8 @@ export async function updateMemoryIndex() {
           limit = cfgLimit;
         }
       }
-    } catch {
-      // use default
+    } catch (e) {
+      logDebug('indexer', 'Failed to read config for recent_entries_limit, using default', { error: e.message });
     }
     const { section: recentEntriesSection } = formatRecentEntries(entries, limit);
 

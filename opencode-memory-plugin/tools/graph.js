@@ -1,7 +1,18 @@
 import { tool } from '@opencode-ai/plugin/tool';
 import { getConfig, resolveTenantId } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
+import { extractSections } from '../lib/extractor.js';
 
+/**
+ * Creates, queries, or deletes relations between memories.
+ * @param {Object} args - The arguments for managing memory relations
+ * @param {string} args.action - Action to perform: create, query, delete
+ * @param {string} [args.from_id] - Source memory ID
+ * @param {string} [args.to_id] - Target memory ID
+ * @param {string} [args.relation_type='related'] - Type of relation
+ * @param {number} [args.weight=0.5] - Weight of the relation (0-1)
+ * @returns {Promise<string>} Result of the relation operation
+ */
 export const memory_relate = tool({
   description: 'Create, query, or delete relations between memories',
   args: {
@@ -88,6 +99,14 @@ export const memory_relate = tool({
   },
 });
 
+/**
+ * Traverses the memory graph to find related memories.
+ * @param {Object} args - The arguments for traversing the memory graph
+ * @param {string} args.memory_id - Starting memory ID
+ * @param {number} [args.depth=2] - Depth of traversal (1-5)
+ * @param {number} [args.limit=20] - Maximum number of related memories to return
+ * @returns {Promise<string>} Related memories found through graph traversal
+ */
 export const memory_graph = tool({
   description: 'Traverse the memory graph to find related memories',
   args: {
@@ -140,12 +159,11 @@ export const memory_graph = tool({
 function extractFromContent(content) {
   if (!content) return '';
   const stripped = content.replace(/^---[\s\S]*?---\n*/m, '');
-  const abstractMatch = stripped.match(/# ≡≡≡ Abstract ≡≡≡\s*\n```\n([\s\S]*?)```/);
-  const overviewMatch = stripped.match(/# ≡≡≡ Overview ≡≡≡\s*\n```\n([\s\S]*?)```/);
-  const abstract = abstractMatch ? abstractMatch[1].replace(/\n/g, ' ').trim() : '';
-  const overview = overviewMatch ? overviewMatch[1].replace(/\n/g, ' ').trim() : '';
-  if (abstract && overview) return `${abstract} | ${overview}`;
-  if (abstract) return abstract;
-  if (overview) return overview;
+  const { abstract, overview } = extractSections(stripped);
+  const abstractOneLine = abstract.replace(/\n/g, ' ');
+  const overviewOneLine = overview.replace(/\n/g, ' ');
+  if (abstractOneLine && overviewOneLine) return `${abstractOneLine} | ${overviewOneLine}`;
+  if (abstractOneLine) return abstractOneLine;
+  if (overviewOneLine) return overviewOneLine;
   return stripped.replace(/\n/g, ' ').trim();
 }

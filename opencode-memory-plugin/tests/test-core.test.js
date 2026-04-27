@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { LINK_MAP_VERSION } from '../lib/constants.js';
 
 jest.unstable_mockModule('@opencode-ai/plugin/tool', () => ({
   tool: config => ({
@@ -53,7 +54,7 @@ jest.unstable_mockModule('../lib/storage.js', () => ({
   getConfig: jest.fn(() => ({})),
   resolveTenantId: jest.fn(() => 'default'),
   getLinkMap: jest.fn(() => ({
-    version: '2.4.0',
+    version: LINK_MAP_VERSION,
     entries: {
       'test-id-123': {
         id: 'test-id-123',

@@ -30,6 +30,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { logWarn, logError } from './logger.js';
 import { writeEntryToTimeline } from './entry.js';
 import {
   updateLinkMap,
@@ -124,22 +125,22 @@ export async function writeMemory({
     };
   }
 
-  if (abstract.length > 100) {
+  if (abstract.length > MAX_ABSTRACT_LENGTH) {
     return {
       success: false,
       localId: '',
       filePath: '',
       memoryId: null,
-      message: '❌ Error: abstract must be ≤100 characters (current: ' + abstract.length + ')',
+      message: `❌ Error: abstract must be ≤${MAX_ABSTRACT_LENGTH} characters (current: ` + abstract.length + ')',
     };
   }
-  if (overview.length > 500) {
+  if (overview.length > MAX_OVERVIEW_LENGTH) {
     return {
       success: false,
       localId: '',
       filePath: '',
       memoryId: null,
-      message: '❌ Error: overview must be ≤500 characters (current: ' + overview.length + ')',
+      message: `❌ Error: overview must be ≤${MAX_OVERVIEW_LENGTH} characters (current: ` + overview.length + ')',
     };
   }
   if (content.length > 100_000) {
@@ -155,8 +156,9 @@ export async function writeMemory({
 
   const sensitiveCheck = containsSensitiveInfo(content);
   if (sensitiveCheck.hasSensitive) {
-    console.warn(
-      `[memory-core] Content contains ${sensitiveCheck.patterns.length} sensitive pattern(s), saving anyway`
+    logWarn(
+      'memory-core',
+      `Content contains ${sensitiveCheck.patterns.length} sensitive pattern(s), saving anyway`
     );
   }
 
@@ -191,13 +193,14 @@ export async function writeMemory({
       await updateMemoryIndex({ abstract, type }, result.localId);
     } catch (pipelineError) {
       // 回滚：步骤 2-4 失败时删除孤立文件
-      console.warn(
-        `[writeMemory] Pipeline failed after file write, rolling back: ${pipelineError.message}`
+      logWarn(
+        'writeMemory',
+        `Pipeline failed after file write, rolling back: ${pipelineError.message}`
       );
       try {
         deleteEntryFile(result.filePath);
       } catch (rollbackError) {
-        console.error(`[writeMemory] Rollback failed: ${rollbackError.message}`);
+        logError('writeMemory', `Rollback failed: ${rollbackError.message}`);
       }
       throw pipelineError;
     }
@@ -281,8 +284,9 @@ export async function syncMemoryToBackend({
         }
       });
     } catch (linkMapError) {
-      console.warn(
-        `[syncMemoryToBackend] Upload succeeded (${memoryId}) but link-map update failed: ${linkMapError.message}. Entry will be re-synced on next run.`
+      logWarn(
+        'syncMemoryToBackend',
+        `Upload succeeded (${memoryId}) but link-map update failed: ${linkMapError.message}. Entry will be re-synced on next run.`
       );
     }
 

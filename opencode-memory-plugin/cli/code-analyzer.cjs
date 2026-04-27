@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Code Analyzer CLI Tool
- * 代码分析命令行工具
+ * OpenCode Memory Plugin - Code Analyzer CLI Tool
  *
- * Usage: opencode-memory code-analyze [options] <file>
+ * Analyze code files and extract functions, classes, and complexity metrics.
+ * Usage: opencode-memory analyze [options]
  */
+
+import { logInfo, logError, logWarn } from '../lib/logger.js';
 
 const fs = require('fs');
 const path = require('path');
@@ -13,35 +15,32 @@ const path = require('path');
 const SUPPORTED_LANGUAGES = ['javascript', 'typescript', 'python', 'go', 'rust', 'java'];
 
 function showHelp() {
-  console.log(`
-Code Analyzer CLI Tool
+logInfo('code-analyzer-cli', `
+┌─────────────────────────────────────────────────────────────┐
+│                    Code Analyzer CLI                        │
+│              Analyze code for functions, classes            │
+└─────────────────────────────────────────────────────────────┘
 
-Usage: opencode-memory code-analyze [options] <file>
-
-Commands:
-  <file>                    Analyze a single file
-  --project                 Analyze all files in current project
-  --upload [dir]            Upload all project files to backend (atoms + entities + references)
-  --language <lang> <file>  Analyze file with specified language
+Version: ${VERSION}
 
 Options:
-  --output, -o <file>       Save output to file
-  --format, -f <format>     Output format: json, table, tree (default: json)
-  --pretty, -p              Pretty print JSON output
-  --save, -s                Save analysis result to memory system
-  --help, -h                Show this help message
+  --file <path>        Analyze single file
+  --project <path>     Analyze entire project
+  --language <lang>    Specify language (js, ts, py, go, rs, java)
+  --output <path>      Output file (default: stdout)
+  --format <format>    Output format (json, table, tree) (default: table)
+  --exclude <pattern>  Exclude files (comma-separated glob patterns)
+  --max-depth <n>      Max directory depth (default: 10)
+  --min-complexity <n> Min cyclomatic complexity to report (default: 1)
+  --include-private    Include private/internal symbols (default: false)
+  --jsdoc              Extract JSDoc comments (JS/TS only) (default: false)
+  --help               Show this help
 
 Examples:
-  opencode-memory code-analyze src/index.ts
-  opencode-memory code-analyze src/index.ts --format table
-  opencode-memory code-analyze src/index.ts --format tree --save
-  opencode-memory code-analyze --project
-  opencode-memory code-analyze --upload
-  opencode-memory code-analyze --upload ./my-project
-  opencode-memory code-analyze --language python script.py
+  opencode-memory analyze --file src/utils.js
+  opencode-memory analyze --project . --language js --exclude "node_modules,**/test/**"
+  opencode-memory analyze --project ./src --format json --output analysis.json
 
-Supported Languages:
-  ${SUPPORTED_LANGUAGES.join(', ')}
 `);
 }
 
@@ -87,19 +86,19 @@ function parseArgs(args) {
 
 function validateOptions(options) {
   if (!options.file && !options.project) {
-    console.error('Error: Please specify a file or use --project');
+    logError('code-analyzer-cli', 'Please specify a file or use --project');
     showHelp();
     process.exit(1);
   }
 
   if (options.language && !SUPPORTED_LANGUAGES.includes(options.language)) {
-    console.error(`Error: Unsupported language: ${options.language}`);
-    console.error(`Supported languages: ${SUPPORTED_LANGUAGES.join(', ')}`);
+    logError('code-analyzer-cli', `Unsupported language: ${options.language}`);
+    logError('code-analyzer-cli', `Supported languages: ${SUPPORTED_LANGUAGES.join(', ')}`);
     process.exit(1);
   }
 
   if (options.file && !fs.existsSync(options.file)) {
-    console.error(`Error: File not found: ${options.file}`);
+    logError('code-analyzer-cli', `File not found: ${options.file}`);
     process.exit(1);
   }
 }
@@ -221,7 +220,7 @@ async function formatOutput(result, options) {
 
 async function saveToMemory(result) {
   if (!result.success) {
-    console.error('[CodeAnalysis] Cannot save failed analysis to memory');
+    logError('code-analyzer-cli', 'Cannot save failed analysis to memory');
     return null;
   }
 
@@ -252,14 +251,14 @@ async function saveToMemory(result) {
     });
 
     if (memoryResult.success) {
-      console.log(`[CodeAnalysis] Result saved to memory: ${memoryResult.entry_id}`);
+      logInfo('code-analyzer-cli', `[CodeAnalysis] Result saved to memory: ${memoryResult.entry_id}`);
       return memoryResult.entry_id;
     } else {
-      console.error('[CodeAnalysis] Failed to save to memory:', memoryResult.message);
+      logError('code-analyzer-cli', '[CodeAnalysis] Failed to save to memory', new Error(memoryResult.message));
       return null;
     }
   } catch (error) {
-    console.error('[CodeAnalysis] Error saving to memory:', error.message);
+    logError('code-analyzer-cli', '[CodeAnalysis] Error saving to memory', error);
     return null;
   }
 }
@@ -278,11 +277,11 @@ async function main() {
   let result;
 
   if (options.upload) {
-    console.log('Uploading project to backend (two-pass: atoms/entities + references)...');
+    logInfo('code-analyzer-cli', 'Uploading project to backend (two-pass: atoms/entities + references)...');
     const { uploadProject } = await import('../lib/code-analysis-service.js');
     const projectRoot = options.file || '.';
     const result = await uploadProject(projectRoot, options);
-    console.log(
+    logInfo('code-analyzer-cli', 
       '\nUpload complete:\n' +
         '  Files:      ' +
         result.files +
@@ -294,14 +293,14 @@ async function main() {
         result.references +
         '\n' +
         '  Duration:   ' +
-        result.duration.toFixed(2) +
-        'ms'
+        result.duration +
+        '\n'
     );
     process.exit(0);
   }
 
   if (options.project) {
-    console.log('Analyzing project...');
+    logInfo('code-analyzer-cli', 'Analyzing project...');
     result = await analyzeProject();
   } else {
     result = await analyzeFile(options.file, options.language);
@@ -311,9 +310,9 @@ async function main() {
 
   if (options.output) {
     fs.writeFileSync(options.output, output);
-    console.log(`\nResults saved to: ${options.output}`);
+    logInfo('code-analyzer-cli', `\nResults saved to: ${options.output}`);
   } else {
-    console.log('\n' + output);
+    logInfo('code-analyzer-cli', '\n' + output);
   }
 
   // Save to memory if requested
@@ -325,6 +324,6 @@ async function main() {
 }
 
 main().catch(error => {
-  console.error('Error:', error.message);
+  logError('code-analyzer-cli', 'Error', error);
   process.exit(1);
 });

@@ -3,20 +3,17 @@ import { getConfig, getLinkMap, deleteEntryFile, resolveTenantId } from '../lib/
 import { getWrapperClient } from '../lib/wrapper-client.js';
 import { MEMORY_DIR } from '../lib/constants.js';
 import { removeFromLinkMap, updateLinkMap } from '../lib/indexer.js';
-import { LOG_FILE } from '../lib/constants.js';
+import { writeLog } from '../lib/logger.js';
 import fs from 'fs';
 import path from 'path';
 
-function writeLog(level, category, message, data = null) {
-  const timestamp = new Date().toISOString();
-  const logLine = `[${timestamp}] [${level}] [${category}] ${message}${data ? ' ' + JSON.stringify(data) : ''}\n`;
-  try {
-    fs.appendFileSync(LOG_FILE, logLine);
-  } catch {
-    console.log(logLine.trim());
-  }
-}
-
+/**
+ * Rebuilds the index by syncing all local memory files to the backend service.
+ * @param {Object} args - The arguments for the rebuild operation
+ * @param {boolean} [args.force=false] - Whether to force the rebuild
+ * @param {boolean} [args.dry_run=false] - Whether to run in dry-run mode
+ * @returns {Promise<string>} Result message indicating the outcome
+ */
 export const rebuild_index = tool({
   description: 'Sync all local memory files to backend service',
   args: {
@@ -77,6 +74,12 @@ export const rebuild_index = tool({
   },
 });
 
+/**
+ * Checks the status of the memory system.
+ * @param {Object} args - The arguments for the status check
+ * @param {boolean} [args.detailed=false] - Whether to show detailed pending entries
+ * @returns {Promise<string>} Status report of the memory system
+ */
 export const index_status = tool({
   description: 'Check the status of the memory system',
   args: {
@@ -142,6 +145,12 @@ export const index_status = tool({
   },
 });
 
+/**
+ * Performs incremental synchronization based on fingerprints.
+ * @param {Object} args - The arguments for the incremental sync
+ * @param {boolean} [args.dry_run=false] - Whether to run in dry-run mode
+ * @returns {Promise<string>} Result message indicating the sync outcome
+ */
 export const incremental_sync = tool({
   description: 'Perform incremental synchronization based on fingerprints',
   args: {
@@ -271,6 +280,13 @@ export const incremental_sync = tool({
   },
 });
 
+/**
+ * Performs full synchronization - uploads all local memories to backend.
+ * @param {Object} args - The arguments for the full sync
+ * @param {boolean} [args.dry_run=false] - Whether to run in dry-run mode
+ * @param {boolean} [args.auto_clean=false] - Whether to auto-clean duplicates
+ * @returns {Promise<string>} Result message indicating the sync outcome
+ */
 export const full_sync = tool({
   description: 'Perform full synchronization - upload all local memories to backend',
   args: {
@@ -371,6 +387,12 @@ export const full_sync = tool({
   },
 });
 
+/**
+ * Lists unresolved sync conflicts.
+ * @param {Object} args - The arguments for listing conflicts
+ * @param {number} [args.limit=10] - Maximum number of conflicts to return
+ * @returns {Promise<string>} List of conflicts or message indicating no conflicts found
+ */
 export const conflict_list = tool({
   description: 'List unresolved sync conflicts',
   args: {
@@ -405,6 +427,13 @@ export const conflict_list = tool({
   },
 });
 
+/**
+ * Resolves a sync conflict.
+ * @param {Object} args - The arguments for resolving the conflict
+ * @param {string} args.conflict_id - Conflict ID to resolve
+ * @param {string} args.resolution - Resolution type: keep_local, keep_server, merge
+ * @returns {Promise<string>} Result message indicating the resolution outcome
+ */
 export const conflict_resolve = tool({
   description: 'Resolve a sync conflict',
   args: {
@@ -425,6 +454,13 @@ export const conflict_resolve = tool({
   },
 });
 
+/**
+ * Views sync checkpoints and fingerprints.
+ * @param {Object} args - The arguments for viewing sync checkpoints
+ * @param {string} [args.action='list'] - Action to perform: list
+ * @param {number} [args.limit=20] - Maximum number of fingerprints to show
+ * @returns {Promise<string>} Information about sync checkpoints and fingerprints
+ */
 export const sync_checkpoint = tool({
   description: 'View sync checkpoints and fingerprints',
   args: {

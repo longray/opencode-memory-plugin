@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises';
 import { extname } from 'path';
 import { analyzeWithTreeSitter } from './tree-sitter-parser.js';
 import { getConfig } from './storage.js';
+import { QUEUE_TIMEOUT_MS as DEFAULT_QUEUE_TIMEOUT_MS, DEFAULT_DEBOUNCE_MS, DEFAULT_FILE_TIMEOUT_MS } from './constants.js';
 
 function readCodeAnalysisConfig() {
   return getConfig().code_analysis || {};
@@ -42,11 +43,11 @@ function readCodeAnalysisConfig() {
 export const DEFAULT_CONFIG = (() => {
   const _cfg = readCodeAnalysisConfig();
   return {
-    debounceMs: _cfg.debounce_ms || 300,
+    debounceMs: _cfg.debounce_ms || DEFAULT_DEBOUNCE_MS,
     maxConcurrent: _cfg.max_concurrent || 2,
     maxQueueSize: _cfg.max_queue_size || 10,
-    queueTimeoutMs: _cfg.queue_timeout_ms || 5000,
-    fileTimeoutMs: _cfg.file_timeout_ms || 500,
+    queueTimeoutMs: _cfg.queue_timeout_ms || DEFAULT_QUEUE_TIMEOUT_MS,
+    fileTimeoutMs: _cfg.file_timeout_ms || DEFAULT_FILE_TIMEOUT_MS,
     largeFileThreshold: _cfg.large_file_threshold || 5000,
     skipFileThreshold: _cfg.skip_file_threshold || 10000,
     batchDelayMs: _cfg.batch_delay_ms || 2000,

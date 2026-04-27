@@ -1,8 +1,9 @@
 import { randomUUID } from 'crypto';
+import { WS_ACK_TIMEOUT_MS } from '../constants.js';
 
 export class AckManager {
   constructor(options = {}) {
-    this.defaultTimeout = options.timeout || 5000;
+    this.defaultTimeout = options.timeout || WS_ACK_TIMEOUT_MS;
     this.defaultMaxRetries = options.maxRetries || 3;
     this.pendingAcks = new Map();
     this.retryTimers = new Map();
@@ -112,7 +113,9 @@ export class AckManager {
     pendingList.forEach(pending => {
       try {
         pending.reject(new Error('ACK manager cleared'));
-      } catch {}
+      } catch {
+        // Promise may already be settled — reject() on settled promise is a no-op
+      }
     });
   }
 

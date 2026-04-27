@@ -6,6 +6,15 @@ import fs from 'fs';
 import path from 'path';
 import { MEMORY_DIR } from '../lib/constants.js';
 
+/**
+ * Searches memory with configurable search mode.
+ * @param {Object} args - The arguments for the search
+ * @param {string} args.query - Search query
+ * @param {string} [args.mode='hybrid'] - Search mode: vector, keyword, hybrid
+ * @param {number} [args.limit=10] - Maximum number of results to return
+ * @param {number} [args.level=0] - Level of detail: 0=abstract, 1=overview, 2=full
+ * @returns {Promise<string>} Search results
+ */
 export const memory_search = tool({
   description: 'Search memory with configurable search mode',
   args: {
@@ -122,6 +131,13 @@ function formatSearchResults(results, level) {
     .join('\n\n');
 }
 
+/**
+ * Gets search autocomplete suggestions.
+ * @param {Object} args - The arguments for getting suggestions
+ * @param {string} args.prefix - Search prefix
+ * @param {number} [args.limit=10] - Maximum number of suggestions to return
+ * @returns {Promise<string>} Autocomplete suggestions
+ */
 export const memory_suggest = tool({
   description: 'Get search autocomplete suggestions',
   args: {

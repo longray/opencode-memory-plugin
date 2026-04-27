@@ -2,9 +2,10 @@ import { watch } from 'chokidar';
 import { onFileSaved } from './code-analysis-service.js';
 import { shouldSkipFile } from './privacy-filter.js';
 import { getConfig } from './storage.js';
+import { DEFAULT_DEBOUNCE_MS } from './constants.js';
 import { relative } from 'path';
 
-const DEBOUNCE_MS = getConfig().code_analysis?.debounce_ms || 300;
+const DEBOUNCE_MS = getConfig().code_analysis?.debounce_ms || DEFAULT_DEBOUNCE_MS;
 
 export class FileWatcher {
   constructor(projectRoot) {

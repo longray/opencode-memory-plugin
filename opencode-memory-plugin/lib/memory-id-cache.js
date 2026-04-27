@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { generateLocalId } from './ulid.js';
+import { atomicWriteJson } from './atomic-write.js';
+import { DEBOUNCE_SAVE_MS } from './constants.js';
+import { logDebug } from './logger.js';
 
 /**
  * Memory ID 缓存管理类
@@ -91,17 +94,7 @@ export class MemoryIdCache {
         mappings: Object.fromEntries(this.mappings),
       };
 
-      fs.writeFileSync(this.cacheFile + '.tmp', JSON.stringify(data, null, 2), 'utf-8');
-      try {
-        fs.renameSync(this.cacheFile + '.tmp', this.cacheFile);
-      } catch (renameError) {
-        if (renameError.code === 'EXDEV') {
-          fs.copyFileSync(this.cacheFile + '.tmp', this.cacheFile);
-          fs.unlinkSync(this.cacheFile + '.tmp');
-        } else {
-          throw renameError;
-        }
-      }
+      atomicWriteJson(this.cacheFile, data);
       this.stats.lastSaved = new Date().toISOString();
 
       console.log(`[MemoryIdCache] Saved ${this.mappings.size} entries to ${this.cacheFile}`);
@@ -388,7 +381,7 @@ export class MemoryIdCache {
 
     this.saveTimeout = setTimeout(() => {
       this.save();
-    }, 1000); // 1 秒后保存
+    }, DEBOUNCE_SAVE_MS);
   }
   /**
    * 从本地 entry 文件重建缓存
@@ -522,7 +515,10 @@ export class MemoryIdCache {
       try {
         result.metadata = JSON.parse(metadataMatch[1]);
       } catch {
-        // 忽略解析错误
+        // metadata JSON may be malformed — non-critical, skip silently
+        logDebug('memory-id-cache', 'Failed to parse metadata JSON', {
+          filePath: entryPath,
+        });
       }
     }
 
