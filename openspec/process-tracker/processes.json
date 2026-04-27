@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-04-27T20:30:00Z",
+  "processes": {
+    "tech-debt-remediation": {
+      "name": "tech-debt-remediation",
+      "description": "修复技术债务的完整流程",
+      "executionCount": 1,
+      "firstExecution": "2026-04-27T20:26:00Z",
+      "lastExecution": "2026-04-27T20:30:00Z",
+      "averageDuration": 1800,
+      "phases": [
+        "Phase 1: Discovery",
+        "Phase 2: Selection",
+        "Phase 3: OpenSpec",
+        "Phase 4: Implementation"
+      ],
+      "outcomes": {
+        "success": 1,
+        "failure": 0
+      },
+      "recommendation": "Continue tracking. Execute 2 more times to reach skill creation threshold."
+    }
+  },
+  "totalExecutions": 1
+}

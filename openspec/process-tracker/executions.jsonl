@@ -1,0 +1,17 @@
+# Process Tracker Executions Log
+
+## Format
+Each line is a JSON object representing one execution record.
+
+```json
+{"type": "start", "process": "<name>", "executionId": "<uuid>", "timestamp": "<iso8601>", "context": {...}}
+{"type": "phase", "process": "<name>", "executionId": "<uuid>", "phase": "<name>", "timestamp": "<iso8601>", "duration": <seconds>}
+{"type": "complete", "process": "<name>", "executionId": "<uuid>", "timestamp": "<iso8601>", "totalDuration": <seconds>, "outcome": "success|failure", "notes": "<string>"}
+```
+
+## Executions
+{"type": "start", "process": "tech-debt-remediation", "executionId": "4701e303-007d-4835-ba59-75e29aab48cc", "timestamp": "2026-04-27T20:29:02Z", "context": {"directory": "opencode-memory-plugin", "branch": "main", "trigger": "user-request"}}
+{"type": "phase", "process": "tech-debt-remediation", "executionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "phase": "Phase 1: Discovery", "timestamp": "2026-04-27T20:29:24Z", "duration": 600, "notes": "Scanned project, found 28 tech debts"}
+{"type": "phase", "process": "tech-debt-remediation", "executionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "phase": "Phase 2: Selection", "timestamp": "2026-04-27T20:29:59Z", "duration": 120, "notes": "Selected EXDEV duplicates (Critical)"}
+{"type": "phase", "process": "tech-debt-remediation", "executionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "phase": "Phase 3: OpenSpec", "timestamp": "2026-04-27T20:30:26Z", "duration": 900, "notes": "Created extract-atomic-write-module change"}
+{"type": "complete", "process": "tech-debt-remediation", "executionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "timestamp": "2026-04-27T20:32:08Z", "totalDuration": 1800, "outcome": "success", "notes": "Created OpenSpec change with 4 artifacts. Ready for implementation."}
