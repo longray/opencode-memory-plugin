@@ -265,48 +265,29 @@ Found 5 critical issues...
 
 ### Atom (原子)
 
-```javascript
-{
-  id: "atom:01H...";
-  tenant_id: "default";
-  type: "function" |
-    "class" |
-    "interface" |
-    "import" |
-    "goal" |
-    "scope" |
-    "task" |
-    "note";
-  content: "string"; // 函数源码 / 任务描述
-  name: "string?"; // 函数名 / 类名
-  signature: "string?"; // 函数签名
-  params: ["arg1", "arg2"] // 参数列表
-    ? return_type
-    : "string?"; // 返回类型
-  is_exported: boolean
-    ? is_async
-    : boolean
-      ? complexity
-      : int // 圈复杂度
-        ? max_nesting_depth
-        : int // 最大嵌套深度
-          ? docstring
-          : { text: "..." } // JSDoc
-            ? start_line
-            : int
-              ? end_line
-              : int
-                ? status
-                : "pending" | "done" | "blocked"
-                  ? metadata
-                  : {}
-                    ? project
-                    : "string?";
-  version: 1;
-  created_at: datetime;
-  updated_at: datetime;
-}
-```
+| 字段                | 类型                                                                                        | 说明                |
+| ------------------- | ------------------------------------------------------------------------------------------- | ------------------- |
+| `id`                | `"atom:01H..."`                                                                             | Atom 唯一 ID        |
+| `tenant_id`         | `"default"`                                                                                 | 租户 ID             |
+| `type`              | `"function" \| "class" \| "interface" \| "import" \| "goal" \| "scope" \| "task" \| "note"` | Atom 类型           |
+| `content`           | `string`                                                                                    | 函数源码 / 任务描述 |
+| `name`              | `string?`                                                                                   | 函数名 / 类名       |
+| `signature`         | `string?`                                                                                   | 函数签名            |
+| `params`            | `string[]?`                                                                                 | 参数列表            |
+| `return_type`       | `string?`                                                                                   | 返回类型            |
+| `is_exported`       | `boolean?`                                                                                  | 是否导出            |
+| `is_async`          | `boolean?`                                                                                  | 是否异步            |
+| `complexity`        | `int?`                                                                                      | 圈复杂度            |
+| `max_nesting_depth` | `int?`                                                                                      | 最大嵌套深度        |
+| `docstring`         | `{text: string}?`                                                                           | JSDoc 文档          |
+| `start_line`        | `int?`                                                                                      | 起始行号            |
+| `end_line`          | `int?`                                                                                      | 结束行号            |
+| `status`            | `"pending" \| "done" \| "blocked"?`                                                         | 任务状态            |
+| `metadata`          | `object?`                                                                                   | 元数据              |
+| `project`           | `string?`                                                                                   | 项目 ID             |
+| `version`           | `1`                                                                                         | 版本                |
+| `created_at`        | `datetime`                                                                                  | 创建时间            |
+| `updated_at`        | `datetime`                                                                                  | 更新时间            |
 
 ### Reference (关系)
 
