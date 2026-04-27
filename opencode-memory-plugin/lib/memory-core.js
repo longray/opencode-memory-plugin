@@ -300,8 +300,9 @@ export async function syncMemoryToBackend({
     if (error.name === 'DuplicateError') {
       const dupType = error.duplicateType === 'hash' ? '完全重复' : '语义相似';
 
-      console.warn(
-        `[syncMemoryToBackend] Duplicate detected (${dupType}), rolling back local entry ${localId}`
+      logWarn(
+        'syncMemoryToBackend',
+        `Duplicate detected (${dupType}), rolling back local entry ${localId}`
       );
 
       deleteEntryFile(filePath);

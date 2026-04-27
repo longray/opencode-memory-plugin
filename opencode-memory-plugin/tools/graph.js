@@ -1,7 +1,7 @@
 import { tool } from '@opencode-ai/plugin/tool';
 import { getConfig, resolveTenantId } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
-import { extractSections } from '../lib/extractor.js';
+import { stripFrontmatter, extractSections } from '../lib/extractor.js';
 
 /**
  * Creates, queries, or deletes relations between memories.
@@ -158,7 +158,7 @@ export const memory_graph = tool({
 
 function extractFromContent(content) {
   if (!content) return '';
-  const stripped = content.replace(/^---[\s\S]*?---\n*/m, '');
+  const stripped = stripFrontmatter(content);
   const { abstract, overview } = extractSections(stripped);
   const abstractOneLine = abstract.replace(/\n/g, ' ');
   const overviewOneLine = overview.replace(/\n/g, ' ');

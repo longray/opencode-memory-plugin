@@ -53,8 +53,8 @@ export function extractSections(body) {
  * @param {string} content - The content to strip frontmatter from
  * @returns {string} Content without frontmatter
  */
-function stripFrontmatter(content) {
-  const match = content.match(/^---\n[\s\S]*?\n---\n/);
+export function stripFrontmatter(content) {
+  const match = content.match(FRONTMATTER_REGEX);
   return match ? content.substring(match[0].length) : content;
 }
 

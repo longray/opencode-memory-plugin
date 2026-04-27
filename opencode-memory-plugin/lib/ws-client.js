@@ -7,6 +7,7 @@
  */
 
 import WebSocket from 'ws';
+import { logInfo, logError, logWarn } from './logger.js';
 import { WS_RECONNECT_BASE_DELAY_MS } from './constants.js';
 
 // WebSocket connection state
@@ -35,17 +36,17 @@ export class SyncWebSocketClient {
    */
   async connect() {
     if (this.isConnected || this.ws) {
-      console.log('[WebSocket] Already connected or connecting');
+      logInfo('WebSocket', 'Already connected or connecting');
       return;
     }
 
     try {
-      console.log(`[WebSocket] Connecting to ${this.url}...`);
+      logInfo('WebSocket', `[WebSocket] Connecting to ${this.url}...`);
 
       this.ws = new WebSocket(this.url);
 
       this.ws.on('open', () => {
-        console.log('[WebSocket] Connected successfully');
+        logInfo('WebSocket', 'Connected successfully');
         this.isConnected = true;
         reconnectAttempts = 0;
 
@@ -61,12 +62,12 @@ export class SyncWebSocketClient {
           const message = JSON.parse(data);
           this.handleMessage(message);
         } catch (e) {
-          console.error('[WebSocket] Failed to parse message:', e.message);
+          logError('WebSocket', '[WebSocket] Failed to parse message', e);
         }
       });
 
       this.ws.on('close', (code, reason) => {
-        console.log(`[WebSocket] Disconnected: ${code} ${reason}`);
+        logInfo('WebSocket', `Disconnected: ${code} ${reason}`);
         this.isConnected = false;
         this.ws = null;
         this.triggerHandler('disconnected', { code, reason });
@@ -74,11 +75,11 @@ export class SyncWebSocketClient {
       });
 
       this.ws.on('error', error => {
-        console.error('[WebSocket] Error:', error.message);
+        logError('WebSocket', '[WebSocket] Error', error);
         this.triggerHandler('error', { error: error.message });
       });
     } catch (error) {
-      console.error('[WebSocket] Connection failed:', error.message);
+      logError('WebSocket', '[WebSocket] Connection failed', error);
       this.scheduleReconnect();
     }
   }
@@ -95,7 +96,7 @@ export class SyncWebSocketClient {
 
     // Handle SurrealDB LIVE notifications
     if (type === 'CREATE' || type === 'UPDATE' || type === 'DELETE') {
-      console.log(`[WebSocket] Memory ${type}:`, data?.id);
+      logInfo('WebSocket', `Memory ${type}:`, { id: data?.id });
       this.triggerHandler('memory_changed', {
         action: type.toLowerCase(),
         memoryId: data?.id,
@@ -107,12 +108,12 @@ export class SyncWebSocketClient {
     // Handle custom actions
     switch (action) {
       case 'sync_required':
-        console.log('[WebSocket] Sync required:', data);
+        logInfo('WebSocket', 'Sync required:', { data });
         this.triggerHandler('sync_required', data);
         break;
 
       case 'conflict_detected':
-        console.log('[WebSocket] Conflict detected:', data);
+        logInfo('WebSocket', 'Conflict detected:', { data });
         this.triggerHandler('conflict_detected', data);
         break;
 
@@ -121,7 +122,7 @@ export class SyncWebSocketClient {
         break;
 
       default:
-        console.log('[WebSocket] Unknown message:', message);
+        logInfo('WebSocket', 'Unknown message:', { message });
     }
   }
 
@@ -139,7 +140,7 @@ export class SyncWebSocketClient {
       this.ws.send(JSON.stringify(message));
       return true;
     } catch (error) {
-      console.error('[WebSocket] Send failed:', error.message);
+      logError('WebSocket', '[WebSocket] Send failed', error);
       this.messageQueue.push(message);
       return false;
     }
@@ -183,7 +184,7 @@ export class SyncWebSocketClient {
    */
   scheduleReconnect() {
     if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      console.error('[WebSocket] Max reconnect attempts reached');
+      logError('WebSocket', '[WebSocket] Max reconnect attempts reached');
       this.triggerHandler('max_reconnect_reached', {});
       return;
     }
@@ -191,7 +192,7 @@ export class SyncWebSocketClient {
     reconnectAttempts++;
     const delay = RECONNECT_DELAY * reconnectAttempts;
 
-    console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
+    logInfo('WebSocket', `Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
 
     this.reconnectTimer = setTimeout(() => {
       this.connect();
@@ -238,7 +239,7 @@ export class SyncWebSocketClient {
 
     this.isConnected = false;
     reconnectAttempts = 0;
-    console.log('[WebSocket] Disconnected');
+    logInfo('WebSocket', 'Disconnected');
   }
 }
 
@@ -250,7 +251,7 @@ let globalWsClient = null;
  */
 export async function initRealtimeSync(config, onSyncRequired, onConflictDetected) {
   if (!config?.backend?.enabled) {
-    console.log('[WebSocket] Backend disabled, skipping realtime sync');
+    logInfo('WebSocket', 'Backend disabled, skipping realtime sync');
     return null;
   }
 
@@ -267,8 +268,8 @@ export async function initRealtimeSync(config, onSyncRequired, onConflictDetecte
   // Register handlers
   globalWsClient.on('sync_required', onSyncRequired);
   globalWsClient.on('conflict_detected', onConflictDetected);
-  globalWsClient.on('connected', () => console.log('[Sync] Real-time sync enabled'));
-  globalWsClient.on('disconnected', () => console.log('[Sync] Real-time sync paused'));
+  globalWsClient.on('connected', () => logInfo('Sync', 'Real-time sync enabled'));
+  globalWsClient.on('disconnected', () => logInfo('Sync', 'Real-time sync paused'));
 
   await globalWsClient.connect();
 
@@ -317,7 +318,7 @@ export function stopRealtimeSync() {
     globalWsClient.disconnect();
     globalWsClient = null;
   }
-  console.log('[Sync] Real-time sync stopped');
+  logInfo('Sync', 'Real-time sync stopped');
 }
 
 export default {

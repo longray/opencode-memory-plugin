@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { logWarn, logError } from './logger.js';
 import { MEMORY_DIR, LINK_MAP_FILE, LINK_MAP_VERSION, resolveSafePath } from './constants.js';
 
 let linkMapCache = null;
@@ -24,7 +25,7 @@ export function getConfig() {
       return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     }
   } catch (error) {
-    console.warn(`[storage] Failed to read config: ${error.message}`);
+    logWarn('storage', `Failed to read config: ${error.message}`);
   }
   return {};
 }
@@ -55,7 +56,7 @@ export function getLinkMap() {
     linkMapMtime = stat.mtimeMs;
     return linkMapCache;
   } catch (error) {
-    console.warn(`[storage] Failed to parse link-map: ${error.message}`);
+    logWarn('storage', `Failed to parse link-map: ${error.message}`);
     return { version: LINK_MAP_VERSION, entries: {} };
   }
 }
@@ -80,7 +81,7 @@ export function getEntryById(entryId) {
       content: fs.readFileSync(filePath, 'utf-8'),
     };
   } catch (error) {
-    console.warn(`[storage] Failed to read entry ${entryId}: ${error.message}`);
+    logWarn('storage', `Failed to read entry ${entryId}: ${error.message}`);
     return null;
   }
 }

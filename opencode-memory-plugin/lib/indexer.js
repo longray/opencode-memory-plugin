@@ -43,7 +43,7 @@ export function readJsonSafe(filePath) {
   const raw = fs.readFileSync(filePath, 'utf-8');
   const parsed = JSON.parse(raw);
   if (!parsed || typeof parsed !== 'object') {
-    console.warn(`[indexer] Invalid JSON structure in ${filePath}, resetting`);
+    logWarn('indexer', `Invalid JSON structure in ${filePath}, resetting`);
     return { version: LINK_MAP_VERSION, entries: {} };
   }
   return parsed;
@@ -242,6 +242,6 @@ ${recentEntriesSection}
 
     atomicWriteText(MEMORY_FILE, indexContent);
   } catch (e) {
-    console.error('[updateMemoryIndex] Error:', e.message);
+    logError('indexer', '[updateMemoryIndex] Error', e);
   }
 }

@@ -4,6 +4,7 @@ import { extname } from 'path';
 import { analyzeWithTreeSitter } from './tree-sitter-parser.js';
 import { getConfig } from './storage.js';
 import { QUEUE_TIMEOUT_MS as DEFAULT_QUEUE_TIMEOUT_MS, DEFAULT_DEBOUNCE_MS, DEFAULT_FILE_TIMEOUT_MS } from './constants.js';
+import { logInfo, logError, logWarn } from './logger.js';
 
 function readCodeAnalysisConfig() {
   return getConfig().code_analysis || {};
@@ -108,13 +109,14 @@ export class CodeAnalyzer {
       const result = await this.analyzeWithStrategy(filePath, sourceCode, language, warnings);
 
       const duration = performance.now() - startTime;
-      console.log(
-        `[CodeAnalyzer] Analyzed ${filePath} in ${duration.toFixed(2)}ms using ${result.analyzer}`
-      );
+    logInfo(
+      'CodeAnalyzer',
+      `[CodeAnalyzer] Analyzing ${filePath} (${language}): ${result.symbols.length} symbols, ${result.calls.length} calls`
+    );
 
       return result;
     } catch (error) {
-      console.error(`[CodeAnalyzer] Failed to analyze ${filePath}:`, error);
+      logError('CodeAnalyzer', `[CodeAnalyzer] Failed to analyze ${filePath}`, error);
 
       const sourceCode = content ?? '';
       const lines = sourceCode.split('\n').length;

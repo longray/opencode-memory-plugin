@@ -4,6 +4,7 @@ import { shouldSkipFile } from './privacy-filter.js';
 import { getConfig } from './storage.js';
 import { DEFAULT_DEBOUNCE_MS } from './constants.js';
 import { relative } from 'path';
+import { logInfo, logError } from './logger.js';
 
 const DEBOUNCE_MS = getConfig().code_analysis?.debounce_ms || DEFAULT_DEBOUNCE_MS;
 
@@ -17,7 +18,7 @@ export class FileWatcher {
 
   start() {
     if (this.watcher) {
-      console.log('[FileWatcher] Already running');
+      logInfo('FileWatcher', 'Already running');
       return;
     }
 
