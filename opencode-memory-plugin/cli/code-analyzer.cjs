@@ -4,18 +4,41 @@
  * OpenCode Memory Plugin - Code Analyzer CLI Tool
  *
  * Analyze code files and extract functions, classes, and complexity metrics.
- * Usage: opencode-memory analyze [options]
+ * Usage: node cli/code-analyzer.cjs [options]
  */
 
-import { logInfo, logError, logWarn } from '../lib/logger.js';
+'use strict';
 
 const fs = require('fs');
 const path = require('path');
 
+// Read version from package.json
+const VERSION = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')
+).version;
+
+// Simple logger - avoid pino in CLI to keep output clean
+function logInfo(_component, message) {
+  if (typeof message === 'string') {
+    console.log(message);
+  } else if (message instanceof Error) {
+    console.log(message.message);
+  }
+}
+
+function logError(component, message, error) {
+  const prefix = `[${component}]`;
+  if (error instanceof Error) {
+    console.error(`${prefix} ${message}: ${error.message}`);
+  } else {
+    console.error(`${prefix} ${message}`);
+  }
+}
+
 const SUPPORTED_LANGUAGES = ['javascript', 'typescript', 'python', 'go', 'rust', 'java'];
 
 function showHelp() {
-logInfo('code-analyzer-cli', `
+  console.log(`
 ┌─────────────────────────────────────────────────────────────┐
 │                    Code Analyzer CLI                        │
 │              Analyze code for functions, classes            │
@@ -24,22 +47,20 @@ logInfo('code-analyzer-cli', `
 Version: ${VERSION}
 
 Options:
-  --file <path>        Analyze single file
-  --project <path>     Analyze entire project
-  --language <lang>    Specify language (js, ts, py, go, rs, java)
+  <file>               Analyze single file
+  --project            Analyze entire project
+  --language <lang>    Specify language (javascript, typescript, python, go, rust, java)
   --output <path>      Output file (default: stdout)
-  --format <format>    Output format (json, table, tree) (default: table)
-  --exclude <pattern>  Exclude files (comma-separated glob patterns)
-  --max-depth <n>      Max directory depth (default: 10)
-  --min-complexity <n> Min cyclomatic complexity to report (default: 1)
-  --include-private    Include private/internal symbols (default: false)
-  --jsdoc              Extract JSDoc comments (JS/TS only) (default: false)
+  --format <format>    Output format (json, table, tree) (default: json)
+  --upload             Upload project to backend
+  --save               Save results to memory
+  --pretty             Pretty-print JSON output
   --help               Show this help
 
 Examples:
-  opencode-memory analyze --file src/utils.js
-  opencode-memory analyze --project . --language js --exclude "node_modules,**/test/**"
-  opencode-memory analyze --project ./src --format json --output analysis.json
+  node cli/code-analyzer.cjs src/utils.js
+  node cli/code-analyzer.cjs --project --language javascript
+  node cli/code-analyzer.cjs --project --format json --output analysis.json
 
 `);
 }
@@ -85,8 +106,8 @@ function parseArgs(args) {
 }
 
 function validateOptions(options) {
-  if (!options.file && !options.project) {
-    logError('code-analyzer-cli', 'Please specify a file or use --project');
+  if (!options.file && !options.project && !options.upload) {
+    logError('code-analyzer-cli', 'Please specify a file, use --project, or use --upload');
     showHelp();
     process.exit(1);
   }
@@ -126,7 +147,7 @@ async function analyzeFile(filePath, language = null) {
   }
 }
 
-async function collectProjectFiles(projectPath = '.') {
+function collectProjectFiles(projectPath) {
   const results = [];
 
   const supportedExtensions = [
@@ -145,11 +166,9 @@ async function collectProjectFiles(projectPath = '.') {
 
   function scanDirectory(dir) {
     const items = fs.readdirSync(dir);
-
     for (const item of items) {
       const fullPath = path.join(dir, item);
       const stat = fs.statSync(fullPath);
-
       if (stat.isDirectory()) {
         if (item === 'node_modules' || item === '.git' || item === 'dist' || item === 'build') {
           continue;
@@ -169,7 +188,7 @@ async function collectProjectFiles(projectPath = '.') {
 }
 
 async function analyzeProject(projectPath = '.') {
-  const files = await collectProjectFiles(projectPath);
+  const files = collectProjectFiles(projectPath);
 
   if (files.length === 0) {
     return {
@@ -181,7 +200,6 @@ async function analyzeProject(projectPath = '.') {
     };
   }
 
-  // Use ProjectAnalyzer for comprehensive project analysis
   const { ProjectAnalyzer } = await import('../lib/project-analyzer.js');
   const analyzer = new ProjectAnalyzer(projectPath);
   const report = await analyzer.analyzeProject(files);
@@ -194,7 +212,6 @@ async function analyzeProject(projectPath = '.') {
 }
 
 async function formatOutput(result, options) {
-  // Handle project report
   if (result.type === 'project-report') {
     const { formatProjectReportAsTable } = await import('../lib/project-analyzer.js');
     if (options.format === 'json') {
@@ -203,7 +220,6 @@ async function formatOutput(result, options) {
     return formatProjectReportAsTable(result.report);
   }
 
-  // Handle single file analysis
   const { formatAsTable, formatAsTree, formatAsJson } =
     await import('../lib/code-analysis-formatter.js');
 
@@ -251,10 +267,17 @@ async function saveToMemory(result) {
     });
 
     if (memoryResult.success) {
-      logInfo('code-analyzer-cli', `[CodeAnalysis] Result saved to memory: ${memoryResult.entry_id}`);
+      logInfo(
+        'code-analyzer-cli',
+        `[CodeAnalysis] Result saved to memory: ${memoryResult.entry_id}`
+      );
       return memoryResult.entry_id;
     } else {
-      logError('code-analyzer-cli', '[CodeAnalysis] Failed to save to memory', new Error(memoryResult.message));
+      logError(
+        'code-analyzer-cli',
+        '[CodeAnalysis] Failed to save to memory',
+        new Error(memoryResult.message)
+      );
       return null;
     }
   } catch (error) {
@@ -277,23 +300,23 @@ async function main() {
   let result;
 
   if (options.upload) {
-    logInfo('code-analyzer-cli', 'Uploading project to backend (two-pass: atoms/entities + references)...');
+    logInfo(
+      'code-analyzer-cli',
+      'Uploading project to backend (two-pass: atoms/entities + references)...'
+    );
     const { uploadProject } = await import('../lib/code-analysis-service.js');
     const projectRoot = options.file || '.';
-    const result = await uploadProject(projectRoot, options);
-    logInfo('code-analyzer-cli', 
+    const uploadResult = await uploadProject(projectRoot, options);
+    console.log(
       '\nUpload complete:\n' +
         '  Files:      ' +
-        result.files +
-        '\n' +
-        '  Atoms:      ' +
-        result.atoms +
-        '\n' +
-        '  References: ' +
-        result.references +
-        '\n' +
-        '  Duration:   ' +
-        result.duration +
+        uploadResult.files +
+        '\n  Atoms:      ' +
+        uploadResult.atoms +
+        '\n  References: ' +
+        uploadResult.references +
+        '\n  Duration:   ' +
+        uploadResult.duration +
         '\n'
     );
     process.exit(0);
@@ -310,12 +333,11 @@ async function main() {
 
   if (options.output) {
     fs.writeFileSync(options.output, output);
-    logInfo('code-analyzer-cli', `\nResults saved to: ${options.output}`);
+    logInfo('code-analyzer-cli', '\nResults saved to: ' + options.output);
   } else {
     logInfo('code-analyzer-cli', '\n' + output);
   }
 
-  // Save to memory if requested
   if (options.save) {
     await saveToMemory(result);
   }

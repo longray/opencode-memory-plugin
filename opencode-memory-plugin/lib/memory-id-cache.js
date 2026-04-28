@@ -3,7 +3,7 @@ import path from 'path';
 import { generateLocalId } from './ulid.js';
 import { atomicWriteJson } from './atomic-write.js';
 import { DEBOUNCE_SAVE_MS } from './constants.js';
-import { logDebug } from './logger.js';
+import { logDebug, logInfo, logError, logWarn } from './logger.js';
 
 /**
  * Memory ID 缓存管理类
@@ -60,17 +60,19 @@ export class MemoryIdCache {
             this.reverseIndex.set(entry.source_id, filePath);
           }
 
-          console.log(
-            `[MemoryIdCache] Loaded ${this.mappings.size} entries from ${this.cacheFile}`
+          logInfo(
+            'MemoryIdCache',
+            `[MemoryIdCache] Loading cache for project: ${this.projectId}, tenant: ${this.tenantId}`
           );
         } else {
-          console.warn(
-            `[MemoryIdCache] Project ID mismatch: ${data.project_id} vs ${this.projectId}`
+          logWarn(
+            'MemoryIdCache',
+            `[MemoryIdCache] Cache file not found, initializing empty cache: ${this.cacheFile}`
           );
         }
       }
     } catch (error) {
-      console.error('[MemoryIdCache] Failed to load cache:', error.message);
+      logError('MemoryIdCache', '[MemoryIdCache] Failed to load cache:', error);
       // 加载失败时重置
       this.mappings.clear();
       this.reverseIndex.clear();
@@ -97,10 +99,13 @@ export class MemoryIdCache {
       atomicWriteJson(this.cacheFile, data);
       this.stats.lastSaved = new Date().toISOString();
 
-      console.log(`[MemoryIdCache] Saved ${this.mappings.size} entries to ${this.cacheFile}`);
+      logInfo(
+        'MemoryIdCache',
+        `[MemoryIdCache] Saved ${this.mappings.size} entries to ${this.cacheFile}`
+      );
       return true;
     } catch (error) {
-      console.error('[MemoryIdCache] Failed to save cache:', error.message);
+      logError('MemoryIdCache', '[MemoryIdCache] Failed to save cache:', error);
       return false;
     }
   }
@@ -301,7 +306,10 @@ export class MemoryIdCache {
       const data = JSON.parse(json);
 
       if (data.project_id && data.project_id !== this.projectId) {
-        console.warn(`[MemoryIdCache] Importing from different project: ${data.project_id}`);
+        logWarn(
+          'MemoryIdCache',
+          `[MemoryIdCache] Importing from different project: ${data.project_id}`
+        );
       }
 
       let imported = 0;
@@ -329,11 +337,11 @@ export class MemoryIdCache {
       }
 
       await this.save();
-      console.log(`[MemoryIdCache] Imported: ${imported} new, ${merged} merged`);
+      logInfo('MemoryIdCache', `[MemoryIdCache] Imported: ${imported} new, ${merged} merged`);
 
       return { imported, merged };
     } catch (error) {
-      console.error('[MemoryIdCache] Failed to import:', error.message);
+      logError('MemoryIdCache', '[MemoryIdCache] Failed to import:', error);
       throw error;
     }
   }
@@ -406,7 +414,7 @@ export class MemoryIdCache {
 
     try {
       if (!fs.existsSync(timelinePath)) {
-        console.log(`[MemoryIdCache] Timeline directory not found: ${timelinePath}`);
+        logInfo('MemoryIdCache', `[MemoryIdCache] Timeline directory not found: ${timelinePath}`);
         return 0;
       }
 
@@ -430,16 +438,16 @@ export class MemoryIdCache {
             }
           }
         } catch (error) {
-          console.warn(`[MemoryIdCache] Failed to parse entry: ${entryPath}`, error.message);
+          logWarn('MemoryIdCache', `[MemoryIdCache] Failed to parse entry: ${entryPath}`, error);
         }
       }
 
-      console.log(`[MemoryIdCache] Rebuilt ${rebuilt} entries from local files`);
+      logInfo('MemoryIdCache', `[MemoryIdCache] Rebuilt ${rebuilt} entries from local files`);
       await this.save();
 
       return rebuilt;
     } catch (error) {
-      console.error('[MemoryIdCache] Failed to rebuild from local:', error.message);
+      logError('MemoryIdCache', '[MemoryIdCache] Failed to rebuild from local:', error);
       return 0;
     }
   }
@@ -544,11 +552,11 @@ export class MemoryIdCache {
           rebuilt++;
         }
       } catch (error) {
-        console.warn(`[MemoryIdCache] Failed to lookup: ${filePath}`, error.message);
+        logWarn('MemoryIdCache', `[MemoryIdCache] Failed to lookup: ${filePath}`, error);
       }
     }
 
-    console.log(`[MemoryIdCache] Rebuilt ${rebuilt} entries from backend`);
+    logInfo('MemoryIdCache', `[MemoryIdCache] Rebuilt ${rebuilt} entries from backend`);
     await this.save();
 
     return rebuilt;

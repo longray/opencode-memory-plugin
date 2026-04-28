@@ -31,7 +31,7 @@ describe('CLI Code Analyzer', () => {
     it('should show help with --help', async () => {
       const result = await runCli(['--help']);
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain('Code Analyzer CLI Tool');
+      expect(result.stdout).toContain('Code Analyzer CLI');
       expect(result.stdout).toContain('--upload');
       expect(result.stdout).toContain('--project');
     });
@@ -72,7 +72,7 @@ describe('CLI Code Analyzer', () => {
     it('should exit with error for non-existent file', async () => {
       const result = await runCli([join(testDir, 'nonexistent.js')]);
       expect(result.code).toBe(1);
-      expect(result.stderr).toContain('Error');
+      expect(result.stderr).toContain('File not found');
     });
 
     it('should handle unsupported file type with fallback', async () => {

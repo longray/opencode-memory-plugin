@@ -43,7 +43,6 @@ function extractProjectIdFromGitUrl(url) {
     return null;
   }
 
-  const _originalUrl = url;
   url = url.replace(/\.git$/, '');
 
   if (url.includes('@') && url.includes(':')) {
@@ -115,7 +114,10 @@ function getGitRemote(cwd, retries = 2) {
       return trimmed;
     } catch (e) {
       if (i === retries) {
-        logDebug('project-resolver', 'Git remote command failed after retries', { cwd, error: e.message });
+        logDebug('project-resolver', 'Git remote command failed after retries', {
+          cwd,
+          error: e.message,
+        });
         return null;
       }
     }
@@ -133,7 +135,9 @@ function readProjectMappings() {
       return JSON.parse(content);
     }
   } catch (e) {
-    logDebug('project-resolver', 'Failed to read project-mappings.json, using empty mappings', { error: e.message });
+    logDebug('project-resolver', 'Failed to read project-mappings.json, using empty mappings', {
+      error: e.message,
+    });
   }
   return { mappings: {} };
 }

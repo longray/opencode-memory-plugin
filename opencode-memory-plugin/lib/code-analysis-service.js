@@ -12,6 +12,7 @@ import { readFile } from 'fs/promises';
 import { extname, relative, basename } from 'path';
 import { createHash } from 'crypto';
 import { analyzeWithQuery } from './tree-sitter-parser.js';
+import { logInfo, logError, logWarn } from './logger.js';
 import {
   QUEUE_TIMEOUT_MS as DEFAULT_QUEUE_TIMEOUT_MS,
   QUEUE_POLL_DELAY_MS,
@@ -70,9 +71,10 @@ export class AnalysisQueue {
         this.memoryIdCache = new MemoryIdCache(projectId);
         await this.memoryIdCache.load();
       }
-    } catch (error) {
-      console.warn(
-        `[CodeAnalysis] MemoryIdCache init failed, continuing without cache: ${error.message}`
+    } catch (_error) {
+      logWarn(
+        'CodeAnalysis',
+        `[CodeAnalysis] Precompute API not available, falling back to atom/entity API: ${_error.message}`
       );
     }
 
@@ -82,7 +84,8 @@ export class AnalysisQueue {
         this.fingerprintCache = new FingerprintCache(projectRoot);
       }
     } catch (error) {
-      console.warn(
+      logWarn(
+        'CodeAnalysis',
         `[CodeAnalysis] FingerprintCache init failed, continuing without fingerprinting: ${error.message}`
       );
     }
@@ -94,20 +97,24 @@ export class AnalysisQueue {
 
       const skipCheck = shouldSkipFile(filePath);
       if (skipCheck.skip) {
-        console.log(`[CodeAnalysis] Skipping file: ${relativePath} (${skipCheck.reason})`);
+        logInfo(
+          'CodeAnalysis',
+          `[CodeAnalysis] Skipping file: ${relativePath} (${skipCheck.reason})`
+        );
         return;
       }
 
       const ext = extname(filePath).toLowerCase();
       if (!SUPPORTED_EXTENSIONS.includes(ext)) {
-        console.log(`[CodeAnalysis] Skipping unsupported file type: ${relativePath}`);
+        logInfo('CodeAnalysis', `[CodeAnalysis] Skipping unsupported file type: ${relativePath}`);
         return;
       }
 
       if (this.queue.length >= MAX_QUEUE_SIZE) {
         const removed = this.queue.shift();
-        console.warn(
-          `[CodeAnalysis] Queue full (${MAX_QUEUE_SIZE}), dropped oldest: ${removed.relativePath}`
+        logWarn(
+          'CodeAnalysis',
+          `[CodeAnalysis] Queue full (${MAX_QUEUE_SIZE}), dropped oldest: ${removed?.filePath || 'unknown'}`
         );
       }
 
@@ -125,7 +132,11 @@ export class AnalysisQueue {
 
       this.debouncedProcess();
     } catch (error) {
-      console.error(`[CodeAnalysis] Failed to queue file ${filePath}: ${error.message}`);
+      logError(
+        'CodeAnalysis',
+        `[CodeAnalysis] Failed to queue file ${filePath}: ${error.message}`,
+        error
+      );
     }
   }
 
@@ -138,7 +149,11 @@ export class AnalysisQueue {
       try {
         this.processQueue();
       } catch (error) {
-        console.error(`[CodeAnalysis] Queue processing trigger failed: ${error.message}`);
+        logError(
+          'CodeAnalysis',
+          `[CodeAnalysis] Queue processing trigger failed: ${error.message}`,
+          error
+        );
       }
     }, DEBOUNCE_MS);
   }
@@ -151,7 +166,7 @@ export class AnalysisQueue {
       const validItems = this.queue.filter(item => now - item.timestamp < QUEUE_TIMEOUT_MS);
       const expiredCount = this.queue.length - validItems.length;
       if (expiredCount > 0) {
-        console.log(`[CodeAnalysis] Dropped ${expiredCount} expired items from queue`);
+        logInfo('CodeAnalysis', `[CodeAnalysis] Dropped ${expiredCount} expired items from queue`);
       }
       this.queue = validItems;
 
@@ -173,7 +188,7 @@ export class AnalysisQueue {
         setTimeout(() => this.processQueue(), QUEUE_POLL_DELAY_MS);
       }
     } catch (error) {
-      console.error(`[CodeAnalysis] Queue processing failed: ${error.message}`);
+      logError('CodeAnalysis', `[CodeAnalysis] Queue processing failed: ${error.message}`, error);
     }
   }
 
@@ -191,7 +206,7 @@ export class AnalysisQueue {
         content = await readFile(item.filePath, 'utf-8');
       } catch (error) {
         if (error.code === 'ENOENT') {
-          console.log(`[CodeAnalysis] File not found (deleted?): ${item.relativePath}`);
+          logInfo('CodeAnalysis', `[CodeAnalysis] File not found (deleted?): ${item.relativePath}`);
           return;
         }
         throw new Error(`Failed to read file ${item.relativePath}: ${error.message}`);
@@ -199,14 +214,20 @@ export class AnalysisQueue {
 
       const contentCheck = shouldSkipFile(item.filePath, content);
       if (contentCheck.skip) {
-        console.log(`[CodeAnalysis] Skipping file with sensitive content: ${item.relativePath}`);
+        logInfo(
+          'CodeAnalysis',
+          `[CodeAnalysis] Skipping file with sensitive content: ${item.relativePath}`
+        );
         return;
       }
 
       if (this.usePrecompute && this.fingerprintCache) {
         const fpCheck = this.fingerprintCache.hasChanged(item.relativePath, content, null);
         if (!fpCheck.changed) {
-          console.log(`[CodeAnalysis] File unchanged (fingerprint): ${item.relativePath}`);
+          logInfo(
+            'CodeAnalysis',
+            `[CodeAnalysis] File unchanged (fingerprint): ${item.relativePath}`
+          );
           return;
         }
       }
@@ -216,7 +237,7 @@ export class AnalysisQueue {
       if (this.usePrecompute && this.fingerprintCache) {
         const fpCheck = this.fingerprintCache.hasChanged(item.relativePath, content, result);
         if (!fpCheck.changed) {
-          console.log(`[CodeAnalysis] File unchanged (symbols): ${item.relativePath}`);
+          logInfo('CodeAnalysis', `[CodeAnalysis] File unchanged (symbols): ${item.relativePath}`);
           return;
         }
       }
@@ -228,7 +249,7 @@ export class AnalysisQueue {
         this.addToBatch(item, result, content);
       }
     } catch (error) {
-      console.error(`[CodeAnalysis] Error analyzing ${item.relativePath}:`, error.message);
+      logError('CodeAnalysis', `[CodeAnalysis] Error analyzing ${item.relativePath}:`, error);
     } finally {
       this.processing.delete(item.filePath);
       this.concurrentCount--;
@@ -320,9 +341,10 @@ export class AnalysisQueue {
       if (this.usePrecompute) {
         try {
           await this.flushBatchPrecompute(batchToSend);
-        } catch (error) {
-          console.warn(
-            `[CodeAnalysis] Precompute upload failed, falling back to legacy: ${error.message}`
+        } catch (_error) {
+          logWarn(
+            'CodeAnalysisService',
+            `[CodeAnalysisService] Precompute API not available, falling back to legacy upload: ${_error.message}`
           );
           await this.flushBatchLegacy(batchToSend);
         }
@@ -330,7 +352,7 @@ export class AnalysisQueue {
         await this.flushBatchLegacy(batchToSend);
       }
     } catch (error) {
-      console.error('[CodeAnalysis] All upload strategies failed:', error.message);
+      logError('CodeAnalysis', '[CodeAnalysis] All upload strategies failed:', error);
     }
   }
 
@@ -347,7 +369,10 @@ export class AnalysisQueue {
       };
     });
 
-    console.log(`[CodeAnalysis] Uploading ${analysisResults.length} files via Precompute API...`);
+    logInfo(
+      'CodeAnalysis',
+      `[CodeAnalysis] Uploading ${analysisResults.length} files via Precompute API...`
+    );
     const result = await this.precomputeClient.uploadAnalysisBatch({
       project_id: projectId,
       files: analysisResults.map(r => ({ path: r.file_path, content: r.content })),
@@ -383,7 +408,10 @@ export class AnalysisQueue {
       ),
     });
 
-    console.log(`[CodeAnalysis] Precompute complete: ${result.success}/${result.total} success`);
+    logInfo(
+      'CodeAnalysis',
+      `[CodeAnalysis] Precompute complete: ${result.success}/${result.total} success`
+    );
 
     if (result.memory_ids) {
       for (const [filePath, memoryId] of Object.entries(result.memory_ids)) {
@@ -394,9 +422,10 @@ export class AnalysisQueue {
               await this.memoryIdCache.set(filePath, batchItem.sourceId, memoryId, {
                 contentHash: batchItem.contentHash,
               });
-            } catch (cacheError) {
-              console.warn(
-                `[CodeAnalysis] Failed to cache memory_id for ${filePath}: ${cacheError.message}`
+            } catch (_cacheError) {
+              logWarn(
+                'CodeAnalysis',
+                `[CodeAnalysis] Failed to update fingerprint cache: ${_cacheError.message}`
               );
             }
           }
@@ -415,7 +444,7 @@ export class AnalysisQueue {
           });
         }
       } catch (error) {
-        console.warn(`[CodeAnalysis] Failed to update fingerprints: ${error.message}`);
+        logWarn('CodeAnalysis', `[CodeAnalysis] Failed to update fingerprints: ${error.message}`);
       }
     }
   }
@@ -427,7 +456,7 @@ export class AnalysisQueue {
     const projectId = await resolveProjectId({ projectRoot: item.projectRoot });
     const language = analysisResult.language || this.detectLanguage(item.filePath);
 
-    console.log(`[CodeAnalysis] Uploading via Atom/Entity API: ${item.relativePath}`);
+    logInfo('CodeAnalysis', `[CodeAnalysis] Uploading via Atom/Entity API: ${item.relativePath}`);
 
     const result = await this._createAtomsEntityReferences(
       item.relativePath,
@@ -445,14 +474,16 @@ export class AnalysisQueue {
           symbols_hash: this.fingerprintCache.getSymbolsHash(analysisResult),
         });
       } catch (fpError) {
-        console.warn(
-          `[CodeAnalysis] Failed to update fingerprint for ${item.relativePath}: ${fpError.message}`
+        logWarn(
+          'CodeAnalysis',
+          `[CodeAnalysis] Privacy filter failed for ${item.relativePath}, skipping: ${fpError.message}`
         );
       }
     }
 
     const duration = performance.now() - startTime;
-    console.log(
+    logInfo(
+      'CodeAnalysis',
       `[CodeAnalysis] Atom/Entity upload complete: ${result.atoms.length} atoms, ${result.references.length} references in ${duration.toFixed(2)}ms`
     );
 
@@ -488,9 +519,10 @@ export class AnalysisQueue {
         createdAtoms.push(atom);
         atomIds.push(atom.id);
       } catch (error) {
-        console.error(
-          `[CodeAnalysis] Failed to create atom for function ${func.name}:`,
-          error.message
+        logError(
+          'CodeAnalysis',
+          `[CodeAnalysis] Failed to upload ${relativePath} via Atom/Entity API: ${error.message}`,
+          error
         );
       }
     }
@@ -509,7 +541,11 @@ export class AnalysisQueue {
         createdAtoms.push(atom);
         atomIds.push(atom.id);
       } catch (error) {
-        console.error(`[CodeAnalysis] Failed to create atom for class ${cls.name}:`, error.message);
+        logError(
+          'CodeAnalysis',
+          `[CodeAnalysis] Failed to create atom for class ${cls.name}:`,
+          error
+        );
       }
     }
 
@@ -526,9 +562,10 @@ export class AnalysisQueue {
         createdAtoms.push(atom);
         atomIds.push(atom.id);
       } catch (error) {
-        console.error(
-          `[CodeAnalysis] Failed to create atom for import ${imp.source}:`,
-          error.message
+        logError(
+          'CodeAnalysis',
+          `[CodeAnalysis] Failed to create entity for ${relativePath} via Atom/Entity API: ${error.message}`,
+          error
         );
       }
     }
@@ -549,9 +586,13 @@ export class AnalysisQueue {
           complexity_metrics: analysisResult.complexity_metrics,
           tenant_id: this.wrapperClient.tenantId,
         });
-        console.log(`[CodeAnalysis] Created entity: ${entity.id} (${relativePath})`);
+        logInfo('CodeAnalysis', `[CodeAnalysis] Created entity: ${entity.id} (${relativePath})`);
       } catch (error) {
-        console.error(`[CodeAnalysis] Failed to create entity for ${relativePath}:`, error.message);
+        logError(
+          'CodeAnalysis',
+          `[CodeAnalysis] Failed to create entity for ${relativePath}:`,
+          error
+        );
         await this.rollbackAtoms(createdAtoms);
         throw error;
       }
@@ -577,22 +618,25 @@ export class AnalysisQueue {
         }
       } catch (error) {
         refFailures++;
-        console.error(
-          `[CodeAnalysis] Failed to create reference for call ${call.target}:`,
-          error.message
+        logError(
+          'CodeAnalysis',
+          `[CodeAnalysis] Failed to create reference for ${relativePath} via Atom/Entity API: ${error.message}`,
+          error
         );
       }
     }
 
     if (refFailures > 0) {
-      console.warn(
-        `[CodeAnalysis] ${refFailures}/${(analysisResult.calls || []).length} references failed`
+      logWarn(
+        'CodeAnalysis',
+        `[CodeAnalysis] Failed to create ${refFailures} references for ${relativePath}`
       );
     }
 
     if (createdReferences.length === 0 && createdAtoms.some(a => a.type === 'function')) {
-      console.warn(
-        `[CodeAnalysis] INCOMPLETE: ${relativePath} has functions but 0 references. Call relations may be missing.`
+      logWarn(
+        'CodeAnalysis',
+        `[CodeAnalysis] No references created for ${relativePath}, but functions exist - possible API issue`
       );
     }
 
@@ -605,7 +649,7 @@ export class AnalysisQueue {
     const projectId = await resolveProjectId({ projectRoot });
     const language = this.detectLanguage(filePath);
 
-    console.log(`[CodeAnalysis] Analyzing with Atom/Entity API: ${relativePath}`);
+    logInfo('CodeAnalysis', `[CodeAnalysis] Analyzing with Atom/Entity API: ${relativePath}`);
 
     try {
       const analysisResult = await analyzeWithQuery(filePath, content, language);
@@ -618,13 +662,14 @@ export class AnalysisQueue {
       );
 
       const duration = performance.now() - startTime;
-      console.log(
+      logInfo(
+        'CodeAnalysis',
         `[CodeAnalysis] Analysis complete: ${result.atoms.length} atoms, ${result.references.length} references in ${duration.toFixed(2)}ms`
       );
 
       return { ...result, duration };
     } catch (error) {
-      console.error(`[CodeAnalysis] Analysis failed for ${relativePath}:`, error.message);
+      logError('CodeAnalysis', `[CodeAnalysis] Analysis failed for ${relativePath}:`, error);
       throw error;
     }
   }
@@ -634,13 +679,13 @@ export class AnalysisQueue {
    * @param {Array} atoms - 已创建的 Atom 列表
    */
   async rollbackAtoms(atoms) {
-    console.log(`[CodeAnalysis] Rolling back ${atoms.length} atoms...`);
+    logInfo('CodeAnalysis', `[CodeAnalysis] Rolling back ${atoms.length} atoms...`);
     for (const atom of atoms) {
       try {
         await this.wrapperClient.deleteAtom(atom.id);
-        console.log(`[CodeAnalysis] Rolled back atom: ${atom.id}`);
+        logInfo('CodeAnalysis', `[CodeAnalysis] Rolled back atom: ${atom.id}`);
       } catch (error) {
-        console.error(`[CodeAnalysis] Failed to rollback atom ${atom.id}:`, error.message);
+        logError('CodeAnalysis', `[CodeAnalysis] Failed to rollback atom ${atom.id}:`, error);
       }
     }
   }
@@ -670,11 +715,17 @@ export class AnalysisQueue {
 
   async flushBatchLegacy(batchToSend) {
     const memoryItems = batchToSend.map(item => item.memoryItem);
-    console.log(`[CodeAnalysis] Uploading ${memoryItems.length} code memories (legacy)...`);
+    logInfo(
+      'CodeAnalysis',
+      `[CodeAnalysis] Uploading ${memoryItems.length} code memories (legacy)...`
+    );
 
     try {
       const result = await this.wrapperClient.uploadMemories(memoryItems);
-      console.log(`[CodeAnalysis] Upload complete: ${result.success}/${result.total} success`);
+      logInfo(
+        'CodeAnalysis',
+        `[CodeAnalysis] Upload complete: ${result.success}/${result.total} success`
+      );
 
       if (result.memory_ids && result.memory_ids.length > 0) {
         for (let i = 0; i < result.memory_ids.length; i++) {
@@ -685,17 +736,25 @@ export class AnalysisQueue {
               await this.memoryIdCache.set(batchItem.filePath, batchItem.sourceId, memoryId, {
                 contentHash: batchItem.contentHash,
               });
-              console.log(`[CodeAnalysis] Cached memory_id for ${batchItem.filePath}: ${memoryId}`);
-            } catch (cacheError) {
-              console.warn(
-                `[CodeAnalysis] Failed to cache memory_id for ${batchItem.filePath}: ${cacheError.message}`
+              logInfo(
+                'CodeAnalysis',
+                `[CodeAnalysis] Cached memory_id for ${batchItem.filePath}: ${memoryId}`
+              );
+            } catch (_cacheError) {
+              logWarn(
+                'CodeAnalysis',
+                `[CodeAnalysis] Failed to update memory ID cache: ${_cacheError.message}`
               );
             }
           }
         }
       }
     } catch (error) {
-      console.error(`[CodeAnalysis] Legacy batch upload failed: ${error.message}`);
+      logError(
+        'CodeAnalysis',
+        `[CodeAnalysis] Legacy batch upload failed: ${error.message}`,
+        error
+      );
       throw error;
     }
   }
@@ -734,7 +793,10 @@ export class AnalysisQueue {
     }
 
     const files = walkDir(projectRoot);
-    console.log('[CodeAnalysis] uploadProject: ' + files.length + ' files in ' + projectRoot);
+    logInfo(
+      'CodeAnalysis',
+      '[CodeAnalysis] uploadProject: ' + files.length + ' files in ' + projectRoot
+    );
 
     const globalNameToAtomId = new Map();
     const relPathToEntityId = new Map();
@@ -801,9 +863,13 @@ export class AnalysisQueue {
         }
 
         allResults.push({ relPath, result });
-        console.log('  OK: ' + relPath + ' -> ' + atomIds.length + ' atoms');
+        logInfo('CodeAnalysis', '  OK: ' + relPath + ' -> ' + atomIds.length + ' atoms');
       } catch (e) {
-        console.error('  FAIL: ' + path.relative(projectRoot, filePath) + ': ' + e.message);
+        logError(
+          'CodeAnalysis',
+          '  FAIL: ' + path.relative(projectRoot, filePath) + ': ' + e.message,
+          e
+        );
       }
     }
 
@@ -828,11 +894,8 @@ export class AnalysisQueue {
             tenant_id: tenantId,
           });
           refCount++;
-        } catch (error) {
-          console.warn(
-            `[CodeAnalysis] Failed to create reference for ${call.funcName} (${relPath}:${call.line}):`,
-            error.message
-          );
+        } catch (_error) {
+          logWarn('CodeAnalysis', `[CodeAnalysis] Failed to create reference: ${_error.message}`);
         }
       }
     }
@@ -871,7 +934,7 @@ export class AnalysisQueue {
 const analysisQueue = new AnalysisQueue();
 
 export function onFileSaved(filePath, projectRoot) {
-  console.log(`[CodeAnalysis] File saved: ${filePath}`);
+  logInfo('CodeAnalysis', `[CodeAnalysis] File saved: ${filePath}`);
   analysisQueue.add(filePath, projectRoot);
 }
 

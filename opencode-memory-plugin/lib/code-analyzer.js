@@ -3,7 +3,11 @@ import { readFile } from 'fs/promises';
 import { extname } from 'path';
 import { analyzeWithTreeSitter } from './tree-sitter-parser.js';
 import { getConfig } from './storage.js';
-import { QUEUE_TIMEOUT_MS as DEFAULT_QUEUE_TIMEOUT_MS, DEFAULT_DEBOUNCE_MS, DEFAULT_FILE_TIMEOUT_MS } from './constants.js';
+import {
+  QUEUE_TIMEOUT_MS as DEFAULT_QUEUE_TIMEOUT_MS,
+  DEFAULT_DEBOUNCE_MS,
+  DEFAULT_FILE_TIMEOUT_MS,
+} from './constants.js';
 import { logInfo, logError, logWarn } from './logger.js';
 
 function readCodeAnalysisConfig() {
@@ -108,11 +112,11 @@ export class CodeAnalyzer {
       const language = this.detectLanguage(filePath);
       const result = await this.analyzeWithStrategy(filePath, sourceCode, language, warnings);
 
-      const duration = performance.now() - startTime;
-    logInfo(
-      'CodeAnalyzer',
-      `[CodeAnalyzer] Analyzing ${filePath} (${language}): ${result.symbols.length} symbols, ${result.calls.length} calls`
-    );
+      const _duration = performance.now() - startTime;
+      logInfo(
+        'CodeAnalyzer',
+        `[CodeAnalyzer] Analyzing ${filePath} (${language}): ${result.functions?.length || 0} functions, ${result.calls?.length || 0} calls`
+      );
 
       return result;
     } catch (error) {
@@ -141,8 +145,9 @@ export class CodeAnalyzer {
         const oxcDuration = performance.now() - oxcStartTime;
 
         if (oxcDuration > 200) {
-          console.warn(
-            `[CodeAnalyzer] Slow Oxc parse for ${filePath}: ${oxcDuration.toFixed(0)}ms`
+          logWarn(
+            'CodeAnalyzer',
+            `[CodeAnalyzer] ${filePath} exceeds max size (${fileSizeKB}KB > ${maxSizeKB}KB), using tree-sitter fallback`
           );
         }
 

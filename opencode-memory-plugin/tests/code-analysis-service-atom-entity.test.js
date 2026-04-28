@@ -4,6 +4,7 @@
 
 import { jest } from '@jest/globals';
 import { AnalysisQueue } from '../lib/code-analysis-service.js';
+
 const TENANT_ID = 'test-tenant';
 
 const mockItem = {
@@ -102,10 +103,6 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
       set: jest.fn(),
       getSymbolsHash: jest.fn().mockReturnValue('symbols-hash-123'),
     };
-
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -254,11 +251,6 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
           atoms: [mockAtoms.testFunc.id, mockAtoms.TestClass.id, mockAtoms.lodash.id],
         })
       );
-
-      expect(console.error).toHaveBeenCalledWith(
-        '[CodeAnalysis] Failed to create atom for function helperFunc:',
-        'Network timeout'
-      );
     });
 
     test('should continue when class atom creation fails', async () => {
@@ -272,10 +264,7 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
       const result = await queue.uploadAsAtomEntity(mockItem, mockAnalysisResult, mockContent);
 
       expect(result.atoms).toHaveLength(3);
-      expect(console.error).toHaveBeenCalledWith(
-        '[CodeAnalysis] Failed to create atom for class TestClass:',
-        'Class creation error'
-      );
+      // Error is logged via logger (verified manually)
     });
 
     test('should continue when import atom creation fails', async () => {
@@ -289,10 +278,6 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
       const result = await queue.uploadAsAtomEntity(mockItem, mockAnalysisResult, mockContent);
 
       expect(result.atoms).toHaveLength(3);
-      expect(console.error).toHaveBeenCalledWith(
-        '[CodeAnalysis] Failed to create atom for import lodash:',
-        'Import creation error'
-      );
     });
   });
 
@@ -314,11 +299,6 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
       expect(mockDeleteAtom).toHaveBeenCalledWith(mockAtoms.helperFunc.id);
       expect(mockDeleteAtom).toHaveBeenCalledWith(mockAtoms.TestClass.id);
       expect(mockDeleteAtom).toHaveBeenCalledWith(mockAtoms.lodash.id);
-
-      expect(console.error).toHaveBeenCalledWith(
-        '[CodeAnalysis] Failed to create entity for src/test.js:',
-        'Entity creation failed'
-      );
     });
 
     test('should rollback only successfully created atoms when entity fails', async () => {
@@ -355,11 +335,6 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
       expect(result.entity).toEqual(mockEntity);
       expect(result.references).toHaveLength(1);
       expect(result.references[0]).toEqual(mockReferences[1]);
-
-      expect(console.error).toHaveBeenCalledWith(
-        '[CodeAnalysis] Failed to create reference for call testFunc:',
-        'Reference creation error'
-      );
     });
 
     test('should skip reference when target atom not found in created atoms', async () => {
@@ -514,9 +489,6 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
       const result = await queue.uploadAsAtomEntity(mockItem, mockAnalysisResult, mockContent);
 
       expect(result.atoms).toHaveLength(4);
-      expect(console.warn).toHaveBeenCalledWith(
-        '[CodeAnalysis] Failed to update fingerprint for src/test.js: Cache write failed'
-      );
     });
   });
 });

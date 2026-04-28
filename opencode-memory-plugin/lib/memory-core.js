@@ -62,7 +62,7 @@ export async function writeMemory({
   source_id,
   project_id,
   meta = [],
-  source: _source = 'cli',
+  _source = 'cli',
 }) {
   // 参数验证
   if (!abstract || typeof abstract !== 'string' || abstract.trim() === '') {
@@ -131,7 +131,10 @@ export async function writeMemory({
       localId: '',
       filePath: '',
       memoryId: null,
-      message: `❌ Error: abstract must be ≤${MAX_ABSTRACT_LENGTH} characters (current: ` + abstract.length + ')',
+      message:
+        `❌ Error: abstract must be ≤${MAX_ABSTRACT_LENGTH} characters (current: ` +
+        abstract.length +
+        ')',
     };
   }
   if (overview.length > MAX_OVERVIEW_LENGTH) {
@@ -140,7 +143,10 @@ export async function writeMemory({
       localId: '',
       filePath: '',
       memoryId: null,
-      message: `❌ Error: overview must be ≤${MAX_OVERVIEW_LENGTH} characters (current: ` + overview.length + ')',
+      message:
+        `❌ Error: overview must be ≤${MAX_OVERVIEW_LENGTH} characters (current: ` +
+        overview.length +
+        ')',
     };
   }
   if (content.length > 100_000) {
