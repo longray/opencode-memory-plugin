@@ -35,8 +35,8 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  OpenCode Agent（调用方）                                        │
-│  ├─ 生成 abstract（≤100字符，一句话摘要）                        │
-│  ├─ 生成 overview（≤500字符，核心要点）                          │
+│  ├─ 生成 abstract（建议≤100字符，一句话摘要）                    │
+│  ├─ 生成 overview（建议≤500字符，核心要点）                      │
 │  └─ 调用 memory_write({abstract, overview, content})            │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ HTTP API / 本地文件
@@ -155,7 +155,7 @@ This decision was made after experiencing productivity gains...
 
 ### 3.2 字段说明
 
-| 层级   | 字段     | 长度限制 | 用途                     |
+| 层级   | 字段     | 建议长度 | 用途                     |
 | ------ | -------- | -------- | ------------------------ |
 | **L0** | Abstract | ≤100字符 | 一句话摘要，用于快速浏览 |
 | **L1** | Overview | ≤500字符 | 核心要点，用于详细预览   |
@@ -231,8 +231,8 @@ timeline/2026/03/...
 ```javascript
 {
   content: string;      // L2: 完整内容（必填）
-  abstract: string;     // L0: 一句话摘要，≤100字符（必填）
-  overview: string;     // L1: 核心要点，≤500字符（必填）
+  abstract: string;     // L0: 一句话摘要，建议≤100字符（必填）
+  overview: string;     // L1: 核心要点，建议≤500字符（必填）
   type: string;         // 类型：preference/decision/pattern/lesson/note（默认general）
   tags: string[];       // 标签数组（可选）
   pinned: boolean;      // 是否置顶（可选，默认false）
@@ -242,7 +242,7 @@ timeline/2026/03/...
 **验证**：
 
 - ❌ abstract/overview 缺失 → 报错：`abstract and overview are required`
-- ⚠️ 长度超限 → 自动截断并警告
+- ⚠️ 长度超出建议 → 警告但不拒绝
 
 **返回值**：
 
@@ -480,7 +480,7 @@ timeline/2026/03/...
 ### 功能验证
 
 - [ ] abstract/overview 必填验证
-- [ ] 长度截断和警告
+- [ ] 长度超出建议时警告
 - [ ] 分层格式文件生成
 - [ ] 文件名使用后端 memory_id
 - [ ] 离线时生成本地临时 ID

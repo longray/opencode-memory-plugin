@@ -124,8 +124,8 @@ export const memory_write = tool({
   description: 'Write an entry to long-term memory with optional Atom tree structure.',
   args: {
     content: tool.schema.string().describe('L2: Full content'),
-    abstract: tool.schema.string().describe('L0: Summary ≤100 chars (REQUIRED)'),
-    overview: tool.schema.string().describe('L1: Key points ≤500 chars (REQUIRED)'),
+    abstract: tool.schema.string().describe('L0: Summary, recommended ≤100 chars (REQUIRED)'),
+    overview: tool.schema.string().describe('L1: Key points, recommended ≤500 chars (REQUIRED)'),
     type: tool.schema.string().optional().default('general'),
     tags: tool.schema.array(tool.schema.string()).optional().default([]),
     pinned: tool.schema.boolean().optional().default(false),

@@ -221,7 +221,7 @@ ${content}
 }
 
 /**
- * 从 content 提取 abstract（前100字符）
+ * 从 content 提取 abstract（建议前100字符）
  */
 function extractAbstract(content) {
   const firstSentence = content.split(/[.!?。！？]/)[0].trim();
@@ -230,7 +230,7 @@ function extractAbstract(content) {
 }
 
 /**
- * 从 content 提取 overview（前500字符或前3个要点）
+ * 从 content 提取 overview（建议前500字符或前3个要点）
  */
 function extractOverview(content) {
   // 尝试提取 bullet points
@@ -1039,7 +1039,7 @@ async function parseEntryFile(filePath) {
 
 - [ ] `memory_write` 带 abstract/overview 正常写入
 - [ ] `memory_write` 自动生成 abstract/overview
-- [ ] `memory_write` 长度限制（100/500字符）
+- [ ] `memory_write` 长度建议（100/500字符，超出时警告）
 - [ ] `memory_read level=0` 只返回 abstract
 - [ ] `memory_read level=1` 返回 abstract+overview
 - [ ] `memory_read level=2` 返回完整内容

@@ -113,11 +113,13 @@ export WS_ENABLED=true
 
 | Level | 内容                            | 大小 | 用途       |
 | ----- | ------------------------------- | ---- | ---------- |
-| 0     | Abstract（≤100字符）            | 极小 | 浏览列表   |
-| 1     | Abstract + Overview（≤500字符） | 小   | 了解大意   |
-| 2     | 完整内容（无限制）              | 大   | 需要详情时 |
+| 0     | Abstract（建议≤100字符）            | 极小 | 浏览列表   |
+| 1     | Abstract + Overview（建议≤500字符） | 小   | 了解大意   |
+| 2     | 完整内容（无限制）                   | 大   | 需要详情时 |
 
 **最佳实践**：先用 `level=0` 或 `level=1` 扫描，确认相关后再 `memory_read(level=2)` 加载详情。
+
+> **注意**：abstract 和 overview 超出建议长度时会生成警告，但不会拒绝写入。
 
 ---
 
@@ -219,8 +221,8 @@ memory_search((query = "类似的架构决策"), (mode = "hybrid"), (level = 1))
 ```javascript
 memory_write(
   (content = "完整内容..."),
-  (abstract = "≤100字摘要"), // ← 渐进加载依赖这个
-  (overview = "≤500字概述"), // ← 快速浏览依赖这个
+  (abstract = "建议≤100字摘要"), // ← 渐进加载依赖这个
+  (overview = "建议≤500字概述"), // ← 快速浏览依赖这个
   (type = "long-term"),
   (tags = ["架构", "决策"]),
 );
