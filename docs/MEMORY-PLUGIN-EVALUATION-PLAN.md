@@ -1,3 +1,6 @@
+> ⚠️ **DEPRECATED**: This document has been upgraded and migrated to `v3.3/evaluation/DESIGN-EVALUATION.md`.
+> Please refer to the new location for the latest version with statistical methods and baseline measurements.
+
 # OpenCode 记忆插件效果评估方案
 
 **版本**: v1.0  

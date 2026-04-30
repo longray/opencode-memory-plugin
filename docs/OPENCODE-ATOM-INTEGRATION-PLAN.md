@@ -1,3 +1,6 @@
+> ⚠️ **DEPRECATED**: This document has been upgraded and migrated to `v3.3/integration/DESIGN-INTEGRATION.md`.
+> Please refer to the new location for the latest version with updated completion status and Phase 3 details.
+
 # OpenCode Atom 架构内化集成方案
 
 **版本**: v1.0  
