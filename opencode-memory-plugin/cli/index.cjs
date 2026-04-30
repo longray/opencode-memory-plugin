@@ -96,11 +96,11 @@ async function writeCommand(args) {
   const overview = typeof args.overview === 'string' ? args.overview.trim() : '';
 
   if (!abstract) {
-    log('Error: abstract is REQUIRED (≤100 chars)', 'red');
+    log('Error: abstract is REQUIRED (recommended ≤100 chars)', 'red');
     process.exit(1);
   }
   if (!overview) {
-    log('Error: overview is REQUIRED (≤500 chars)', 'red');
+    log('Error: overview is REQUIRED (recommended ≤500 chars)', 'red');
     process.exit(1);
   }
 

@@ -19,7 +19,7 @@ npm install -g @csuwl/opencode-memory-plugin
 ## Features
 
 - **16 Memory Tools** - Write, read, search, sync, graph relations, and more
-- **L0/L1/L2 Layered Storage** - Abstract (≤100 chars), Overview (≤500 chars), Full content
+- **L0/L1/L2 Layered Storage** - Abstract (recommended ≤100 chars), Overview (recommended ≤500 chars), Full content
 - **Semantic Search** - Vector + BM25 hybrid search via backend service
 - **WebSocket Library** - Reliable connection modules with heartbeat and ACK (library code, not yet wired into plugin startup)
 - **Dual-Mode Sync** - Incremental (fingerprint-based) + Full sync with resume
