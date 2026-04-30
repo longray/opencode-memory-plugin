@@ -24,9 +24,11 @@ evaluation/
 ## 文档说明
 
 ### DESIGN-EVALUATION.md
+
 **问题**: Atom Architecture 是否比传统模式更好？好多少？
 
 **内容**:
+
 - 评估维度（知识组织质量、检索精准度、上下文效率、链接利用率、用户满意度）
 - 量化指标定义（Precision@10、Token 节省、响应时间）
 - 实验设计（对照组、变量控制、样本量）
@@ -36,9 +38,11 @@ evaluation/
 **状态**: 待从根目录 `MEMORY-PLUGIN-EVALUATION-PLAN.md` 升级
 
 ### IMPLEMENTATION-EVALUATION.md
+
 **问题**: 如何执行评估？
 
 **内容**:
+
 - 环境搭建步骤
 - 测试数据集准备
 - 脚本执行指南
@@ -48,14 +52,16 @@ evaluation/
 **状态**: 待编写
 
 ### scripts/
+
 **问题**: 如何自动化测量？
 
 **内容**:
+
 - `evaluate-atom-quality.js`: Atom 树质量分析
 - `evaluate-search-performance.js`: 检索性能对比（Atom vs Entity）
 - `evaluate-context-efficiency.js`: Token 使用效率测量
 
-**状态**: 待从 PLAN 中的伪代码实现为可执行代码
+**状态**: WIP - 框架已完成，evaluate-atom-quality.js 部分实现
 
 ---
 

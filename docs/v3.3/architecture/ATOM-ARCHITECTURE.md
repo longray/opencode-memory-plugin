@@ -1,5 +1,5 @@
 ---
-status: implemented
+status: partially_implemented
 version: 3.3.0
 last_updated: 2026-05-01
 owner: Oracle
@@ -372,7 +372,7 @@ function flattenAtomTree(tree, parentId = null, result = []) {
 
 #### memory_read（扩展版 - 不兼容旧格式）
 
-**重要**：v3.3 不兼容旧格式，返回结构化数据而非纯文本
+**重要**：v3.3 不兼容旧格式（指内部数据结构），返回结构化数据而非纯文本。但工具 API 保持向后兼容——`memory_read` 的参数签名不变，调用方无需修改
 
 ```javascript
 // 场景 1：读取 Entity L0（快速扫描）
@@ -474,7 +474,8 @@ get_entity_atoms({
   ]
 }
 
-// TODO: 未实现 — list_entity_atoms API 不存在，使用 get_entity_atoms 替代
+// TODO: 未实现 — list_entity_atoms API not yet implemented in codebase
+// 使用 get_entity_atoms 替代
 // 如需扁平列表，可对 get_entity_atoms 返回的树做后处理
 
 // API 2: 后端全局 Atom 搜索（已存在：wrapperClient.listAtoms）
@@ -509,7 +510,7 @@ async function memory_read({ entry_id, level = 2 }) {
       atom_type: atom.type,
       name: atom.name,
       content: atom.content,
-      parent_local_id: atom.parent_id,
+      parent_id: atom.parent_id,
       order: atom.order,
       heading_level: atom.heading_level,
       tags: atom.tags,
@@ -820,15 +821,16 @@ function detectCircularReference(atoms) {
 
 #### unified_search（新增工具）
 
-> **TODO: 未实现** — `unified_search` 工具当前不存在，使用 `memory_search({ scope: "atom" })` 替代
+> **TODO: 未实现** — `unified_search` tool not yet registered in plugin.js
+> 使用 `memory_search({ scope: "atom" })` 替代
 
 ```javascript
 // 以下为设计稿，实际 API 尚未实现
 unified_search({
   query: "Vue",
-  scope: "all",                    # all | memory | code
+  scope: "all", // all | memory | code
   mode: "hybrid",
-  limit: 20
+  limit: 20,
 });
 // 返回分类结果
 ```
@@ -912,7 +914,7 @@ Vue 3 最佳实践
 ]
 ````
 
-```
+````
 
 **关键设计**：
 - Atoms 以 JSON 数组存储在 `≡≡≡ Atoms ≡≡≡` 区段
@@ -931,7 +933,7 @@ setup() 函数参见 [[01I9J0K1L2...|Performance 章节]] 的优化技巧。
 
 # 嵌入其他 Atom
 ![[01X1Y2Z3W4...|示例代码]]
-```
+````
 
 **注意**：Wiki 链接使用 Atom 的 `local_id`（纯 ULID），不是 `atom_id`。
 
@@ -1144,7 +1146,7 @@ if (result.type === "entity") {
 
 ### 13.3 Feature Flag
 
-> **TODO: 未找到实现** — `useAtomArchitecture` 在当前代码中未找到实现，以下为设计稿
+> **TODO: 未找到实现** — `useAtomArchitecture` feature flag not found in memory-config.json or code, 以下为设计稿
 
 ```json
 // memory-config.json

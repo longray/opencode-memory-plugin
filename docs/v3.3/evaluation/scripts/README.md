@@ -7,11 +7,11 @@
 
 ## 脚本列表
 
-| 脚本 | 功能 | 状态 |
-|------|------|------|
-| `evaluate-atom-quality.js` | Atom 树质量分析 | ⏳ 待实现 |
-| `evaluate-search-performance.js` | 检索性能对比 | ⏳ 待实现 |
-| `evaluate-context-efficiency.js` | Token 使用效率 | ⏳ 待实现 |
+| 脚本                             | 功能            | 状态                                  |
+| -------------------------------- | --------------- | ------------------------------------- |
+| `evaluate-atom-quality.js`       | Atom 树质量分析 | WIP - 框架已完成，待接入实际 API 调用 |
+| `evaluate-search-performance.js` | 检索性能对比    | ⏳ 待实现                             |
+| `evaluate-context-efficiency.js` | Token 使用效率  | ⏳ 待实现                             |
 
 ---
 
@@ -34,9 +34,10 @@ node evaluate-context-efficiency.js
 这些脚本将从 `MEMORY-PLUGIN-EVALUATION-PLAN.md` 中的伪代码实现为可执行的 Node.js 脚本。
 
 **依赖**:
-- `../../lib/memory-core.js` (Atom 操作)
-- `../../tools/search.js` (搜索功能)
-- `../../lib/storage.js` (配置读取)
+
+- `../../../opencode-memory-plugin/lib/memory-core.js` (Atom 操作)
+- `../../../opencode-memory-plugin/tools/search.js` (搜索功能)
+- `../../../opencode-memory-plugin/lib/storage.js` (配置读取)
 
 ---
 

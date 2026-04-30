@@ -24,11 +24,13 @@ integration/
 ## 文档说明
 
 ### DESIGN-INTEGRATION.md
+
 **问题**: 如何让 OpenCode 内化 Atom Architecture？
 
 **内容**:
+
 - 五大缺口分析（已完成 ✅）
-- 三阶段实施路线（Phase 1 ✅ / Phase 2 ⏳ / Phase 3 ⏳）
+- 三阶段实施路线（Phase 1 ✅ / Phase 2 ✅ / Phase 3 ⏳）
 - Agent 改造方案（The Observer / The Librarian）
 - Prompt 工程计划（SOUL.md / AGENTS.md / TOOLS.md）
 - 代码示例和 API 契约
@@ -36,49 +38,53 @@ integration/
 **状态**: 待从根目录 `OPENCODE-ATOM-INTEGRATION-PLAN.md` 升级
 
 ### IMPLEMENTATION-INTEGRATION.md
+
 **问题**: 具体如何执行每个任务？
 
 **内容**:
+
 - Phase 2 详细任务清单（Prompt 工程）
 - Phase 3 详细任务清单（工作流改造）
 - 代码模板和检查清单
 - 每日/每周执行计划
 - 验收标准和回滚方案
 
-**状态**: 待编写
+**状态**: ✅ 已编写
 
 ### test-plans/
+
 **问题**: 如何验证集成正确性？
 
 **内容**:
+
 - `unit-test-plan.md`: 单元测试用例（函数级别）
 - `integration-test-plan.md`: 集成测试用例（工具间协作）
 - `e2e-test-plan.md`: 端到端测试用例（完整用户流程）
 
-**状态**: 待编写
+**状态**: ✅ 已编写
 
 ---
 
 ## 集成状态
 
-| Phase | 任务 | 状态 |
-|-------|------|------|
-| **Phase 1** | 工具层修复 | ✅ 已完成 |
-| | memory_write 暴露 atoms | ✅ |
-| | syncMemoryToBackend 同步 atoms | ✅ |
-| | entity_update / entity_atoms 工具 | ✅ |
-| | memory_search Atom 粒度 | ✅ |
-| | plugin.js 注册 | ✅ |
-| **Phase 2** | Prompt 工程 | ⏳ 部分完成 |
-| | SOUL.md Atom 认知 | ✅ |
-| | AGENTS.md 操作规范 | ✅ |
-| | TOOLS.md 工具说明 | ✅ |
-| | Agent 行为验证 | ⏳ |
-| **Phase 3** | 工作流改造 | ⏳ 待实施 |
-| | The Observer 自动萃取 | ⏳ |
-| | The Librarian 按 Atom 整合 | ⏳ |
-| | 代码分析关联对话 | ⏳ |
-| | 上下文管理 Atom 粒度 | ⏳ |
+| Phase       | 任务                              | 状态                        |
+| ----------- | --------------------------------- | --------------------------- |
+| **Phase 1** | 工具层修复                        | ✅ 已完成                   |
+|             | memory_write 暴露 atoms           | ✅                          |
+|             | syncMemoryToBackend 同步 atoms    | ✅                          |
+|             | entity_update / entity_atoms 工具 | ✅                          |
+|             | memory_search Atom 粒度           | ✅                          |
+|             | plugin.js 注册                    | ✅                          |
+| **Phase 2** | Prompt 工程                       | ✅ 已完成 (Prompt 注入完成) |
+|             | SOUL.md Atom 认知                 | ✅                          |
+|             | AGENTS.md 操作规范                | ✅                          |
+|             | TOOLS.md 工具说明                 | ✅                          |
+|             | Agent 行为验证                    | ⏳                          |
+| **Phase 3** | 工作流改造                        | ⏳ 待实施                   |
+|             | The Observer 自动萃取             | ⏳                          |
+|             | The Librarian 按 Atom 整合        | ⏳                          |
+|             | 代码分析关联对话                  | ⏳                          |
+|             | 上下文管理 Atom 粒度              | ⏳                          |
 
 ---
 

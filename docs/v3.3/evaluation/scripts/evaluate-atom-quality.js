@@ -18,8 +18,8 @@
  * Output: JSON report to stdout
  */
 
-import { getEntityAtoms } from '../../../opencode-memory-plugin/lib/memory-core.js';
-import { getConfig } from '../../../opencode-memory-plugin/lib/storage.js';
+import { getEntityAtoms } from "../../../opencode-memory-plugin/lib/memory-core.js";
+import { getConfig } from "../../../opencode-memory-plugin/lib/storage.js";
 
 function calculateAvgDepth(atoms, depth = 0) {
   // DESIGN-EVALUATION.md §2.1: avg_depth = mean(depth_i) for all atoms
@@ -50,7 +50,8 @@ function calculateContentStd(atoms) {
   if (atoms) atoms.forEach(collect);
   if (lengths.length === 0) return 0;
   const mean = lengths.reduce((a, b) => a + b, 0) / lengths.length;
-  const variance = lengths.reduce((a, b) => a + (b - mean) ** 2, 0) / lengths.length;
+  const variance =
+    lengths.reduce((a, b) => a + (b - mean) ** 2, 0) / lengths.length;
   return Math.sqrt(variance);
 }
 
@@ -90,14 +91,17 @@ function calculateOrphanRate(atoms) {
   }
   if (atoms) atoms.forEach(collect);
   if (allIds.size === 0) return 0;
-  const orphanCount = [...allIds].filter(id => !referencedIds.has(id)).length;
+  const orphanCount = [...allIds].filter((id) => !referencedIds.has(id)).length;
   return orphanCount / allIds.size;
 }
 
 async function evaluateAtomQuality(entryId) {
   try {
     const config = await getConfig();
-    const result = await getEntityAtoms(entryId, { include_content: true });
+    const result = await getEntityAtoms({
+      entry_id: entryId,
+      include_content: true,
+    });
 
     if (!result || !result.atoms) {
       console.error(`Error: No atoms found for entry ${entryId}`);
@@ -112,8 +116,10 @@ async function evaluateAtomQuality(entryId) {
         avg_depth: Math.round(depthResult.avg * 100) / 100,
         total_atoms: depthResult.count,
         content_std: Math.round(calculateContentStd(result.atoms) * 100) / 100,
-        link_density: Math.round(calculateLinkDensity(result.atoms) * 1000) / 1000,
-        orphan_rate: Math.round(calculateOrphanRate(result.atoms) * 1000) / 1000,
+        link_density:
+          Math.round(calculateLinkDensity(result.atoms) * 1000) / 1000,
+        orphan_rate:
+          Math.round(calculateOrphanRate(result.atoms) * 1000) / 1000,
       },
     };
 
@@ -127,16 +133,20 @@ async function evaluateAtomQuality(entryId) {
 
 // CLI entry point
 const entryId = process.argv[2];
-if (!entryId || process.argv.includes('--help') || process.argv.includes('-h')) {
-  console.error('Usage: node evaluate-atom-quality.js <entryId>');
-  console.error('');
-  console.error('Evaluate structural quality of an Atom tree.');
-  console.error('');
-  console.error('Arguments:');
-  console.error('  entryId    ULID of the memory entry to evaluate');
-  console.error('');
-  console.error('Options:');
-  console.error('  -h, --help  Show this help message');
+if (
+  !entryId ||
+  process.argv.includes("--help") ||
+  process.argv.includes("-h")
+) {
+  console.error("Usage: node evaluate-atom-quality.js <entryId>");
+  console.error("");
+  console.error("Evaluate structural quality of an Atom tree.");
+  console.error("");
+  console.error("Arguments:");
+  console.error("  entryId    ULID of the memory entry to evaluate");
+  console.error("");
+  console.error("Options:");
+  console.error("  -h, --help  Show this help message");
   process.exit(entryId ? 0 : 1);
 }
 

@@ -2,7 +2,7 @@
 
 > **版本**: v3.3.0 (Atom Architecture Edition)  
 > **日期**: 2026-05-01  
-> **状态**: Phase 1 已完成，Phase 2/3 实施中
+> **状态**: Phase 1 ✅ 已完成，Phase 2 ✅ 已完成 (Prompt 注入)，Phase 3 ⏳ 待实施
 
 ---
 
@@ -37,31 +37,34 @@ docs/v3.3/
 
 ## 文档分类
 
-| 类别 | 问题 | 受众 | 示例 |
-|------|------|------|------|
-| **架构设计** | 系统如何构建？ | 架构师、核心开发者 | `architecture/ATOM-ARCHITECTURE.md` |
-| **效果评估** | 系统效果如何？ | 产品经理、QA | `evaluation/DESIGN-EVALUATION.md` |
-| **集成方案** | 功能如何接入？ | 全栈开发者 | `integration/DESIGN-INTEGRATION.md` |
-| **实施手册** | 具体如何执行？ | 实施工程师 | `integration/IMPLEMENTATION-INTEGRATION.md` |
-| **测试计划** | 如何验证正确性？ | QA、开发者 | `integration/test-plans/*.md` |
-| **评估脚本** | 如何量化测量？ | 数据分析师 | `evaluation/scripts/*.js` |
+| 类别         | 问题             | 受众               | 示例                                        |
+| ------------ | ---------------- | ------------------ | ------------------------------------------- |
+| **架构设计** | 系统如何构建？   | 架构师、核心开发者 | `architecture/ATOM-ARCHITECTURE.md`         |
+| **效果评估** | 系统效果如何？   | 产品经理、QA       | `evaluation/DESIGN-EVALUATION.md`           |
+| **集成方案** | 功能如何接入？   | 全栈开发者         | `integration/DESIGN-INTEGRATION.md`         |
+| **实施手册** | 具体如何执行？   | 实施工程师         | `integration/IMPLEMENTATION-INTEGRATION.md` |
+| **测试计划** | 如何验证正确性？ | QA、开发者         | `integration/test-plans/*.md`               |
+| **评估脚本** | 如何量化测量？   | 数据分析师         | `evaluation/scripts/*.js`                   |
 
 ---
 
 ## 版本状态
 
 ### Phase 1: 工具层修复 ✅ 已完成
+
 - `memory_write` 暴露 atoms 参数
 - `entity_update` / `entity_atoms` 工具注册
 - `memory_search` 支持 Atom 粒度搜索
 - `syncMemoryToBackend` atoms 同步修复
 
-### Phase 2: Prompt 工程 ⏳ 实施中
+### Phase 2: Prompt 工程 ✅ 已完成 (Prompt 注入完成，Agent 行为待验证)
+
 - SOUL.md Atom 认知注入 ✅
 - AGENTS.md 操作规范定义 ✅
 - TOOLS.md 工具使用说明 ✅
 
 ### Phase 3: 工作流改造 ⏳ 待实施
+
 - The Observer 自动萃取 Atom 树
 - The Librarian 按 Atom 粒度整合
 
@@ -69,10 +72,10 @@ docs/v3.3/
 
 ## 与历史文档的关系
 
-| 旧文档（根目录） | 新位置 | 状态 |
-|------------------|--------|------|
-| `v3.3-ATOM-ARCHITECTURE-DESIGN.md` | `v3.3/architecture/ATOM-ARCHITECTURE.md` | 已移入 |
-| `MEMORY-PLUGIN-EVALUATION-PLAN.md` | `v3.3/evaluation/DESIGN-EVALUATION.md` | 待升级 |
+| 旧文档（根目录）                    | 新位置                                   | 状态   |
+| ----------------------------------- | ---------------------------------------- | ------ |
+| `v3.3-ATOM-ARCHITECTURE-DESIGN.md`  | `v3.3/architecture/ATOM-ARCHITECTURE.md` | 已移入 |
+| `MEMORY-PLUGIN-EVALUATION-PLAN.md`  | `v3.3/evaluation/DESIGN-EVALUATION.md`   | 待升级 |
 | `OPENCODE-ATOM-INTEGRATION-PLAN.md` | `v3.3/integration/DESIGN-INTEGRATION.md` | 待升级 |
 
 ---
