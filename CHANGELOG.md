@@ -31,6 +31,14 @@
 - `extractWikiLinks()` - 提取 wiki 链接
 - `findIncomingLinks()` - 查找入链
 
+#### 📏 Length Limit Changes
+
+- **abstract/overview 长度限制调整**: 从强制限制改为建议限制
+  - `abstract`: 建议 ≤100 字符（超长会警告但不拒绝）
+  - `overview`: 建议 ≤500 字符（超长会警告但不拒绝）
+  - 向后兼容: `MAX_ABSTRACT_LENGTH` / `MAX_OVERVIEW_LENGTH` 别名仍然有效
+  - 新增常量: `RECOMMENDED_ABSTRACT_LENGTH` / `RECOMMENDED_OVERVIEW_LENGTH`
+
 #### 🛡️ 风险缓解
 
 - **循环检测**: 写入前自动检测，拒绝循环引用
@@ -49,7 +57,7 @@
 ```
 Test Suites: 13 atom-related test files
 Tests:       97 new tests (100% pass)
-Coverage:    entry-atoms, atom-tree, memory-write/read, 
+Coverage:    entry-atoms, atom-tree, memory-write/read,
              update-entity, get-entity-atoms, wiki-links,
              dangling-references, dead-links, file-size-monitor,
              v3.3-atom-e2e

@@ -42,7 +42,11 @@ import {
   atomicWriteJson,
 } from './indexer.js';
 import { deleteEntryFile, getEntryById, getAtomIndex } from './storage.js';
-import { LINK_MAP_FILE, MAX_ABSTRACT_LENGTH, MAX_OVERVIEW_LENGTH } from './constants.js';
+import {
+  LINK_MAP_FILE,
+  RECOMMENDED_ABSTRACT_LENGTH,
+  RECOMMENDED_OVERVIEW_LENGTH,
+} from './constants.js';
 import { containsSensitiveInfo } from './privacy-filter.js';
 import { extractByLevel } from './extractor.js';
 import {
@@ -148,29 +152,17 @@ export async function writeMemory({
     };
   }
 
-  if (abstract.length > MAX_ABSTRACT_LENGTH) {
-    return {
-      success: false,
-      localId: '',
-      filePath: '',
-      memoryId: null,
-      message:
-        `❌ Error: abstract must be ≤${MAX_ABSTRACT_LENGTH} characters (current: ` +
-        abstract.length +
-        ')',
-    };
+  // Collect length warnings (don't reject, just warn)
+  const _lengthWarnings = [];
+  if (abstract.length > RECOMMENDED_ABSTRACT_LENGTH) {
+    _lengthWarnings.push(
+      `⚠️ Warning: abstract length (${abstract.length}) exceeds recommended ${RECOMMENDED_ABSTRACT_LENGTH} characters`
+    );
   }
-  if (overview.length > MAX_OVERVIEW_LENGTH) {
-    return {
-      success: false,
-      localId: '',
-      filePath: '',
-      memoryId: null,
-      message:
-        `❌ Error: overview must be ≤${MAX_OVERVIEW_LENGTH} characters (current: ` +
-        overview.length +
-        ')',
-    };
+  if (overview.length > RECOMMENDED_OVERVIEW_LENGTH) {
+    _lengthWarnings.push(
+      `⚠️ Warning: overview length (${overview.length}) exceeds recommended ${RECOMMENDED_OVERVIEW_LENGTH} characters`
+    );
   }
   if (content.length > 100_000) {
     return {
@@ -260,8 +252,8 @@ export async function writeMemory({
       throw pipelineError;
     }
 
-    // 5. Check for dangling references
-    let warnings = [];
+    // 5. Check for dangling references and add length warnings
+    let warnings = [..._lengthWarnings];
     if (atoms && atoms.length > 0) {
       const { dangling, cross_entity_links } = detectDanglingReferences(atoms, atoms);
       if (dangling.length > 0) {
@@ -701,9 +693,7 @@ export async function readMemory({ entry_id, level = 2 }) {
         content = entry.abstract + '\n\n' + entry.overview;
       } else {
         const synthesized = synthesizeContentWithAtomIds(entry);
-        content = entry.content
-          ? synthesized + '\n\n---\n\n' + entry.content
-          : synthesized;
+        content = entry.content ? synthesized + '\n\n---\n\n' + entry.content : synthesized;
       }
     } else {
       content = extractByLevel(entry.content, level);
@@ -888,7 +878,12 @@ export async function updateEntity({ entry_id, entity_updates, atoms_batch, clie
               for (const id of toRemove) {
                 removeAtomFromTree(entryCopy.atoms, id);
               }
-              results.push({ action: 'remove', local_id: op.local_id, removed_count: toRemove.length, success: true });
+              results.push({
+                action: 'remove',
+                local_id: op.local_id,
+                removed_count: toRemove.length,
+                success: true,
+              });
               break;
             }
 
@@ -939,7 +934,10 @@ export async function updateEntity({ entry_id, entity_updates, atoms_batch, clie
 
       let warnings = [];
       if (entryCopy.atoms && entryCopy.atoms.length > 0) {
-        const { dangling, cross_entity_links } = detectDanglingReferences(entryCopy.atoms, entryCopy.atoms);
+        const { dangling, cross_entity_links } = detectDanglingReferences(
+          entryCopy.atoms,
+          entryCopy.atoms
+        );
         if (dangling.length > 0) {
           warnings.push(`⚠️ Warning: ${dangling.length} dangling reference(s) detected`);
         }
@@ -1185,9 +1183,10 @@ export async function loadContextByBudget({
       relevance_score: calculateRelevance(atom, query || '', bm25Scores.get(atom.local_id) || 0),
     }));
 
-    const selected = strategy === 'relevance'
-      ? selectByRelevance(scoredAtoms, maxTokens)
-      : selectByHierarchy(scoredAtoms, maxTokens);
+    const selected =
+      strategy === 'relevance'
+        ? selectByRelevance(scoredAtoms, maxTokens)
+        : selectByHierarchy(scoredAtoms, maxTokens);
 
     const usedTokens = selected.reduce((sum, atom) => sum + estimateTokens(atom.content || ''), 0);
 
@@ -1321,9 +1320,7 @@ export function filterByLevel(nodes, maxLevel) {
     .filter(node => (node.heading_level || 1) <= maxLevel)
     .map(node => ({
       ...node,
-      children: (node.heading_level || 1) < maxLevel
-        ? filterByLevel(node.children, maxLevel)
-        : [],
+      children: (node.heading_level || 1) < maxLevel ? filterByLevel(node.children, maxLevel) : [],
     }));
 }
 
@@ -1352,7 +1349,7 @@ export function addBreadcrumbs(nodes, parentPath = '') {
  * @param {number} maxLevel - Maximum heading level that was used for filtering
  * @returns {string} Markdown formatted content
  */
-export function formatAsMarkdown(tree, maxLevel) {
+export function formatAsMarkdown(tree, _maxLevel) {
   if (!tree || tree.length === 0) return '';
 
   let markdown = '';
@@ -1393,11 +1390,7 @@ export function formatAsMarkdown(tree, maxLevel) {
  * @param {boolean} [params.includeBreadcrumbs=true] - Include parent chain breadcrumbs
  * @returns {Promise<Object>} Result with filtered tree and markdown
  */
-export async function loadContextByLevel({
-  entry_id,
-  maxLevel = 2,
-  includeBreadcrumbs = true,
-}) {
+export async function loadContextByLevel({ entry_id, maxLevel = 2, includeBreadcrumbs = true }) {
   // Parameter validation
   if (!entry_id || typeof entry_id !== 'string') {
     return {
@@ -1500,7 +1493,10 @@ export async function markDeadLinks({ entry_id }) {
         };
       }
 
-      const { dangling, cross_entity_links } = detectDanglingReferences(entry.atoms || [], entry.atoms || []);
+      const { dangling, cross_entity_links } = detectDanglingReferences(
+        entry.atoms || [],
+        entry.atoms || []
+      );
 
       if (dangling.length === 0 && cross_entity_links.length === 0) {
         return {
@@ -1524,7 +1520,7 @@ export async function markDeadLinks({ entry_id }) {
       }
 
       let markedCount = 0;
-      const markAtomLinks = (atoms) => {
+      const markAtomLinks = atoms => {
         for (const atom of atoms || []) {
           const atomDangling = dangling.filter(d => d.source === atom.local_id);
           if (atomDangling.length > 0) {

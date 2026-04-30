@@ -77,23 +77,23 @@ D:/github/opencode-memory-plugin/
 
 ### lib/ 核心库
 
-| 文件                  | 主要导出                                                                                     | 说明                               |
-| --------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------- |
-| memory-core.js        | writeMemory, readMemory, writeAndSyncMemory, updateEntity, getEntityAtoms, markDeadLinks, loadContextByBudget, loadContextByLevel | 写入/读取/同步/实体/Atom 核心逻辑 |
-| entry.js              | buildEntryContent, writeEntryToTimeline, parseEntryFromFile | 条目格式化和文件操作               |
-| extractor.js          | extractByLevel, getEntryInfo                                | 分层提取和 frontmatter 解析        |
-| wrapper-client.js     | WrapperClient                                               | 后端 API 客户端（所有 HTTP 调用）  |
-| storage.js            | getConfig, getLinkMap, getEntryById                         | 配置和 link-map 读取               |
-| trie-index.js         | searchByPrefix, getAutocompleteSuggestions                  | Trie 索引和自动补全                |
-| code-analyzer.js      | CodeAnalyzer                                                | 代码 AST 分析（Oxc + Tree-sitter） |
-| tree-sitter-parser.js | analyzeWithTreeSitter                                       | 多语言 AST 解析                    |
-| project-analyzer.js   | ProjectAnalyzer                                             | 项目级分析（健康度评级）           |
+| 文件                  | 主要导出                                                                                                                          | 说明                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| memory-core.js        | writeMemory, readMemory, writeAndSyncMemory, updateEntity, getEntityAtoms, markDeadLinks, loadContextByBudget, loadContextByLevel | 写入/读取/同步/实体/Atom 核心逻辑  |
+| entry.js              | buildEntryContent, writeEntryToTimeline, parseEntryFromFile                                                                       | 条目格式化和文件操作               |
+| extractor.js          | extractByLevel, getEntryInfo                                                                                                      | 分层提取和 frontmatter 解析        |
+| wrapper-client.js     | WrapperClient                                                                                                                     | 后端 API 客户端（所有 HTTP 调用）  |
+| storage.js            | getConfig, getLinkMap, getEntryById                                                                                               | 配置和 link-map 读取               |
+| trie-index.js         | searchByPrefix, getAutocompleteSuggestions                                                                                        | Trie 索引和自动补全                |
+| code-analyzer.js      | CodeAnalyzer                                                                                                                      | 代码 AST 分析（Oxc + Tree-sitter） |
+| tree-sitter-parser.js | analyzeWithTreeSitter                                                                                                             | 多语言 AST 解析                    |
+| project-analyzer.js   | ProjectAnalyzer                                                                                                                   | 项目级分析（健康度评级）           |
 
 ### tools/ 工具
 
 | 文件      | 工具                                                                                                       | 后端依赖       |
 | --------- | ---------------------------------------------------------------------------------------------------------- | -------------- |
-| core.js   | memory_write, memory_pin, entity_update, entity_atoms, load_context_budget, load_context_level | 同步       |
+| core.js   | memory_write, memory_pin, entity_update, entity_atoms, load_context_budget, load_context_level             | 同步           |
 | search.js | memory_search, memory_suggest                                                                              | 搜索时后端优先 |
 | graph.js  | memory_relate, memory_graph                                                                                | 必须           |
 | browse.js | memory_timeline, memory_topics                                                                             | 无             |
@@ -144,8 +144,8 @@ meta: [{键:值}, ...]
 - **分隔符**: `# ≡≡≡ {标题} ≡≡≡` (3个≡)
 - **内容区域**: 使用 ``` 代码块包围
 - **meta**: 可选，JSON 数组 `[{"key":"value"},...]`
-- **abstract**: 必填，≤100 字符
-- **overview**: 必填，≤500 字符
+- **abstract**: 必填，建议 ≤100 字符（超长会警告但不拒绝）
+- **overview**: 必填，建议 ≤500 字符（超长会警告但不拒绝）
 
 ### Atom 扩展（v3.3+）
 
@@ -372,13 +372,13 @@ atoms:
 
 ### 已配置的检查项
 
-| 检查项           | 工具         | 阶段       | 说明                                  | 耗时     |
-| ---------------- | ------------ | ---------- | ------------------------------------- | -------- |
-| 🔐 安全扫描      | Gitleaks     | pre-commit | 检测硬编码的秘密（API key、密码等）   | <5 秒    |
-| 🔍 代码检查      | Oxlint       | pre-commit | JavaScript 代码规范检查               | <10 秒   |
-| 💅 代码格式化    | Prettier     | pre-commit | 代码格式化（JS/JSON/MD/YAML）         | <10 秒   |
-| 📝 Markdown 检查 | Markdownlint | pre-commit | Markdown 文档规范检查                 | <5 秒    |
-| 🧪 测试运行      | Jest         | pre-commit | 运行所有测试（57 个文件） | 30-60 秒 |
+| 检查项           | 工具         | 阶段       | 说明                                | 耗时     |
+| ---------------- | ------------ | ---------- | ----------------------------------- | -------- |
+| 🔐 安全扫描      | Gitleaks     | pre-commit | 检测硬编码的秘密（API key、密码等） | <5 秒    |
+| 🔍 代码检查      | Oxlint       | pre-commit | JavaScript 代码规范检查             | <10 秒   |
+| 💅 代码格式化    | Prettier     | pre-commit | 代码格式化（JS/JSON/MD/YAML）       | <10 秒   |
+| 📝 Markdown 检查 | Markdownlint | pre-commit | Markdown 文档规范检查               | <5 秒    |
+| 🧪 测试运行      | Jest         | pre-commit | 运行所有测试（57 个文件）           | 30-60 秒 |
 
 ### 测试门禁配置
 
@@ -558,27 +558,35 @@ wrapperClient = new WrapperClient({
 
 ---
 
-# AGENTS.md - 项目级 Agent 行为规则
+## AGENTS.md - 项目级 Agent 行为规则
 
 ## 规则 1：自动生成 project.md
+
 当用户说"生成 project.md"、"更新项目上下文"、"扫描现有代码"等时：
+
 - 自动调用 skill("project-context-writer")
 - 不要直接写文件，先走 brainstorming → 扫描 → writing-plans 的完整流程
 
 ## 规则 2：OpenSpec 变更自动走 OMO
-当用户处于 openspec/changes/*/ 目录上下文，或输入 /opsx:apply、/opsx:continue 时：
+
+当用户处于 openspec/changes/\*/ 目录上下文，或输入 /opsx:apply、/opsx:continue 时：
+
 - 自动调用 skill("opsx-execute")
 - 传入变更名称作为参数
 - 禁止直接单 agent 编码，必须经过 Sisyphus 调度
 
 ## 规则 3：存量项目约束（全局）
+
 所有涉及本项目的编码任务必须遵守：
+
 1. 向后兼容 —— 旧 API 不能断，新字段必须 optional
 2. 数据库迁移只增不减
 3. 修改现有函数前，必须先读原函数签名和测试
 4. 优先写适配层，不要直接改旧数据格式
 
 ## 规则 4：Superpowers 调用规范
+
 当需要 Superpowers 技能时：
+
 - 如果 OMO 未启用：直接 `skill("brainstorming")`
 - 如果 OMO 已启用：使用 `skill("superpowers/brainstorming")` 避免冲突

@@ -1,5 +1,11 @@
 import { tool } from '@opencode-ai/plugin/tool';
-import { writeAndSyncMemory, updateEntity, getEntityAtoms, loadContextByBudget, loadContextByLevel } from '../lib/memory-core.js';
+import {
+  writeAndSyncMemory,
+  updateEntity,
+  getEntityAtoms,
+  loadContextByBudget,
+  loadContextByLevel,
+} from '../lib/memory-core.js';
 import { getConfig, getLinkMap, resolveTenantId } from '../lib/storage.js';
 import { getWrapperClient } from '../lib/wrapper-client.js';
 import { resolveProjectId } from '../lib/project-resolver.js';
@@ -17,27 +23,43 @@ function normalizeTags(tags) {
 }
 
 export const memory_write = tool({
-  description: 'Write an entry to long-term memory with optional Atom tree structure. abstract and overview are REQUIRED.',
+  description:
+    'Write an entry to long-term memory with optional Atom tree structure. abstract and overview are REQUIRED.',
   args: {
     content: tool.schema.string().min(1).describe('L2: Full content (required)'),
-    abstract: tool.schema.string().min(1).describe('L0: Summary ≤100 chars (REQUIRED)'),
-    overview: tool.schema.string().min(1).describe('L1: Key points ≤500 chars (REQUIRED)'),
+    abstract: tool.schema
+      .string()
+      .min(1)
+      .describe('L0: Summary, recommended ≤100 chars (REQUIRED)'),
+    overview: tool.schema
+      .string()
+      .min(1)
+      .describe('L1: Key points, recommended ≤500 chars (REQUIRED)'),
     type: tool.schema.string().optional().default('general'),
     tags: tool.schema.array(tool.schema.string()).optional().default([]),
     pinned: tool.schema.boolean().optional().default(false),
-    atoms: tool.schema.array(
-      tool.schema.object({
-        local_id: tool.schema.string().describe('Unique local ID for this atom'),
-        type: tool.schema.string().describe('Atom type: chapter, section, function, class, note'),
-        name: tool.schema.string().describe('Display name of the atom'),
-        content: tool.schema.string().optional().describe('Atom content (optional)'),
-        parent_id: tool.schema.string().optional().describe('Parent atom local_id (null for root)'),
-        order: tool.schema.string().optional().describe('Fractional index for ordering (e.g., "a0", "aV")'),
-        heading_level: tool.schema.number().optional().describe('Heading level (1-4)'),
-        tags: tool.schema.array(tool.schema.string()).optional().default([]),
-        aliases: tool.schema.array(tool.schema.string()).optional().default([]),
-      })
-    ).optional().describe('Optional Atom tree structure for hierarchical knowledge organization'),
+    atoms: tool.schema
+      .array(
+        tool.schema.object({
+          local_id: tool.schema.string().describe('Unique local ID for this atom'),
+          type: tool.schema.string().describe('Atom type: chapter, section, function, class, note'),
+          name: tool.schema.string().describe('Display name of the atom'),
+          content: tool.schema.string().optional().describe('Atom content (optional)'),
+          parent_id: tool.schema
+            .string()
+            .optional()
+            .describe('Parent atom local_id (null for root)'),
+          order: tool.schema
+            .string()
+            .optional()
+            .describe('Fractional index for ordering (e.g., "a0", "aV")'),
+          heading_level: tool.schema.number().optional().describe('Heading level (1-4)'),
+          tags: tool.schema.array(tool.schema.string()).optional().default([]),
+          aliases: tool.schema.array(tool.schema.string()).optional().default([]),
+        })
+      )
+      .optional()
+      .describe('Optional Atom tree structure for hierarchical knowledge organization'),
   },
   async execute(args) {
     const config = getConfig();
@@ -132,28 +154,47 @@ export const entity_update = tool({
   description: 'Update an entity with batch Atom operations (add/update/remove).',
   args: {
     entry_id: tool.schema.string().describe('Entity ID to update (required)'),
-    entity_updates: tool.schema.object({
-      abstract: tool.schema.string().optional(),
-      overview: tool.schema.string().optional(),
-      content: tool.schema.string().optional(),
-      tags: tool.schema.array(tool.schema.string()).optional(),
-      meta: tool.schema.array(tool.schema.object({})).optional(),
-    }).optional().describe('Entity-level fields to update'),
-    atoms_batch: tool.schema.array(
-      tool.schema.object({
-        action: tool.schema.string().describe("Action to perform: 'add', 'update', or 'remove'"),
-        local_id: tool.schema.string().describe('Local ID of the atom'),
-        type: tool.schema.string().optional().describe('Atom type (for add/update)'),
-        name: tool.schema.string().optional().describe('Atom name (for add/update)'),
-        content: tool.schema.string().optional().describe('Atom content (for add/update)'),
-        parent_id: tool.schema.string().optional().describe('Parent atom local_id (for add)'),
-        order: tool.schema.string().optional().describe('Fractional index (for add/update)'),
-        heading_level: tool.schema.number().optional().describe('Heading level 1-4 (for add/update)'),
-        tags: tool.schema.array(tool.schema.string()).optional().describe('Atom tags (for add/update)'),
-        aliases: tool.schema.array(tool.schema.string()).optional().describe('Atom aliases (for add/update)'),
-        cascade: tool.schema.boolean().optional().default(false).describe('Remove children when removing (for remove action)'),
+    entity_updates: tool.schema
+      .object({
+        abstract: tool.schema.string().optional(),
+        overview: tool.schema.string().optional(),
+        content: tool.schema.string().optional(),
+        tags: tool.schema.array(tool.schema.string()).optional(),
+        meta: tool.schema.array(tool.schema.object({})).optional(),
       })
-    ).optional().describe('Batch operations on atoms'),
+      .optional()
+      .describe('Entity-level fields to update'),
+    atoms_batch: tool.schema
+      .array(
+        tool.schema.object({
+          action: tool.schema.string().describe("Action to perform: 'add', 'update', or 'remove'"),
+          local_id: tool.schema.string().describe('Local ID of the atom'),
+          type: tool.schema.string().optional().describe('Atom type (for add/update)'),
+          name: tool.schema.string().optional().describe('Atom name (for add/update)'),
+          content: tool.schema.string().optional().describe('Atom content (for add/update)'),
+          parent_id: tool.schema.string().optional().describe('Parent atom local_id (for add)'),
+          order: tool.schema.string().optional().describe('Fractional index (for add/update)'),
+          heading_level: tool.schema
+            .number()
+            .optional()
+            .describe('Heading level 1-4 (for add/update)'),
+          tags: tool.schema
+            .array(tool.schema.string())
+            .optional()
+            .describe('Atom tags (for add/update)'),
+          aliases: tool.schema
+            .array(tool.schema.string())
+            .optional()
+            .describe('Atom aliases (for add/update)'),
+          cascade: tool.schema
+            .boolean()
+            .optional()
+            .default(false)
+            .describe('Remove children when removing (for remove action)'),
+        })
+      )
+      .optional()
+      .describe('Batch operations on atoms'),
   },
   async execute(args) {
     const { entry_id, entity_updates, atoms_batch } = args;
@@ -178,7 +219,7 @@ export const entity_update = tool({
       }
 
       let message = `✅ Entity updated successfully\n- Entity ID: ${result.entity_id}`;
-      
+
       if (result.atoms_result && result.atoms_result.length > 0) {
         message += `\n- Atom operations: ${result.atoms_result.length}`;
         for (const op of result.atoms_result) {
@@ -210,7 +251,11 @@ export const entity_atoms = tool({
   description: 'Get the Atom tree structure of an entity.',
   args: {
     entry_id: tool.schema.string().describe('Entity ID to retrieve atoms for (required)'),
-    include_content: tool.schema.boolean().optional().default(true).describe('Whether to include atom content in the response'),
+    include_content: tool.schema
+      .boolean()
+      .optional()
+      .default(true)
+      .describe('Whether to include atom content in the response'),
   },
   async execute(args) {
     const { entry_id, include_content } = args;
@@ -229,11 +274,15 @@ export const entity_atoms = tool({
         return `❌ Error: ${result.error}`;
       }
 
-      return JSON.stringify({
-        entity_id: result.entity_id,
-        total_atoms: result.total_atoms,
-        tree: result.tree,
-      }, null, 2);
+      return JSON.stringify(
+        {
+          entity_id: result.entity_id,
+          total_atoms: result.total_atoms,
+          tree: result.tree,
+        },
+        null,
+        2
+      );
     } catch (error) {
       return `❌ Error: Failed to retrieve atoms: ${error.message}`;
     }
@@ -241,12 +290,21 @@ export const entity_atoms = tool({
 });
 
 export const load_context_budget = tool({
-  description: 'Load entity context within a token budget. Selects the most relevant atoms when the entity has many atoms (50+).',
+  description:
+    'Load entity context within a token budget. Selects the most relevant atoms when the entity has many atoms (50+).',
   args: {
     entry_id: tool.schema.string().describe('Entity ID to load atoms from (required)'),
     query: tool.schema.string().describe('Current query for relevance scoring (required)'),
-    max_tokens: tool.schema.number().optional().default(2000).describe('Maximum tokens to include (default 2000)'),
-    strategy: tool.schema.string().optional().default('relevance').describe("Selection strategy: 'relevance' (BM25+title) or 'hierarchy' (top-level first)"),
+    max_tokens: tool.schema
+      .number()
+      .optional()
+      .default(2000)
+      .describe('Maximum tokens to include (default 2000)'),
+    strategy: tool.schema
+      .string()
+      .optional()
+      .default('relevance')
+      .describe("Selection strategy: 'relevance' (BM25+title) or 'hierarchy' (top-level first)"),
   },
   async execute(args) {
     const { entry_id, query, max_tokens, strategy } = args;
@@ -284,7 +342,9 @@ export const load_context_budget = tool({
         `   Tokens: ${result.used_tokens}/${result.max_tokens} (${result.budget_utilization}% utilization)`,
         `   Strategy: ${result.strategy}`,
         '',
-        ...atoms.map(a => `  [${a.relevance_score.toFixed(2)}] [[${a.local_id}]] ${a.name} (${a.tokens}t)`),
+        ...atoms.map(
+          a => `  [${a.relevance_score.toFixed(2)}] [[${a.local_id}]] ${a.name} (${a.tokens}t)`
+        ),
       ].join('\n');
     } catch (error) {
       return `❌ Error: Failed to load context: ${error.message}`;
@@ -293,12 +353,19 @@ export const load_context_budget = tool({
 });
 
 export const load_context_level = tool({
-  description: 'Load entity context filtered by hierarchy level. Returns a markdown document with only the requested depth.',
+  description:
+    'Load entity context filtered by hierarchy level. Returns a markdown document with only the requested depth.',
   args: {
     entry_id: tool.schema.string().describe('Entity ID to load atoms from (required)'),
-    max_level: tool.schema.number().optional().default(2)
+    max_level: tool.schema
+      .number()
+      .optional()
+      .default(2)
       .describe('1=chapters only, 2=chapters+sections, 3=all details'),
-    include_breadcrumbs: tool.schema.boolean().optional().default(true)
+    include_breadcrumbs: tool.schema
+      .boolean()
+      .optional()
+      .default(true)
       .describe('Include parent chain breadcrumbs in markdown'),
   },
   async execute(args) {

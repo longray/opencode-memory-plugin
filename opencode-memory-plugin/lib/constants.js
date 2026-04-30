@@ -54,11 +54,15 @@ export const DEFAULT_FILE_TIMEOUT_MS = 500;
 /** Maximum file size (bytes) — used by privacy filter to limit file processing */
 export const MAX_FILE_SIZE = 1024 * 1024; // 1MB
 
-/** Maximum length of abstract field — used by memory-core for validation */
-export const MAX_ABSTRACT_LENGTH = 100;
+/** Recommended length of abstract field — used by memory-core for validation guidance */
+export const RECOMMENDED_ABSTRACT_LENGTH = 100;
 
-/** Maximum length of overview field — used by memory-core for validation */
-export const MAX_OVERVIEW_LENGTH = 500;
+/** Recommended length of overview field — used by memory-core for validation guidance */
+export const RECOMMENDED_OVERVIEW_LENGTH = 500;
+
+// Backward compatibility aliases (deprecated, use RECOMMENDED_* instead)
+export const MAX_ABSTRACT_LENGTH = RECOMMENDED_ABSTRACT_LENGTH;
+export const MAX_OVERVIEW_LENGTH = RECOMMENDED_OVERVIEW_LENGTH;
 
 /** Maximum lines in overview file — used by indexer to limit .overview.md length */
 export const MAX_OVERVIEW_LINES = 102;
