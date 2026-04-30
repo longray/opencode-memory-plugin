@@ -1,6 +1,6 @@
 ---
 status: draft
-version: 1.0.0
+version: 1.1.0
 last_updated: 2026-05-01
 owner: Prometheus
 ---
@@ -208,6 +208,33 @@ CI = x̄ ± 1.96 * (s / sqrt(n))
 
 效应量的置信区间使用非中心化 t 分布计算。
 
+### 2.6 配对检验方法（交叉设计专用）
+
+阶段二交叉验证中，同一参与者先后体验 Atom 和 Entity 两种模式，数据为配对样本，需使用配对检验：
+
+- **参数检验**: 配对 t 检验（Paired t-test）——差值满足正态性时使用
+- **非参数检验**: Wilcoxon 符号秩检验（Wilcoxon signed-rank test）——差值不满足正态性时使用
+
+**配对效应量**（Cohen's d_z）：
+
+```text
+d_z = M_diff / S_diff
+
+其中：
+- M_diff = 同一参与者在两种模式下测量值的均值差
+- S_diff = 差值的标准差
+```
+
+**残留效应分析**（Carryover Effect）：
+
+为排除先体验模式对后体验模式的干扰，需检验：
+
+```text
+1. Period × Group 交互作用（ANOVA）——若显著，说明存在顺序效应
+2. Washout 期有效性——比较 Period 1 先 Atom 组 vs Period 1 先 Entity 组
+3. 若残留效应显著，仅使用 Period 1 数据（退化为被试间设计）
+```
+
 ---
 
 ## 三、基线测量
@@ -265,9 +292,17 @@ CI = x̄ ± 1.96 * (s / sqrt(n))
 
 ## 四、A/B 测试设计
 
-### 4.1 随机化方法
+### 4.1 实验设计说明
 
-- **被试间设计**（between-subjects）: 每个参与者只体验一种模式
+本评估采用**混合实验设计**（mixed design），分两个阶段：
+
+- **阶段一（首次接触）**: 被试间设计（between-subjects）——每个参与者首次体验仅分配到一种模式，避免先入为主的偏见
+- **阶段二（交叉验证）**: 被试内设计（within-subjects / crossover）——同一参与者先后体验两种模式，消除个体差异
+
+统计分析时，阶段一使用独立样本检验（见 2.1），阶段二使用配对检验（见 2.6）。
+
+### 4.2 随机化方法
+
 - **随机分配**: 使用简单随机分配，通过哈希函数确保可重复性
 
   ```javascript
@@ -279,7 +314,7 @@ CI = x̄ ± 1.96 * (s / sqrt(n))
 
 - **分层因素**: 按使用经验（新手 / 熟练 / 专家）分层，确保各组经验分布均衡
 
-### 4.2 交叉验证设计
+### 4.3 交叉验证设计
 
 为控制个体差异和学习效应，采用**拉丁方设计**（Latin Square）进行交叉实验：
 
@@ -293,7 +328,7 @@ CI = x̄ ± 1.96 * (s / sqrt(n))
 - **顺序效应检验**: 检验 Period × Group 交互作用是否显著
 - **适用范围**: 仅适用于需要同一用户对比两种模式的场景（如检索精准度、token 效率）
 
-### 4.3 控制变量
+### 4.4 控制变量
 
 | 控制变量 | 控制方法 | 说明 |
 |----------|----------|------|
@@ -310,15 +345,17 @@ CI = x̄ ± 1.96 * (s / sqrt(n))
 
 ### 5.1 自动化测试脚本
 
-> **注意**: 以下脚本为伪代码设计，待实现为可执行脚本。可执行版本将放置在 `../scripts/` 目录。
+> **注意**: 以下脚本为伪代码设计，待实现为可执行脚本。可执行版本将放置在 `./scripts/` 目录。
+>
+> **依赖路径**: 实际脚本中，`lib/` 和 `tools/` 的相对路径应为 `../../../lib/` 和 `../../../tools/`（从 `docs/v3.3/evaluation/scripts/` 到项目根目录）。
 
 #### 脚本 1: 知识组织质量分析
 
 ```javascript
 // evaluate-atom-quality.js — 伪代码 → 待实现为可执行脚本
-// 可执行版本: ../scripts/evaluate-atom-quality.js
-import { getEntityAtoms } from './lib/memory-core.js';
-import { getConfig } from './lib/storage.js';
+// 可执行版本: ./scripts/evaluate-atom-quality.js
+import { getEntityAtoms } from '../../../lib/memory-core.js';
+import { getConfig } from '../../../lib/storage.js';
 
 async function evaluateAtomQuality(entryId) {
   const result = await getEntityAtoms({ entry_id: entryId });
@@ -366,8 +403,8 @@ async function batchEvaluate() {
 
 ```javascript
 // evaluate-search-performance.js — 伪代码 → 待实现为可执行脚本
-// 可执行版本: ../scripts/evaluate-search-performance.js
-import { memory_search } from './tools/search.js';
+// 可执行版本: ./scripts/evaluate-search-performance.js
+import { memory_search } from '../../../tools/search.js';
 
 const TEST_QUERIES = [
   { query: "Vue3 Composition API", expected: ["setup", "ref", "reactive"] },
@@ -387,8 +424,14 @@ async function evaluateSearchPerformance(mode = 'atom') {
     });
     const endTime = Date.now();
 
+    // 语义相关性评估：使用后端返回的 relevance score（若有），
+    // 或由评估者对每条结果标注相关性（0/1 二元）
     const relevant = searchResults.filter(r =>
-      test.expected.some(e => r.content.includes(e))
+      test.expected.some(keyword =>
+        r.abstract?.includes(keyword) ||
+        r.overview?.includes(keyword) ||
+        (r.relevance_score !== undefined && r.relevance_score >= 0.5)
+      )
     ).length;
 
     results.push({
@@ -430,9 +473,9 @@ async function runComparison() {
 
 ```javascript
 // evaluate-context-efficiency.js — 伪代码 → 待实现为可执行脚本
-// 可执行版本: ../scripts/evaluate-context-efficiency.js
-import { memory_read } from './tools/core.js';
-import { getEntityAtoms } from './lib/memory-core.js';
+// 可执行版本: ./scripts/evaluate-context-efficiency.js
+import { memory_read } from '../../../tools/core.js';
+import { getEntityAtoms } from '../../../lib/memory-core.js';
 
 async function measureContextEfficiency(entryId, mode = 'atom') {
   let tokens = 0;
@@ -447,6 +490,8 @@ async function measureContextEfficiency(entryId, mode = 'atom') {
     content = entity.content;
   }
 
+  // Token 估算：content.length / 4 为英文近似值。
+  // 中文/混合内容约 1.5-2 字/token，需按实际语种调整系数。
   tokens = Math.ceil(content.length / 4);
 
   return {
@@ -491,6 +536,8 @@ async function batchMeasure() {
 ### 5.2 可视化仪表板
 
 #### 设计草图
+
+> **注意**: 以下仪表板为示意占位图（illustrative placeholder），展示预期布局和数据类型。实际实现时样式和数据将根据真实评估结果调整。
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -669,8 +716,6 @@ NPS = 推荐者比例(%) - 贬损者比例(%)
 | `evaluate-atom-quality.js` | Atom 结构质量分析 | JSON 报告 | 伪代码 |
 | `evaluate-search-performance.js` | 检索性能对比 | JSON 报告 | 伪代码 |
 | `evaluate-context-efficiency.js` | 上下文效率测量 | JSON 报告 | 伪代码 |
-| `evaluate-link-usage.js` | 链接利用率统计 | JSON 报告 | 伪代码 |
-| `generate-dashboard.js` | 生成可视化仪表板 | HTML | 伪代码 |
 
 ### 附录 C：问卷模板
 

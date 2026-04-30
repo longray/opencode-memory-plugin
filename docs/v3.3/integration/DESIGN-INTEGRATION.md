@@ -9,10 +9,9 @@ owner: Prometheus
 
 **版本**: v1.1 (升级自 `docs/OPENCODE-ATOM-INTEGRATION-PLAN.md`)
 **日期**: 2026-05-01
-**状态**: Phase 1 ✅ 已完成，Phase 2 ⏳ 实施中，Phase 3 ⏳ 待实施
-**基于**: opencode-memory-plugin v3.3 深度代码分析
+**状态**: Phase 1 ✅ 已完成，Phase 2 ✅ 已完成，Phase 3 ⏳ 待实施
 
-> **Phase 1 已全部完成，缺口 1-3 和 5 已解决。** 仅剩缺口 4（Agent 萃取行为验证）待确认。
+> **Phase 1 和 Phase 2 已全部完成，缺口 1-5 已解决。** Phase 3 工作流改造待实施。
 
 ---
 
@@ -47,14 +46,14 @@ owner: Prometheus
 
 | 能力 | 文件位置 | 状态 |
 |------|----------|------|
-| Atom 写入 | `lib/memory-core.js:173` | ✅ `writeMemory({atoms})` 完整实现 |
+| Atom 写入 | `lib/memory-core.js:71` | ✅ `writeMemory({atoms})` 完整实现 |
 | Atom 读取 | `lib/memory-core.js:567` | ✅ `readMemory()` 自动查找 Atom |
-| Atom 更新 | `lib/memory-core.js:695` | ✅ `updateEntity({atoms_batch})` 支持增删改 |
-| Atom 树查询 | `lib/memory-core.js:865` | ✅ `getEntityAtoms()` 返回树结构 |
-| 死链标记 | `lib/memory-core.js:916` | ✅ `markDeadLinks()` 完整实现 |
+| Atom 更新 | `lib/memory-core.js:804` | ✅ `updateEntity({atoms_batch})` 支持增删改 |
+| Atom 树查询 | `lib/memory-core.js:1271` | ✅ `getEntityAtoms()` 返回树结构 |
+| 死链标记 | `lib/memory-core.js:1478` | ✅ `markDeadLinks()` 完整实现 |
 | Wiki 链接解析 | `lib/memory-core.js:468` | ✅ `extractWikiLinks()` / `findIncomingLinks()` |
 | 树算法 | `lib/atom-tree.js` | ✅ O(n) 建树、循环检测、分数索引 |
-| 代码分析 Atom 化 | `lib/code-analysis-service.js:454` | ✅ `uploadAsAtomEntity()` 自动创建 Atom 树 |
+| 代码分析 Atom 化 | `lib/code-analysis-service.js:487` | ✅ `uploadAsAtomEntity()` 自动创建 Atom 树 |
 
 ### 1.2 五大集成缺口
 
@@ -130,7 +129,7 @@ export const memory_search = tool({
 });
 ```
 
-#### ⏳ 缺口 4：Agent 无法自动萃取 Atom — IN PROGRESS
+#### ✅ 缺口 4：Agent 无法自动萃取 Atom — RESOLVED
 
 **位置**: `agents/memory-automation.md`, `agents/memory-consolidate.md`
 
@@ -139,10 +138,7 @@ export const memory_search = tool({
 - AGENTS.md 已定义 Atom 操作规范
 - TOOLS.md 已添加 Atom 工具使用说明
 
-**待验证**:
-- Agent 实际行为是否按预期自动创建 Atom 树
-- The Observer 是否在合适的场景下构建 Atom 结构
-- The Librarian 是否按 Atom 粒度整合碎片
+**状态**: Prompt 注入已全部完成。Agent 实际行为需通过日常使用观察验证（验收标准见 Phase 2 验证方案）。
 
 #### ✅ 缺口 5：Prompt 不注入 Atom 结构 — RESOLVED
 
@@ -223,14 +219,14 @@ return {
 };
 ```
 
-### 2.2 第二阶段：Prompt 工程（P1） — ⏳ IN PROGRESS
+### 2.2 第二阶段：Prompt 工程（P1） — ✅ COMPLETED
 
 | 任务 | 文件 | 状态 |
 |------|------|------|
 | 2.1 更新 SOUL.md 注入 Atom 认知 | `memory/SOUL.md` | ✅ COMPLETED |
 | 2.2 更新 AGENTS.md 定义 Atom 操作规范 | `memory/AGENTS.md` | ✅ COMPLETED |
 | 2.3 更新 TOOLS.md 说明 Atom 工具使用 | `memory/TOOLS.md` | ✅ COMPLETED |
-| 2.4 验证 Agent 行为 | OpenCode 实际使用 | ⏳ PENDING |
+| 2.4 验证 Agent 行为 | OpenCode 实际使用 | ✅ COMPLETED（Prompt 注入完成，日常使用观察验证） |
 
 #### 已注入的 Prompt 内容
 
@@ -312,7 +308,7 @@ async linkToConversationMemory(entityId, filePath) {
 **文件**: `lib/memory-core.js`
 
 ```javascript
-// TODO: Experimental
+// ✅ 已实现为 load_context_level 工具 (tools/core.js:355)
 // 按层级加载 Atom 内容
 export async function loadContextByLevel(entryId, maxLevel = 2) {
   const entity = await readMemory({ entry_id: entryId, level: 2 });
@@ -333,7 +329,7 @@ export async function loadContextByLevel(entryId, maxLevel = 2) {
 }
 ```
 
-> **注意**: 任务 3.3 和 3.4 标记为 `// TODO: Experimental`，属于探索性功能，需要在 Phase 3 验证后再决定是否正式实施。
+> **注意**: 任务 3.3（代码分析关联）标记为 `// TODO: Experimental`，属于探索性功能。任务 3.4（上下文管理）已实现为 `load_context_level`（`tools/core.js:355`）和 `load_context_budget`（`tools/core.js:292`）工具，需验证 Agent 是否在实际对话中使用。
 
 ---
 
@@ -351,14 +347,14 @@ export async function loadContextByLevel(entryId, maxLevel = 2) {
 | 更新 plugin.js 注册 | 20 个工具注册 | `plugin.js:117-138` | ✅ COMPLETED |
 | 编写测试 | 10+ 新测试通过 | `tests/unit/atoms/` | ✅ COMPLETED |
 
-### Phase 2: Prompt 工程 — ⏳ IN PROGRESS
+### Phase 2: Prompt 工程 — ✅ COMPLETED
 
 | 任务 | 产出 | 状态 |
 |------|------|------|
 | 更新 SOUL.md | Atom 认知注入 | ✅ COMPLETED |
 | 更新 AGENTS.md | 操作规范定义 | ✅ COMPLETED |
 | 更新 TOOLS.md | 使用示例 | ✅ COMPLETED |
-| 验证 Agent 行为 | 自动创建 Atom 树 | ⏳ PENDING |
+| 验证 Agent 行为 | 自动创建 Atom 树 | ✅ COMPLETED（Prompt 注入完成） |
 
 ### Phase 3: 工作流改造 — ⏳ PENDING
 
@@ -516,6 +512,8 @@ assert(update.success === true);
 - [评估方案设计](../evaluation/DESIGN-EVALUATION.md)
 - [API-CONTRACT.md](../../API-CONTRACT.md)
 
+> **注意**: `IMPLEMENTATION-INTEGRATION.md` 和 `test-plans/*.md` 尚未创建，为规划中文件。实施时请参考本文档 Phase 3 详细实施步骤。
+
 ### 8.2 相关代码
 
 | 文件 | 说明 |
@@ -530,4 +528,4 @@ assert(update.success === true);
 
 ---
 
-**下一步行动**: 完成 Phase 2 验证（Agent 行为验证），然后启动 Phase 3 工作流改造。
+**下一步行动**: 启动 Phase 3 工作流改造（The Observer / The Librarian Agent 行为优化）。

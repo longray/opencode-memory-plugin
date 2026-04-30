@@ -281,7 +281,7 @@ memory_write({
           content: "ref() 和 reactive()...",
           order: "a0",             # 在子级中排序
           heading_level: 2,
-          parent_local_id: "01PARENT...",  # 指向父 Atom 的 local_id
+          parent_id: "01PARENT...",  # 指向父 Atom 的 local_id
           children: []             # 可以继续嵌套
         }
       ]
@@ -292,7 +292,7 @@ memory_write({
       content: "懒加载技巧...",
       order: "a1",
       heading_level: 1,
-      parent_local_id: null,
+      parent_id: null,
       children: []
     }
   ],
@@ -336,7 +336,7 @@ await update_entity({
       type: "section",
       name: "1.2",
       content: "...",
-      parent_local_id: "01A1B2...",
+      parent_id: "01A1B2...",
       order: "aV",
     },
     { action: "update", local_id: "01A1B2...", content: "更新后的内容" },
@@ -350,14 +350,14 @@ await update_entity({
 ```javascript
 // 前端传输：树结构
 // 传输到后端前自动扁平化
-function flattenAtomTree(tree, parentLocalId = null, result = []) {
+function flattenAtomTree(tree, parentId = null, result = []) {
   for (let i = 0; i < tree.length; i++) {
     const node = tree[i];
     const { children, ...nodeWithoutChildren } = node;
 
     const flatNode = {
       ...nodeWithoutChildren,
-      parent_local_id: parentLocalId,
+      parent_id: parentId,
       children: undefined,
     };
     result.push(flatNode);
@@ -420,7 +420,7 @@ memory_read({ entry_id: "01A1B2C3D4..." });  // 在 Entity 的 atoms 中找到�
   name: "Composition API",
   content: "setup() 函数...",
   tags: ["setup"],
-  parent_local_id: null,
+  parent_id: null,
   order: "a0",
   heading_level: 1,
   aliases: ["Setup API"],
@@ -474,22 +474,10 @@ get_entity_atoms({
   ]
 }
 
-// API 2: 获取 Entity 的 Atom 扁平列表（适合遍历）
-list_entity_atoms({
-  entry_id: "entity_01HQ...",
-  include_content: true,   // 是否包含 content
-  type: "chapter"          // 可选过滤
-});
-// 返回：
-{
-  entity_id: "entity_01HQ...",
-  atoms: [
-    { local_id: "01A1B2C3D4...", atom_id: "atom:xxx", type: "chapter", name: "Composition API", content: "..." },
-    { local_id: "01E5F6G7H8...", atom_id: "atom:yyy", type: "section", name: "1.1 Reactive State", content: "..." }
-  ]
-}
+// TODO: 未实现 — list_entity_atoms API 不存在，使用 get_entity_atoms 替代
+// 如需扁平列表，可对 get_entity_atoms 返回的树做后处理
 
-// API 3: 后端全局 Atom 搜索（已存在：wrapperClient.listAtoms）
+// API 2: 后端全局 Atom 搜索（已存在：wrapperClient.listAtoms）
 // GET /api/v1/atoms?entity_id=xxx&type=chapter&limit=10
 listAtoms({
   entity_id: "entity_01HQ...",  // 可选：只查某个 Entity 的 Atoms
@@ -498,8 +486,6 @@ listAtoms({
   limit: 10
 });
 ```
-
-**注意**：Atom 没有独立的增删改 API，所有操作通过 `update_entity` 的 `atoms_batch` 参数批量提交。
 
 **实现逻辑**：
 
@@ -648,7 +634,7 @@ update_entity({
       type: "section",
       name: "1.2 Computed",
       content: "...",
-      parent_local_id: "01PARENT...", // 父 Atom 的 local_id
+      parent_id: "01PARENT...", // 父 Atom 的 local_id
       order: "aV"
     },
     {
@@ -656,7 +642,7 @@ update_entity({
       local_id: "01EXIST...",         // 用 local_id 定位
       content: "更新后的内容",
       name: "新标题"
-      // 可更新字段：name, content, type, parent_local_id, order, tags, aliases
+      // 可更新字段：name, content, type, parent_id, order, tags, aliases
     },
     {
       action: "remove",
@@ -702,9 +688,9 @@ async function update_entity({ entry_id, entity_updates, atoms_batch }) {
             type: op.type,
             name: op.name,
             content: op.content,
-            parent_id: op.parent_local_id || null,
+            parent_id: op.parent_id || null,
             order: op.order,
-            heading_level: calculateHeadingLevel(entityCopy.atoms, op.parent_local_id),
+            heading_level: calculateHeadingLevel(entityCopy.atoms, op.parent_id),
             tags: op.tags || [],
             aliases: op.aliases || []
           };
@@ -720,9 +706,9 @@ async function update_entity({ entry_id, entity_updates, atoms_batch }) {
           if (op.content !== undefined) atomToUpdate.content = op.content;
           if (op.name !== undefined) atomToUpdate.name = op.name;
           if (op.type !== undefined) atomToUpdate.type = op.type;
-          if (op.parent_local_id !== undefined) {
-            atomToUpdate.parent_id = op.parent_local_id;
-            atomToUpdate.heading_level = calculateHeadingLevel(entityCopy.atoms, op.parent_local_id);
+          if (op.parent_id !== undefined) {
+            atomToUpdate.parent_id = op.parent_id;
+            atomToUpdate.heading_level = calculateHeadingLevel(entityCopy.atoms, op.parent_id);
           }
           if (op.order !== undefined) atomToUpdate.order = op.order;
           if (op.tags !== undefined) atomToUpdate.tags = op.tags;
@@ -834,7 +820,10 @@ function detectCircularReference(atoms) {
 
 #### unified_search（新增工具）
 
+> **TODO: 未实现** — `unified_search` 工具当前不存在，使用 `memory_search({ scope: "atom" })` 替代
+
 ```javascript
+// 以下为设计稿，实际 API 尚未实现
 unified_search({
   query: "Vue",
   scope: "all",                    # all | memory | code
@@ -932,66 +921,9 @@ Vue 3 最佳实践
 
 ---
 
-## 7. 渐进披露（保持不变）
+## 7. 双向链接处理
 
-```
-
-Level 0 (Entity):
-├─ type: "entity"
-├─ id: "entity_01HQ..."
-└─ abstract: "Vue 3 最佳实践" # L0
-
-Level 1 (Entity):
-├─ type: "entity"
-├─ id: "entity_01HQ..."
-├─ abstract: "Vue 3 最佳实践" # L0
-└─ overview: { chapters: 3, ... } # L1
-
-<!-- 注意：不返回 atoms 清单 -->
-
-Level 2 (Entity):
-├─ type: "entity"
-├─ id: "entity_01HQ..."
-├─ abstract: "Vue 3 最佳实践" # L0
-├─ overview: { chapters: 3, ... } # L1
-└─ content: "Vue 3 最佳实践...\n\n[[01A1B2C3D4...]] 第一章...\n\n[[01W3X4Y5Z6...]] 第二章..."
-
-<!-- L2: 完整文本，包含 Atom local_id（[[local_id]] 格式） -->
-
-<!-- 通过 local_id 可进一步查询完整属性或更新 -->
-
-Atom 读取:
-├─ type: "atom"
-├─ local_id: "01A1B2C3D4..."
-├─ atom_id: "atom:xxx" # 同步后后端返回
-├─ entity_id: "entity_01HQ..."
-├─ atom_type: "chapter"
-├─ name: "Composition API"
-├─ content: "setup() 函数..." # Atom 完整内容
-├─ parent_local_id: null
-├─ order: "a0"
-├─ heading_level: 1
-├─ outgoing_links: [...] # 解析出的链接
-└─ incoming_links: [...] # 反向链接
-
-````
-
-**设计意图**：
-- **Level 0**: 快速扫描，判断是否需要深入
-- **Level 1**: 概览浏览，了解知识结构
-- **Level 2**: 完整内容，包含 Atom local_id 标记，可通过 ID 进一步操作
-- **Atom 读取**: 获取原子级完整信息
-
-**Atom 查询路径**：
-1. `memory_read({ entry_id, level: 2 })` → 获取包含 Atom local_id 的 content
-2. 发现 `[[01A1B2C3D4...]]` → 调用 `memory_read({ entry_id: "01A1B2C3D4..." })`
-3. 或调用 `get_entity_atoms({ entry_id })` → 获取完整 Atom 树
-
----
-
-## 8. 双向链接处理
-
-### 8.1 存储格式
+### 7.1 存储格式
 
 ```markdown
 # Atom content 中的链接（使用 local_id）
@@ -1003,7 +935,7 @@ setup() 函数参见 [[01I9J0K1L2...|Performance 章节]] 的优化技巧。
 
 **注意**：Wiki 链接使用 Atom 的 `local_id`（纯 ULID），不是 `atom_id`。
 
-### 8.2 解析与缓存
+### 7.2 解析与缓存
 
 ```javascript
 // 写入时：提取 outgoing_refs
@@ -1048,13 +980,13 @@ function findIncomingLinks(allAtoms, targetLocalId) {
 
 ---
 
-## 9. 关键算法
+## 8. 关键算法
 
-### 9.1 循环引用检测（三色 DFS）
+### 8.1 循环引用检测（三色 DFS）
 
 见 Section 5.2 `update_entity` 实现中的 `detectCircularReference` 函数。
 
-### 9.2 分数索引生成
+### 8.2 分数索引生成
 
 ```javascript
 function generateFractionalIndex(prevIndex = null, nextIndex = null) {
@@ -1071,15 +1003,14 @@ function generateFractionalIndex(prevIndex = null, nextIndex = null) {
 // 简化实现：使用字符串比较
 function midIndex(a, b) {
   // 在 "a0" 和 "a1" 之间生成 "aV"
-  // 实际实现需要 base-62 算术
-  // TODO: 完整实现
+  // 实际实现见 atom-tree.js:150 generateFractionalIndex（已实现 base-62 分数索引）
   return "aV"; // 占位
 }
 ```
 
 ---
 
-## 10. 潜在风险与缓解措施
+## 9. 潜在风险与缓解措施
 
 | 风险               | 等级  | 说明                       | 缓解措施                                   |
 | ------------------ | ----- | -------------------------- | ------------------------------------------ |
@@ -1092,7 +1023,7 @@ function midIndex(a, b) {
 
 ---
 
-## 11. link-map.json 扩展
+## 10. link-map.json 扩展
 
 ```json
 {
@@ -1118,7 +1049,7 @@ function midIndex(a, b) {
 
 ---
 
-## 12. 实施步骤
+## 11. 实施步骤
 
 ### Phase 1: 后端基础（1 周）
 
@@ -1141,7 +1072,7 @@ function midIndex(a, b) {
   - 修改 `memory_write` 支持 atoms 树参数（`tools/core.js:83-97`）
   - 修改 `memory_read` 自动检测 ID 类型（`memory-core.js:600+`）
   - 实现 `extractWikiLinks` 链接解析（`atom-tree.js:226`）
-  - 实现 `findIncomingLinks` 反向链接查询（`atom-tree.js:509`）
+  - 实现 `findIncomingLinks` 反向链接查询（`memory-core.js:509`）
 
 ### Phase 3: 高级功能（1 周）
 
@@ -1162,7 +1093,7 @@ function midIndex(a, b) {
 
 ---
 
-## 13. 决策记录
+## 12. 决策记录
 
 | 决策         | 选择               | 理由                               |
 | ------------ | ------------------ | ---------------------------------- |
@@ -1175,9 +1106,9 @@ function midIndex(a, b) {
 
 ---
 
-## 14. 向后兼容性
+## 13. 向后兼容性
 
-### 14.1 兼容性策略
+### 13.1 兼容性策略
 
 | 场景                          | 行为                                                |
 | ----------------------------- | --------------------------------------------------- |
@@ -1186,7 +1117,7 @@ function midIndex(a, b) {
 | 旧版 link-map.json            | ⚠️ 自动升级，添加 atom_count 字段                   |
 | 旧版文件格式                  | ✅ 无需修改，新功能可选启用                         |
 
-### 14.2 重要变更说明
+### 13.2 重要变更说明
 
 **memory_read 返回值变更**：
 
@@ -1211,7 +1142,9 @@ if (result.type === "entity") {
 }
 ```
 
-### 14.3 Feature Flag
+### 13.3 Feature Flag
+
+> **TODO: 未找到实现** — `useAtomArchitecture` 在当前代码中未找到实现，以下为设计稿
 
 ```json
 // memory-config.json
@@ -1232,7 +1165,7 @@ if (result.type === "entity") {
 
 ---
 
-## 15. 相关文档
+## 14. 相关文档
 
 - [设计评估](../evaluation/DESIGN-EVALUATION.md)
 - [集成设计](../integration/DESIGN-INTEGRATION.md)
