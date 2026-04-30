@@ -7,7 +7,7 @@ import WebSocket from 'ws';
 import { StateManager, WebSocketState } from './state-manager.js';
 import { HeartbeatManager } from './heartbeat.js';
 import { AckManager } from './ack-manager.js';
-import { logDebug } from '../logger.js';
+import { logInfo, logWarn, logError, logDebug } from '../logger.js';
 import {
   WS_RECONNECT_BASE_DELAY_MS,
   WS_RECONNECT_MAX_DELAY_MS,
@@ -61,7 +61,7 @@ export class ReliableWebSocketClient {
 
   async connect() {
     if (!this.stateManager.is(WebSocketState.CLOSED)) {
-      console.log('[ReliableWebSocket] Already connected or connecting');
+      logInfo('ReliableWebSocket', 'Already connected or connecting');
       return;
     }
 
@@ -73,13 +73,13 @@ export class ReliableWebSocketClient {
 
       try {
         const urlWithParams = this.buildUrl();
-        console.log(`[ReliableWebSocket] Connecting to ${urlWithParams}...`);
+        logInfo('ReliableWebSocket', `Connecting to ${urlWithParams}...`);
 
         this.ws = new WebSocket(urlWithParams);
 
         this.setupEventHandlers();
       } catch (error) {
-        console.error('[ReliableWebSocket] Connection failed:', error.message);
+        logError('ReliableWebSocket', 'Connection failed', error);
         this.handleConnectionFailure();
         reject(error);
       }
@@ -100,7 +100,7 @@ export class ReliableWebSocketClient {
   _doConnect() {
     try {
       const urlWithParams = this.buildUrl();
-      console.log(`[ReliableWebSocket] Reconnecting to ${urlWithParams}...`);
+      logInfo('ReliableWebSocket', `Reconnecting to ${urlWithParams}...`);
 
       if (this.ws) {
         this.ws.removeAllListeners();
@@ -109,14 +109,14 @@ export class ReliableWebSocketClient {
       this.ws = new WebSocket(urlWithParams);
       this.setupEventHandlers();
     } catch (error) {
-      console.error('[ReliableWebSocket] Reconnection failed:', error.message);
+      logError('ReliableWebSocket', 'Reconnection failed', error);
       this.handleConnectionFailure();
     }
   }
 
   setupEventHandlers() {
     this.ws.on('open', () => {
-      console.log('[ReliableWebSocket] Transport open, waiting for connected message...');
+      logInfo('ReliableWebSocket', 'Transport open, waiting for connected message...');
       this.stateManager.transition(WebSocketState.CONNECTING, 'websocket open');
       this.reconnectAttempts = 0;
     });
@@ -126,17 +126,17 @@ export class ReliableWebSocketClient {
         const message = JSON.parse(data);
         this.handleMessage(message);
       } catch (e) {
-        console.error('[ReliableWebSocket] Failed to parse message:', e.message);
+        logError('ReliableWebSocket', 'Failed to parse message', e);
       }
     });
 
     this.ws.on('close', (code, reason) => {
-      console.log(`[ReliableWebSocket] Disconnected: ${code} ${reason}`);
+      logInfo('ReliableWebSocket', `Disconnected: ${code} ${reason}`);
       this.handleDisconnect(code, reason);
     });
 
     this.ws.on('error', error => {
-      console.error('[ReliableWebSocket] Error:', error.message);
+      logError('ReliableWebSocket', `Error: ${error.message}`, error);
       this.triggerHandler('error', { error: error.message });
       if (this._connectReject) {
         this._connectReject(error);
@@ -170,7 +170,7 @@ export class ReliableWebSocketClient {
       if (message.session_id) {
         this.sessionId = message.session_id;
       }
-      console.log('[ReliableWebSocket] Connected, session:', this.sessionId);
+      logInfo('ReliableWebSocket', `Connected, session: ${this.sessionId}`);
       this.stateManager.transition(WebSocketState.CONNECTED, 'server confirmed');
       this.startHeartbeat();
       this.flushMessageQueue();
@@ -194,7 +194,7 @@ export class ReliableWebSocketClient {
 
     // Server error message
     if (type === 'error') {
-      console.error('[ReliableWebSocket] Server error:', message.message);
+      logError('ReliableWebSocket', `Server error: ${message.message}`);
       this.triggerHandler('error', { error: message.message });
       return;
     }
@@ -224,7 +224,7 @@ export class ReliableWebSocketClient {
   }
 
   handleHeartbeatTimeout() {
-    console.log('[ReliableWebSocket] No server ping received, reconnecting...');
+    logInfo('ReliableWebSocket', 'No server ping received, reconnecting...');
     this.ws?.terminate();
     this.handleDisconnect(1001, 'server ping timeout');
   }
@@ -249,7 +249,7 @@ export class ReliableWebSocketClient {
 
   scheduleReconnect() {
     if (this.reconnectAttempts >= this.reconnectOptions.maxAttempts) {
-      console.error('[ReliableWebSocket] Max reconnect attempts reached');
+      logError('ReliableWebSocket', 'Max reconnect attempts reached');
       this.stateManager.transition(WebSocketState.CLOSED, 'max attempts reached');
       this.triggerHandler('max_reconnect_reached', { attempts: this.reconnectAttempts });
       return;
@@ -258,9 +258,7 @@ export class ReliableWebSocketClient {
     this.reconnectAttempts++;
     const delay = this.calculateReconnectDelay();
 
-    console.log(
-      `[ReliableWebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`
-    );
+    logInfo('ReliableWebSocket', `Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
 
     this.reconnectTimer = setTimeout(() => {
       this._doConnect();
@@ -284,7 +282,7 @@ export class ReliableWebSocketClient {
     if (!this.stateManager.is(WebSocketState.CONNECTED) || !this.ws) {
       if (this.messageQueue.length >= MAX_QUEUE_SIZE) {
         this.messageQueue.shift();
-        console.warn('[ReliableWebSocket] Queue full, dropped oldest message');
+        logWarn('ReliableWebSocket', 'Queue full, dropped oldest message');
       }
       this.messageQueue.push(message);
       return false;
@@ -294,7 +292,7 @@ export class ReliableWebSocketClient {
       this.ws.send(JSON.stringify(message));
       return true;
     } catch (error) {
-      console.error('[ReliableWebSocket] Send failed:', error.message);
+      logError('ReliableWebSocket', 'Send failed', error);
       this.messageQueue.push(message);
       return false;
     }
@@ -341,7 +339,7 @@ export class ReliableWebSocketClient {
       try {
         handler(data);
       } catch (error) {
-        console.error(`[ReliableWebSocket] Handler error for ${event}:`, error);
+        logError('ReliableWebSocket', `Handler error for ${event}`, error);
       }
     }
   }
@@ -366,7 +364,7 @@ export class ReliableWebSocketClient {
     this.reconnectAttempts = 0;
     this._connectResolve = null;
     this._connectReject = null;
-    console.log('[ReliableWebSocket] Disconnected by user');
+    logInfo('ReliableWebSocket', 'Disconnected by user');
   }
 
   getState() {

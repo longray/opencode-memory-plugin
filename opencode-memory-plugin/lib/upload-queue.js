@@ -10,7 +10,7 @@
 import fs from 'fs';
 import path from 'path';
 import { MEMORY_DIR } from './constants.js';
-import { logDebug } from './logger.js';
+import { logDebug, logError } from './logger.js';
 
 const QUEUE_FILE = path.join(MEMORY_DIR, 'upload-queue.json');
 const MAX_RETRY = 3;
@@ -51,7 +51,7 @@ function writeQueue(queue) {
       }
     }
   } catch (e) {
-    console.error('Failed to write upload queue:', e.message);
+    logError('upload-queue', 'Failed to write upload queue', e);
   }
 }
 

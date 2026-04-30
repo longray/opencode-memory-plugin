@@ -187,16 +187,17 @@ export class Trie {
     let nodeCount = 0;
     let totalEntryIds = 0;
 
-    const traverse = node => {
-      if (!node) return;
+    // Iterative traversal to avoid stack overflow on large tries
+    const stack = [this.root];
+    while (stack.length > 0) {
+      const node = stack.pop();
+      if (!node) continue;
       nodeCount++;
       totalEntryIds += node.entryIds.size;
       for (const child of node.children.values()) {
-        traverse(child);
+        stack.push(child);
       }
-    };
-
-    traverse(this.root);
+    }
 
     return {
       size: this.size,
@@ -289,14 +290,15 @@ export class Trie {
   _collectEntryIds(node, entryIds) {
     if (!node) return;
 
-    // Add entry IDs from current node
-    for (const entryId of node.entryIds) {
-      entryIds.add(entryId);
-    }
-
-    // Recursively collect from children
-    for (const child of node.children.values()) {
-      this._collectEntryIds(child, entryIds);
+    const stack = [node];
+    while (stack.length > 0) {
+      const current = stack.pop();
+      for (const entryId of current.entryIds) {
+        entryIds.add(entryId);
+      }
+      for (const child of current.children.values()) {
+        stack.push(child);
+      }
     }
   }
 

@@ -1,4 +1,5 @@
 import { Parser, Language, Query } from 'web-tree-sitter';
+import { logWarn } from './logger.js';
 
 let parserInitialized = false;
 let languageCache = new Map();
@@ -1449,7 +1450,7 @@ function loadQuery(language) {
   } catch (error) {
     // Query 文件不存在或不可读，静默返回 null（允许 fallback）
     if (error.code !== 'ENOENT') {
-      console.warn(`[TreeSitter] Failed to load query file for ${language}: ${error.message}`);
+      logWarn('TreeSitter', `Failed to load query file for ${language}: ${error.message}`);
     }
     return null;
   }
@@ -1485,8 +1486,9 @@ export async function analyzeWithQuery(filePath, sourceCode, language) {
     try {
       query = new Query(lang, querySource);
     } catch (error) {
-      console.warn(
-        `[TreeSitter] Failed to compile query for ${language}: ${error.message}, falling back to tree traversal`
+      logWarn(
+        'TreeSitter',
+        `Failed to compile query for ${language}: ${error.message}, falling back to tree traversal`
       );
       return await analyzeWithTreeSitter(filePath, sourceCode, language);
     }
@@ -1635,14 +1637,16 @@ export async function analyzeWithQuery(filePath, sourceCode, language) {
       analysis_duration_ms: duration,
     };
   } catch (error) {
-    console.warn(
-      `[TreeSitter] Query analysis failed for ${filePath}: ${error.message}, falling back to tree traversal`
+    logWarn(
+      'TreeSitter',
+      `Query analysis failed for ${filePath}: ${error.message}, falling back to tree traversal`
     );
     try {
       return await analyzeWithTreeSitter(filePath, sourceCode, language);
     } catch (fallbackError) {
-      console.warn(
-        `[TreeSitter] Tree traversal fallback also failed for ${filePath}: ${fallbackError.message}`
+      logWarn(
+        'TreeSitter',
+        `Tree traversal fallback also failed for ${filePath}: ${fallbackError.message}`
       );
       return {
         language,

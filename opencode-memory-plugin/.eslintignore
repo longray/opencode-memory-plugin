@@ -8,3 +8,6 @@ coverage/
 *.log
 .git/
 .opencode/
+
+# CommonJS 文件使用 ESM import 语法（通过 Node.js ESM interop 运行）
+*.cjs

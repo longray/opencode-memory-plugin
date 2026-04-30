@@ -1,4 +1,4 @@
-# Configuration Guide (v2.9.0)
+# Configuration Guide (v3.3.0)
 
 OpenCode Memory Plugin supports flexible configuration for embedding models, search modes, sync settings, and timeline structure.
 
@@ -25,6 +25,8 @@ The plugin works out of the box with sensible defaults. You only need to customi
 ```
 
 **Note**: Version 3.0 is for v3.0+ with timeline structure and dual-mode sync.
+
+> **v3.3 Atom Architecture**: No additional configuration required. Atom entities are automatically created when using `memory_write` with the `atoms` parameter. All Atom-related tools (`entity_update`, `entity_atoms`, `load_context_budget`, `load_context_level`) work with existing settings.
 
 ## Configuration Options
 
@@ -991,5 +993,5 @@ export SYNC_INTERVAL="300000"
 
 ---
 
-**Last Updated**: 2026-04-12  
-**Version**: v3.2.0
+**Last Updated**: 2026-04-30  
+**Version**: v3.3.0

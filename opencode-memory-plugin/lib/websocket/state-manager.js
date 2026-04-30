@@ -3,6 +3,8 @@
  * Manages connection state transitions for ReliableWebSocketClient
  */
 
+import { logInfo, logWarn, logError } from '../logger.js';
+
 export const WebSocketState = {
   CLOSED: 'closed',
   CONNECTING: 'connecting',
@@ -43,7 +45,7 @@ export class StateManager {
 
     // Validate transition
     if (!this.isValidTransition(oldState, newState)) {
-      console.warn(`[StateManager] Invalid transition: ${oldState} -> ${newState}`);
+      logWarn('StateManager', `Invalid transition: ${oldState} -> ${newState}`);
       return false;
     }
 
@@ -65,7 +67,7 @@ export class StateManager {
     // Trigger handlers
     this.triggerHandlers(oldState, newState, reason);
 
-    console.log(`[StateManager] ${oldState} -> ${newState}${reason ? ` (${reason})` : ''}`);
+    logInfo('StateManager', `${oldState} -> ${newState}${reason ? ` (${reason})` : ''}`);
 
     return true;
   }
@@ -112,7 +114,7 @@ export class StateManager {
       try {
         handler(oldState, newState, reason);
       } catch (error) {
-        console.error('[StateManager] Handler error:', error);
+        logError('StateManager', 'Handler error', error);
       }
     }
   }

@@ -16,7 +16,7 @@ import { MEMORY_DIR } from '../lib/constants.js';
  * @returns {Promise<string>} Search results
  */
 export const memory_search = tool({
-  description: 'Search memory with configurable search mode',
+  description: 'Search memory with configurable search mode and optional Atom scope',
   args: {
     query: tool.schema.string().describe('Search query'),
     mode: tool.schema
@@ -24,6 +24,15 @@ export const memory_search = tool({
       .optional()
       .default('hybrid')
       .describe('Search mode: vector, keyword, hybrid'),
+    scope: tool.schema
+      .string()
+      .optional()
+      .default('all')
+      .describe('Search scope: all, entity, atom'),
+    atom_types: tool.schema
+      .array(tool.schema.string())
+      .optional()
+      .describe('Filter by atom types (e.g., ["function", "class"])'),
     limit: tool.schema.number().optional().default(10),
     level: tool.schema.number().optional().default(0).describe('0=abstract, 1=overview, 2=full'),
   },
@@ -31,6 +40,8 @@ export const memory_search = tool({
     const config = getConfig();
     const client = getWrapperClient(config);
     const mode = args.mode || 'hybrid';
+    const scope = args.scope || 'all';
+    const atomTypes = args.atom_types || [];
     const limit = args.limit || 10;
     const level = args.level || 0;
 
@@ -39,20 +50,28 @@ export const memory_search = tool({
 
     if (backendEnabled) {
       try {
-        const result = await client.search({
+        const searchParams = {
           query: args.query,
           mode,
+          scope,
           limit,
           level,
           tenant_id: tenantId,
-        });
+          ...(atomTypes.length > 0 && { atom_types: atomTypes }),
+        };
+
+        const result = await client.search(searchParams);
 
         if (result.results && result.results.length > 0) {
-          return formatSearchResults(result.results, level);
+          return formatSearchResults(result.results, level, scope);
         }
       } catch (e) {
         console.error('[memory_search] Backend search failed:', e.message);
       }
+    }
+
+    if (scope === 'atom') {
+      return '❌ Atom scope search requires backend service. Please enable backend or use scope="entity" or "all".';
     }
 
     return await localSearch(args.query, limit, level);
@@ -117,16 +136,31 @@ async function localSearch(query, limit, level) {
   }
 }
 
-function formatSearchResults(results, level) {
+function formatSearchResults(results, level, _scope = 'all') {
   return results
     .map((r, i) => {
-      const content =
-        level === 0
+      const isAtom = r.type === 'atom' || r.atom_type;
+      const typeLabel = isAtom ? `atom:${r.atom_type || r.type}` : (r.type || 'general');
+      
+      let content;
+      if (isAtom) {
+        content = level === 0
+          ? (r.name || '').substring(0, 50)
+          : level === 1
+            ? (r.content || r.name || '').substring(0, 100)
+            : (r.content || r.name || '').substring(0, 500);
+      } else {
+        content = level === 0
           ? (r.abstract || '').substring(0, 50)
           : level === 1
             ? (r.overview || r.abstract || '').substring(0, 100)
             : (r.content || r.overview || r.abstract || '').substring(0, 500);
-      return `${i + 1}. [${r.type || 'general'}] ${content}${level >= 2 ? '' : '...'}\n   ID: ${r.id}`;
+      }
+      
+      const id = r.local_id || r.id;
+      const entityRef = isAtom && r.entity_id ? ` (in ${r.entity_id})` : '';
+      
+      return `${i + 1}. [${typeLabel}] ${content}${level >= 2 ? '' : '...'}\n   ID: ${id}${entityRef}`;
     })
     .join('\n\n');
 }

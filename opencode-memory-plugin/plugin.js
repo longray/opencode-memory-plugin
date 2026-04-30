@@ -1,5 +1,5 @@
 import { tool } from '@opencode-ai/plugin/tool';
-import { memory_write, memory_pin } from './tools/core.js';
+import { memory_write, memory_pin, entity_update, entity_atoms, load_context_budget, load_context_level } from './tools/core.js';
 import { memory_search, memory_suggest } from './tools/search.js';
 import { memory_relate, memory_graph } from './tools/graph.js';
 import { memory_timeline, memory_topics } from './tools/browse.js';
@@ -118,6 +118,10 @@ export const MemoryPlugin = async ctx => {
       memory_write,
       memory_read,
       memory_pin,
+      entity_update,
+      entity_atoms,
+      load_context_budget,
+      load_context_level,
       memory_search,
       memory_suggest,
       memory_relate,

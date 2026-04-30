@@ -13,8 +13,8 @@ describe('BL-17/18/19/20: Code Analysis Service', () => {
       { path: '/project/test.js', shouldSkip: false },
     ];
 
-    for (const { path, shouldSkip } of testCases) {
-      const result = queue.shouldSkipFile ? queue.shouldSkipFile(path, path) : { skip: false };
+    for (const { path } of testCases) {
+      queue.shouldSkipFile?.(path, path);
     }
   });
 

@@ -4,8 +4,6 @@
  */
 
 import { test, expect, describe } from 'bun:test';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 // Tree-sitter WASM 导入
 let Parser: any;

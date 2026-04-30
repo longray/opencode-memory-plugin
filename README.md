@@ -13,7 +13,7 @@
 
 **Plugin Architecture Simplified**: The plugin now uses a **backend-first architecture**:
 
-- ✅ **All vector search** is handled by the backend service (localhost:17999)
+- ✅ **All vector search** is handled by the backend service (localhost:18008)
 - ✅ **No local vector storage** in the plugin (removed better-sqlite3 dependency)
 - ✅ **No Bun compatibility issues** - plugin works seamlessly in all runtimes
 - ✅ **Simplified codebase** - removed 1300+ lines of vector storage code
@@ -28,7 +28,7 @@
 ## 🎯 Features
 
 - ✅ **Native OpenCode Plugin** - Using @opencode-ai/plugin API for seamless integration
-- ✅ **15 Memory Tools** - All tools available immediately after installation
+- ✅ **20 Memory Tools** - All tools available immediately after installation
 - ✅ **v2.3: Dual-Mode Sync** - Incremental (fingerprint-based) + Full sync (with resume)
 - ✅ **v2.3: Conflict Resolution** - Detection, auto-resolve, merge, manual resolve
 - ✅ **v2.3: Memory Browsing** - Timeline browser and topic explorer
@@ -46,6 +46,9 @@
 - ✅ **v3.0: File Watcher** - 300ms debounce, batch upload, privacy filter
 - ✅ **v3.0: Project Health** - Code quality grading (A/B/C/D) and risk detection
 - ✅ **v3.0: Call Relations** - Function call graph tracking with memory_id caching
+- ✅ **v3.3: Atom Architecture** - Hierarchical knowledge nodes with parent-child tree structure and [[local_id]] cross-references
+- ✅ **v3.3: Entity Tools** - Batch atom operations (add/update/remove) via `entity_update` and tree navigation via `entity_atoms`
+- ✅ **v3.3: Context Loading** - Budget-aware (`load_context_budget`) and level-filtered (`load_context_level`) entity context retrieval
 - ✅ **v2.9: JSDoc Types** - IDE IntelliSense without TypeScript compilation
 
 ### Code Analysis Feature
@@ -73,21 +76,25 @@ node opencode-memory-plugin/cli/code-analyzer.cjs --project .
 
 📖 **[Complete Guide](opencode-memory-plugin/CODE-ANALYSIS.md)** | 🚀 **[Quick Start](opencode-memory-plugin/QUICK_START_CODE_ANALYSIS.md)**
 
-### Available Tools (15)
+### Available Tools (20)
 
-#### Core Tools (9)
+#### Core Tools (14)
 
-| Tool              | Description                              | Backend Required   |
-| ----------------- | ---------------------------------------- | ------------------ |
-| `memory_write`    | Write entries to long-term memory        | Syncs to backend   |
-| `memory_read`     | Read from memory files                   | Local only         |
-| `memory_search`   | All search modes (vector/keyword/hybrid) | Backend + fallback |
-| `memory_suggest`  | Autocomplete suggestions                 | Local only         |
-| `memory_pin`      | Pin/unpin important memory entries       | Local only         |
-| `memory_relate`   | Create/query graph relations             | ✅ Yes             |
-| `memory_graph`    | Graph traversal                          | ✅ Yes             |
-| `memory_timeline` | Browse memories by date range            | Local only         |
-| `memory_topics`   | Browse memories by topic                 | Local only         |
+| Tool                  | Description                                     | Backend Required   |
+| --------------------- | ----------------------------------------------- | ------------------ |
+| `memory_write`        | Write entries to long-term memory               | Syncs to backend   |
+| `memory_read`         | Read from memory files                          | Local only         |
+| `memory_search`       | All search modes (vector/keyword/hybrid)        | Backend + fallback |
+| `memory_suggest`      | Autocomplete suggestions                        | Local only         |
+| `memory_pin`          | Pin/unpin important memory entries              | Local only         |
+| `memory_relate`       | Create/query graph relations                    | ✅ Yes             |
+| `memory_graph`        | Graph traversal                                 | ✅ Yes             |
+| `memory_timeline`     | Browse memories by date range                   | Local only         |
+| `memory_topics`       | Browse memories by topic                        | Local only         |
+| `entity_update`       | Batch update atoms (add/update/remove)          | Syncs to backend   |
+| `entity_atoms`        | Get atom tree structure for an entity           | Local + backend    |
+| `load_context_budget` | Load entity context within a token budget       | Local + backend    |
+| `load_context_level`  | Load entity context filtered by hierarchy level | Local + backend    |
 
 #### Sync Tools (5)
 
@@ -468,7 +475,7 @@ This will:
 
 ## 🔬 Under the Hood
 
-> **Note**: The following describes the backend service implementation. The plugin itself is now lightweight and delegates all vector operations to the backend service at `localhost:17999`.
+> **Note**: The following describes the backend service implementation. The plugin itself is now lightweight and delegates all vector operations to the backend service at `localhost:18008`.
 
 ### Embedding Service
 
@@ -525,7 +532,7 @@ The plugin supports multiple external embedding services:
 
 ## 📚 Documentation
 
-### Current Version (v3.0.0)
+### Current Version (v3.3.0)
 
 - [Configuration Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/CONFIGURATION.md) - Complete configuration options
 - [Quick Start Guide](https://github.com/csuwl/opencode-memory-plugin/blob/main/opencode-memory-plugin/QUICK_START.md) - Getting started
@@ -592,16 +599,17 @@ MIT License - see [LICENSE](LICENSE) for details
 - Hugging Face for Transformers.js and the all-MiniLM-L6-v2 model
 - All contributors and users
 
-**Current Version**: v3.0.0
+**Current Version**: v3.3.0
 
 ### Version History
 
 For detailed release notes, see [CHANGELOG.md](CHANGELOG.md).
 
-**Latest**: v3.0.0 (2026-04-07) - Code Analysis v3.0: AST analysis, project health, JSDoc extraction
+**Latest**: v3.3.0 (2026-04-30) - Atom Architecture, entity tools, context loading, and more
 
 **Recent Highlights**:
 
+- v3.3.0: Atom Architecture, entity tools (entity_update, entity_atoms), context loading (budget/level)
 - v3.0.0: Code Analysis v3.0 (AST analysis, project health, JSDoc extraction)
 - v2.9.0: Markdownlint 集成与文档质量提升
 - v2.6.0: Oxlint + Prettier 代码规范迁移

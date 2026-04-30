@@ -3,10 +3,8 @@ import path from 'path';
 import { LINK_MAP_FILE, MEMORY_FILE, MEMORY_DIR, CONFIG_FILE, MAX_OVERVIEW_LINES, LINK_MAP_VERSION } from './constants.js';
 import { logDebug } from './logger.js';
 import { invalidateLinkMapCache } from './storage.js';
-import { atomicWriteText as _atomicWriteText, atomicWriteJson as _atomicWriteJson } from './atomic-write.js';
-
-// Re-export for backward compatibility (tools/core.js, lib/memory-core.js, tests import from here)
-export { _atomicWriteText as atomicWriteText };
+import { atomicWriteText, atomicWriteJson as _atomicWriteJson } from './atomic-write.js';
+import { flattenAtomTree } from './atom-tree.js';
 
 /**
  * Atomically write JSON file with link-map cache invalidation.
@@ -81,11 +79,14 @@ export async function updateDayOverview(dayDir, entry) {
 
 export async function updateLinkMap(entry, filePath) {
   return withLinkMapLock(() => {
-    let linkMap = { version: LINK_MAP_VERSION, entries: {} };
+    let linkMap = { version: LINK_MAP_VERSION, entries: {}, atom_index: {} };
 
     if (fs.existsSync(LINK_MAP_FILE)) {
       try {
         linkMap = readJsonSafe(LINK_MAP_FILE);
+        if (!linkMap.atom_index) {
+          linkMap.atom_index = {};
+        }
       } catch (e) {
         logDebug('indexer', 'Failed to read link-map, using fresh one', { error: e.message });
       }
@@ -105,6 +106,12 @@ export async function updateLinkMap(entry, filePath) {
       memory_id: entry.memory_id || null,
     };
 
+    if (entry.atoms && entry.atoms.length > 0) {
+      for (const atom of flattenAtomTree(entry.atoms)) {
+        linkMap.atom_index[atom.local_id] = entry.id;
+      }
+    }
+
     atomicWriteJson(LINK_MAP_FILE, linkMap);
   });
 }
@@ -117,6 +124,15 @@ export async function removeFromLinkMap(localId) {
       const linkMap = readJsonSafe(LINK_MAP_FILE);
       if (linkMap.entries && linkMap.entries[localId]) {
         delete linkMap.entries[localId];
+
+        if (linkMap.atom_index) {
+          for (const [atomId, entityId] of Object.entries(linkMap.atom_index)) {
+            if (entityId === localId) {
+              delete linkMap.atom_index[atomId];
+            }
+          }
+        }
+
         atomicWriteJson(LINK_MAP_FILE, linkMap);
       }
     } catch (e) {

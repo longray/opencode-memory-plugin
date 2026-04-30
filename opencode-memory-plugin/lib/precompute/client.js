@@ -174,7 +174,7 @@ export class PrecomputeClient {
    * @param {string} [params.tenant_id] - 租户 ID
    * @returns {Promise<{symbols: Array, total: number}>}
    */
-  async searchSymbols({ query, type, project_id, fuzzy = false, limit = 20, tenant_id }) {
+  async searchSymbols({ query, type, project_id, _fuzzy = false, limit = 20, tenant_id }) {
     const params = new URLSearchParams();
     params.append('tenant_id', tenant_id || this.client.tenantId);
     if (query) params.append('query', query);

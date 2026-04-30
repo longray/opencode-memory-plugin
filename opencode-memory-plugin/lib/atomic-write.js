@@ -6,15 +6,17 @@
 import fs from 'fs';
 
 /**
- * Atomically write text file with EXDEV fallback
+ * Atomically write text file with EXDEV/EPERM fallback
  * Writes to temp file then renames for atomicity.
  * If rename fails due to cross-device move (EXDEV),
  * falls back to copy + unlink.
- * If any error occurs, ensures temp file is cleaned up.
+ * On Windows, if rename fails with EPERM (file locked by another process),
+ * falls back to copy + unlink as well.
+ * If any other error occurs, ensures temp file is cleaned up.
  *
  * @param {string} filePath - Target file path
  * @param {string} content - Content to write
- * @throws {Error} If write fails (non-EXDEV errors)
+ * @throws {Error} If write fails (non-EXDEV/non-EPERM errors)
  */
 export function atomicWriteText(filePath, content) {
   const tmpPath = filePath + '.tmp';
@@ -22,17 +24,16 @@ export function atomicWriteText(filePath, content) {
   try {
     fs.renameSync(tmpPath, filePath);
   } catch (error) {
-    if (error.code === 'EXDEV') {
-      // Cross-device move not supported, fallback to copy + unlink
+    if (error.code === 'EXDEV' || (error.code === 'EPERM' && process.platform === 'win32')) {
+      // Cross-device move or Windows file lock — fallback to copy + unlink
       fs.copyFileSync(tmpPath, filePath);
-      fs.unlinkSync(tmpPath);
+      try { fs.unlinkSync(tmpPath); } catch {}
     } else {
       // For any other error, clean up the temp file before throwing
       try {
         fs.unlinkSync(tmpPath);
       } catch (_cleanupError) {
         // If cleanup fails, we still throw the original error
-        // but log the cleanup failure for debugging
       }
       throw error;
     }

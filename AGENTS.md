@@ -1,8 +1,8 @@
 # AGENTS.md - OpenCode Memory Plugin 开发指南
 
-**版本**: v3.0.0  
+**版本**: v3.3.0  
 **分支**: main  
-**更新时间**: 2026-04-07
+**更新时间**: 2026-04-30
 
 ---
 
@@ -18,7 +18,9 @@ D:/github/opencode-memory-plugin/
 │   │   ├── extractor.js      # extractByLevel, getEntryInfo
 │   │   ├── indexer.js        # updateLinkMap, updateMemoryIndex
 │   │   ├── storage.js        # getConfig, getLinkMap, getEntryById
-│   │   ├── memory-core.js    # writeMemory, readMemory, writeAndSyncMemory, syncMemoryToBackend
+│   │   ├── memory-core.js    # writeMemory, readMemory, writeAndSyncMemory, syncMemoryToBackend,
+│   │   │                     #   updateEntity, getEntityAtoms, markDeadLinks, loadContextByBudget,
+│   │   │                     #   loadContextByLevel
 │   │   ├── wrapper-client.js # 后端 API 客户端
 │   │   ├── project-resolver.js # 项目 ID 解析器
 │   │   ├── bm25.js           # BM25 关键词搜索
@@ -33,7 +35,8 @@ D:/github/opencode-memory-plugin/
 │ │ ├── file-watcher.js # 文件系统监听
 │ │ └── memory-id-cache.js # Memory ID 缓存管理
 │   ├── tools/                # OpenCode 插件工具
-│   │   ├── core.js           # memory_write
+│   │   ├── core.js           # memory_write, memory_pin, entity_update, entity_atoms,
+│   │   │                     #   load_context_budget, load_context_level
 │   │   ├── search.js         # memory_search, memory_suggest
 │   │   ├── graph.js          # memory_relate, memory_graph
 │   │   ├── browse.js         # memory_timeline, memory_topics
@@ -47,6 +50,13 @@ D:/github/opencode-memory-plugin/
 │   ├── agents/               # 自定义 OpenCode 代理
 │   ├── scripts/              # 实用脚本
 │   ├── docs/                 # 产品文档（面向用户）
+│   ├── tests/                # 测试文件
+│   │   ├── unit/             # 单元测试（core/, search/, sync/, atoms/, analysis/, websocket/）
+│   │   ├── integration/      # 集成测试
+│   │   ├── e2e/              # 端到端测试
+│   │   ├── performance/      # 性能测试
+│   │   ├── cli/              # CLI 测试
+│   │   └── helpers/          # 测试辅助工具
 │   ├── plugin.js             # OpenCode 插件入口
 │   └── package.json
 ├── docs/                     # 开发文档
@@ -67,9 +77,9 @@ D:/github/opencode-memory-plugin/
 
 ### lib/ 核心库
 
-| 文件                  | 主要导出                                                    | 说明                               |
-| --------------------- | ----------------------------------------------------------- | ---------------------------------- |
-| memory-core.js        | writeMemory, readMemory, writeAndSyncMemory                 | 写入/读取/同步核心逻辑             |
+| 文件                  | 主要导出                                                                                     | 说明                               |
+| --------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------- |
+| memory-core.js        | writeMemory, readMemory, writeAndSyncMemory, updateEntity, getEntityAtoms, markDeadLinks, loadContextByBudget, loadContextByLevel | 写入/读取/同步/实体/Atom 核心逻辑 |
 | entry.js              | buildEntryContent, writeEntryToTimeline, parseEntryFromFile | 条目格式化和文件操作               |
 | extractor.js          | extractByLevel, getEntryInfo                                | 分层提取和 frontmatter 解析        |
 | wrapper-client.js     | WrapperClient                                               | 后端 API 客户端（所有 HTTP 调用）  |
@@ -83,7 +93,7 @@ D:/github/opencode-memory-plugin/
 
 | 文件      | 工具                                                                                                       | 后端依赖       |
 | --------- | ---------------------------------------------------------------------------------------------------------- | -------------- |
-| core.js   | memory_write                                                                                               | 同步           |
+| core.js   | memory_write, memory_pin, entity_update, entity_atoms, load_context_budget, load_context_level | 同步       |
 | search.js | memory_search, memory_suggest                                                                              | 搜索时后端优先 |
 | graph.js  | memory_relate, memory_graph                                                                                | 必须           |
 | browse.js | memory_timeline, memory_topics                                                                             | 无             |
@@ -91,7 +101,7 @@ D:/github/opencode-memory-plugin/
 
 ---
 
-## 记忆条目格式 (v2.5.0)
+## 记忆条目格式 (v3.3)
 
 ```
 ---
@@ -137,15 +147,44 @@ meta: [{键:值}, ...]
 - **abstract**: 必填，≤100 字符
 - **overview**: 必填，≤500 字符
 
+### Atom 扩展（v3.3+）
+
+条目可包含 `atoms` 字段，支持层级化知识组织：
+
+```yaml
+---
+atoms:
+  - local_id: "01CHAP001"
+    type: chapter
+    name: "第1章：标题"
+    content: "章节内容..."
+    order: "a0"
+    heading_level: 1
+    parent_id: null
+    children:
+      - local_id: "01SEC001"
+        type: section
+        name: "1.1 小节标题"
+        order: "a0"
+        heading_level: 2
+        parent_id: "01CHAP001"
+---
+```
+
+- **层级**: 通过 `parent_id` + `children` 构成树结构（最多 4 层）
+- **链接**: 内容中使用 `[[local_id]]` 引用其他 Atom，系统自动解析
+- **类型**: chapter / section / function / class / note / task / goal
+- **验证**: 自动检测循环引用和悬空链接
+
 ---
 
 ## 后端 API
 
 详见 [`docs/API-CONTRACT.md`](./docs/API-CONTRACT.md)
 
-| 后端地址 | localhost:17999 |
+| 后端地址 | localhost:18008 |
 | API 前缀 | `/api/v1` |
-| API 文档 | `http://localhost:17999/docs` |
+| API 文档 | `http://localhost:18008/docs` |
 | 认证 | Header: `WRAPPER_MEILI_API_KEY` |
 
 ---
@@ -339,7 +378,7 @@ meta: [{键:值}, ...]
 | 🔍 代码检查      | Oxlint       | pre-commit | JavaScript 代码规范检查               | <10 秒   |
 | 💅 代码格式化    | Prettier     | pre-commit | 代码格式化（JS/JSON/MD/YAML）         | <10 秒   |
 | 📝 Markdown 检查 | Markdownlint | pre-commit | Markdown 文档规范检查                 | <5 秒    |
-| 🧪 测试运行      | Jest         | pre-commit | 运行所有测试（19 个文件，138 个用例） | 30-60 秒 |
+| 🧪 测试运行      | Jest         | pre-commit | 运行所有测试（57 个文件） | 30-60 秒 |
 
 ### 测试门禁配置
 
@@ -349,7 +388,7 @@ meta: [{键:值}, ...]
 
 **测试框架**: Jest (`jest@^29.7.0`)
 
-**测试文件**: `opencode-memory-plugin/tests/*.test.*`（19 个文件）
+**测试文件**: `opencode-memory-plugin/tests/**/*.test.*`（57 个文件）
 
 **运行策略**:
 

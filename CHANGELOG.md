@@ -1,5 +1,93 @@
 # Changelog
 
+## [3.3.0] - 2026-04-29
+
+### v3.3 Atom Architecture - 层级化知识图谱
+
+#### 🏗️ 核心架构
+
+- **Atom 树结构**: 支持嵌套层级（parent_id + children）
+- **分数索引**: Base-62 编码的 order 字段，支持无限插入
+- **循环检测**: 三色 DFS 算法，写入前自动检测
+- **悬挂引用**: 自动检测并警告 wiki 链接和 parent_id
+
+#### 📝 存储层 (lib/)
+
+- `buildEntryContent()` - 支持 Atoms JSON 区段
+- `parseEntryFromFile()` - 解析 Atoms 区段
+- `buildAtomTree()` - O(n) 重建树结构
+- `flattenAtomTree()` - 树结构展平
+- `detectCircularReference()` - 循环引用检测
+- `generateFractionalIndex()` - Base-62 分数索引
+- `detectDanglingReferences()` - 悬挂引用检测
+
+#### 🔧 API 层 (lib/memory-core.js)
+
+- `writeMemory({atoms})` - 支持 Atom 树写入
+- `readMemory()` - 自动检测 Entity/Atom ID
+- `updateEntity({atoms_batch})` - 批量 Atom 操作（add/update/remove）
+- `getEntityAtoms()` - 获取 Atom 树
+- `markDeadLinks()` - 标记死链
+- `extractWikiLinks()` - 提取 wiki 链接
+- `findIncomingLinks()` - 查找入链
+
+#### 🛡️ 风险缓解
+
+- **循环检测**: 写入前自动检测，拒绝循环引用
+- **悬挂引用**: 检测并警告，不阻止写入
+- **死链标记**: 自动标记不存在的链接
+- **文件大小监控**: 100KB 限制，80KB 警告
+
+#### 🔌 后端集成
+
+- **Atom 字段扩展**: tags, heading_level, parent_id, order, aliases, entity_id
+- **统一搜索**: POST /api/v1/search（Entity + Atom 混合搜索）
+- **SurrealDB Schema**: 6 新字段 + 3 索引
+
+#### 🧪 测试覆盖
+
+```
+Test Suites: 13 atom-related test files
+Tests:       97 new tests (100% pass)
+Coverage:    entry-atoms, atom-tree, memory-write/read, 
+             update-entity, get-entity-atoms, wiki-links,
+             dangling-references, dead-links, file-size-monitor,
+             v3.3-atom-e2e
+```
+
+#### 📚 文档
+
+- [MIGRATION-v3.3.md](./docs/MIGRATION-v3.3.md) - 迁移指南
+- [API-CONTRACT.md](./docs/API-CONTRACT.md) - API 契约更新
+
+#### 🐛 Bug Fixes
+
+- `entity_update`: Added meta/content fields to entity_updates schema
+- `markDeadLinks`: Added file locking to prevent concurrent write issues
+- `updateEntity` sync: Fixed synced flag not being updated after successful sync
+- `readMemory`: Added backward compatibility for entry field in return value
+- `findAllChildren`: Removed dead parent_local_id check
+
+#### 🔧 Improvements
+
+- Console migration: Replaced console.log/warn/error with logger in non-core modules
+- `removeAtomFromTree`: Added depth limit (maxDepth=20) to prevent infinite recursion
+- `atomicWriteText`: Added EPERM fallback for Windows compatibility
+
+#### 🧪 Test Infrastructure
+
+- Added Jest projects configuration (unit parallel + integration serial)
+- Improved test isolation using jest.isolateModules
+- Reorganized test directory structure by functional domain
+
+#### ⚠️ 向后兼容
+
+- 旧格式 Entity 完全兼容
+- 无 atoms 参数的 writeMemory 行为不变
+- 自动识别 Entity/Atom ID 类型
+
+---
+
 ## [3.2.2] - 2026-04-18
 
 ### Phase 7 - Code Quality Fixes (Code Review)

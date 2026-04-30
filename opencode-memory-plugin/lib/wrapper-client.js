@@ -390,6 +390,7 @@ export class WrapperClient {
         source: m.source || 'plugin',
         tenant_id: m.tenant_id || this.tenantId,
         metadata: m.metadata || {},
+        atoms: m.atoms || undefined, // Include atoms field for Atom Architecture v3.3
       })),
       tenant_id: this.tenantId,
     };
@@ -665,6 +666,15 @@ export class WrapperClient {
   async createAtom(atomData) {
     logInfo('ATOM', 'createAtom called', { type: atomData.type, name: atomData.name });
 
+    const VALID_ATOM_TYPES = new Set([
+      'function', 'class', 'interface', 'import',
+      'note', 'section', 'chapter', 'goal', 'scope', 'task',
+    ]);
+
+    if (!VALID_ATOM_TYPES.has(atomData.type)) {
+      throw new WrapperError(`Invalid atom type: ${atomData.type}`, 400, false);
+    }
+
     const requestBody = {
       type: atomData.type,
       content: atomData.content,
@@ -911,6 +921,25 @@ export class WrapperClient {
   }
 
   /**
+   * 批量创建 References（关系）
+   * @param {Array<Object>} references - 关系数组，每项包含 from_id, to_id, type, weight 等
+   * @returns {Promise<{references: Array}>}
+   */
+  async createReferences(references) {
+    logInfo('REFERENCE', `createReferences called with ${references.length} items`);
+
+    const result = await withRetry(
+      () => this.http.post('/api/v1/references/batch', { references }),
+      this.maxRetries
+    );
+
+    logInfo('REFERENCE', 'createReferences success', {
+      count: result.references?.length ?? 0,
+    });
+    return result;
+  }
+
+  /**
    * 查询 References
    * @param {Object} filters - 过滤条件
    * @param {string} [filters.from_id] - 源 ID
@@ -987,8 +1016,9 @@ export function getWrapperClient(config) {
     config?.backend?.tenant_id &&
     config.backend.tenant_id !== wrapperClientInstance.tenantId
   ) {
-    console.warn(
-      `[WrapperClient] Ignoring tenant_id change: ${wrapperClientInstance.tenantId} → ${config.backend.tenant_id}. Use forceNew=true if needed.`
+    logWarn(
+      'WrapperClient',
+      `Ignoring tenant_id change: ${wrapperClientInstance.tenantId} → ${config.backend.tenant_id}. Use forceNew=true if needed.`
     );
   }
   return wrapperClientInstance;

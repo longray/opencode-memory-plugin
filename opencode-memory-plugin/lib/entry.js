@@ -11,6 +11,17 @@ export function buildEntryContent(data) {
   const tags = Array.isArray(data.tags) ? data.tags.join(', ') : data.tags || '';
   const meta = data.meta ? JSON.stringify(data.meta) : '[]';
 
+  // Build atoms section if atoms array is provided
+  let atomsSection = '';
+  if (data.atoms !== undefined) {
+    const atomsJson = JSON.stringify(data.atoms || [], null, 2);
+    atomsSection = `
+# ≡≡≡ Atoms ≡≡≡
+\`\`\`json
+${atomsJson}
+\`\`\``;
+  }
+
   return `---
 id: ${data.id}
 date: ${data.date}
@@ -37,7 +48,7 @@ ${data.overview}
 # ≡≡≡ Contents ≡≡≡
 \`\`\`
 ${data.content}
-\`\`\`
+\`\`\`${atomsSection}
 
 ---
 `;
@@ -68,6 +79,7 @@ export async function writeEntryToTimeline(layers, metadata) {
     abstract: layers.abstract,
     overview: layers.overview,
     content: layers.content,
+    atoms: layers.atoms,
   });
 
   if (!fs.existsSync(dayDir)) {

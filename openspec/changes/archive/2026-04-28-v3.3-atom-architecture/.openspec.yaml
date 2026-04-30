@@ -1,0 +1,40 @@
+name: v3.3-atom-architecture
+description: v3.3 Atom 架构实施 - 将现有扁平记忆存储升级为层级化知识图谱架构
+version: 3.3.0
+status: proposed
+schema: default
+
+artifacts:
+  proposal:
+    id: proposal
+    type: proposal
+    description: 变更提案 - 目标和范围
+    status: done
+    path: proposal.md
+
+  spec:
+    id: spec
+    type: spec
+    description: 功能规范 - Entity 和 Atom 数据模型
+    status: done
+    path: specs/spec.md
+    dependsOn: [proposal]
+
+  design:
+    id: design
+    type: design
+    description: 技术设计 - 存储结构、API、算法
+    status: done
+    path: design.md
+    dependsOn: [spec]
+
+  tasks:
+    id: tasks
+    type: tasks
+    description: 实施任务清单
+    status: done
+    path: tasks.md
+    dependsOn: [design]
+
+apply:
+  requires: [proposal, spec, design, tasks]

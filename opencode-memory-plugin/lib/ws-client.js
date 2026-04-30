@@ -7,7 +7,7 @@
  */
 
 import WebSocket from 'ws';
-import { logInfo, logError, logWarn } from './logger.js';
+import { logInfo, logError } from './logger.js';
 import { WS_RECONNECT_BASE_DELAY_MS } from './constants.js';
 
 // WebSocket connection state

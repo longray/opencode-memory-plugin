@@ -2,6 +2,7 @@ const FRONTMATTER_REGEX = /^---\n([\s\S]*?)\n---/;
 const SECTION_ABSTRACT = /# ≡≡≡ Abstract ≡≡≡\n```\n([\s\S]*?)```/;
 const SECTION_OVERVIEW = /# ≡≡≡ Overview ≡≡≡\n```\n([\s\S]*?)```/;
 const SECTION_CONTENTS = /# ≡≡≡ Contents ≡≡≡\n```\n([\s\S]*?)```/;
+const SECTION_ATOMS = /# ≡≡≡ Atoms ≡≡≡\n```json\n([\s\S]*?)```/;
 
 /**
  * Parse YAML frontmatter from markdown content.
@@ -34,17 +35,29 @@ export function parseFrontmatter(content) {
 }
 
 /**
- * Extract structured sections (abstract, overview, content) from entry body.
- * Returns { abstract, overview, content } with trimmed strings.
+ * Extract structured sections (abstract, overview, content, atoms) from entry body.
+ * Returns { abstract, overview, content, atoms } with trimmed strings.
  */
 export function extractSections(body) {
   const abstractMatch = body.match(SECTION_ABSTRACT);
   const overviewMatch = body.match(SECTION_OVERVIEW);
   const contentMatch = body.match(SECTION_CONTENTS);
+  const atomsMatch = body.match(SECTION_ATOMS);
+
+  let atoms = null;
+  if (atomsMatch) {
+    try {
+      atoms = JSON.parse(atomsMatch[1].trim());
+    } catch {
+      atoms = null;
+    }
+  }
+
   return {
     abstract: abstractMatch ? abstractMatch[1].trim() : '',
     overview: overviewMatch ? overviewMatch[1].trim() : '',
     content: contentMatch ? contentMatch[1].trim() : '',
+    atoms,
   };
 }
 

@@ -8,6 +8,7 @@ import path from 'path';
 import { Trie } from './trie.js';
 import { atomicWriteText } from './atomic-write.js';
 import { MEMORY_DIR, CACHE_TTL_MS } from './constants.js';
+import { logInfo, logError } from './logger.js';
 
 const ACTIVE_DIR = path.join(MEMORY_DIR, 'active');
 
@@ -112,7 +113,7 @@ export async function buildTrieIndex(force = false) {
     return trieIndex;
   }
 
-  console.log('[TrieIndex] Building index...');
+  logInfo('TrieIndex', 'Building index...');
   const startTime = Date.now();
 
   trieIndex = new Trie();
@@ -147,7 +148,7 @@ export async function buildTrieIndex(force = false) {
   const duration = Date.now() - startTime;
   const stats = trieIndex.getStats();
 
-  console.log(`[TrieIndex] Built in ${duration}ms:`, stats);
+  logInfo('TrieIndex', `Built in ${duration}ms`, stats);
 
   return trieIndex;
 }
@@ -197,7 +198,7 @@ async function indexFile(filePath, entryId, trie) {
       }
     }
   } catch (e) {
-    console.error(`[TrieIndex] Error indexing ${filePath}:`, e.message);
+    logError('TrieIndex', `Error indexing ${filePath}`, e);
   }
 }
 
@@ -254,7 +255,7 @@ export async function updateTrieIndex(entryId, content, tags = []) {
     }
   }
 
-  console.log(`[TrieIndex] Updated with entry: ${entryId}`);
+  logInfo('TrieIndex', `Updated with entry: ${entryId}`);
 }
 
 /**
@@ -316,9 +317,9 @@ export async function saveTrieIndex(filePath) {
   try {
     const serialized = trieIndex.serialize();
     atomicWriteText(filePath, JSON.stringify(serialized));
-    console.log(`[TrieIndex] Saved to ${filePath}`);
+    logInfo('TrieIndex', `Saved to ${filePath}`);
   } catch (e) {
-    console.error('[TrieIndex] Error saving index:', e.message);
+    logError('TrieIndex', 'Error saving index', e);
   }
 }
 
@@ -336,10 +337,10 @@ export async function loadTrieIndex(filePath) {
     trieIndex = Trie.deserialize(data);
     lastBuildTime = Date.now();
 
-    console.log(`[TrieIndex] Loaded from ${filePath}`);
+    logInfo('TrieIndex', `Loaded from ${filePath}`);
     return true;
   } catch (e) {
-    console.error('[TrieIndex] Error loading index:', e.message);
+    logError('TrieIndex', 'Error loading index', e);
     return false;
   }
 }

@@ -1,9 +1,8 @@
 {
   "testEnvironment": "node",
-  "coverageDirectory": "coverage",
-  "collectCoverageFrom": ["lib/**/*.js", "!lib/**/*.test.js", "!node_modules/**"],
-  "testMatch": ["**/tests/**/*.test.js"],
   "globalSetup": "<rootDir>/tests/global-setup.js",
+  "collectCoverageFrom": ["lib/**/*.js", "!lib/**/*.test.js", "!node_modules/**"],
+  "coverageDirectory": "coverage",
   "coverageThreshold": {
     "global": {
       "branches": 10,
@@ -13,5 +12,5 @@
     }
   },
   "verbose": true,
-  "testTimeout": 30000
+  "projects": ["<rootDir>/jest.unit.config.cjs", "<rootDir>/jest.integration.config.cjs"]
 }

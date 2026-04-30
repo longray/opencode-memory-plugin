@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { logWarn, logError } from './logger.js';
+import { logWarn } from './logger.js';
 import { MEMORY_DIR, LINK_MAP_FILE, LINK_MAP_VERSION, resolveSafePath } from './constants.js';
+import { parseEntryFromFile } from './entry.js';
 
 let linkMapCache = null;
 let linkMapMtime = 0;
@@ -75,10 +76,16 @@ export function getEntryById(entryId) {
     const filePath = resolveSafePath(MEMORY_DIR, entry.path);
     if (!fs.existsSync(filePath)) return null;
 
+    const parsed = parseEntryFromFile(filePath);
+    if (!parsed) return null;
+
     return {
       ...entry,
       path: filePath,
-      content: fs.readFileSync(filePath, 'utf-8'),
+      content: parsed.content || fs.readFileSync(filePath, 'utf-8'),
+      abstract: parsed.abstract || entry.abstract,
+      overview: parsed.overview || entry.overview,
+      atoms: parsed.atoms,
     };
   } catch (error) {
     logWarn('storage', `Failed to read entry ${entryId}: ${error.message}`);
@@ -98,6 +105,16 @@ export function deleteEntryFile(filePath) {
 }
 
 /**
+ * Gets the atom-to-entity index from the link map.
+ * Maps atom local_id → entity ID for O(1) atom lookups.
+ * @returns {Object} atom_index mapping, or empty object if not available
+ */
+export function getAtomIndex() {
+  const linkMap = getLinkMap();
+  return linkMap.atom_index || {};
+}
+
+/**
  * Resolves the tenant ID from various sources in order of preference.
  * @param {Object} config - Configuration object
  * @returns {string} Tenant ID, defaulting to 'default' if none found
@@ -106,4 +123,40 @@ export function resolveTenantId(config) {
   return (
     config?.backend?.tenant_id || process.env.MEMORY_TENANT_ID || process.env.USERNAME || 'default'
   );
+}
+
+/**
+ * Gets all entries from the link map with full content.
+ * @returns {Array} Array of entry objects with content
+ */
+export function getAllEntries() {
+  try {
+    const linkMap = getLinkMap();
+    const entries = [];
+
+    for (const entryId in linkMap.entries) {
+      const entry = linkMap.entries[entryId];
+      try {
+        const filePath = resolveSafePath(MEMORY_DIR, entry.path);
+        if (fs.existsSync(filePath)) {
+          const parsed = parseEntryFromFile(filePath);
+          entries.push({
+            ...entry,
+            path: filePath,
+            content: parsed?.content || fs.readFileSync(filePath, 'utf-8'),
+            abstract: parsed?.abstract || entry.abstract,
+            overview: parsed?.overview || entry.overview,
+            atoms: parsed?.atoms,
+          });
+        }
+      } catch (error) {
+        logWarn('storage', `Failed to read entry ${entryId}: ${error.message}`);
+      }
+    }
+
+    return entries;
+  } catch (error) {
+    logWarn('storage', `Failed to get all entries: ${error.message}`);
+    return [];
+  }
 }

@@ -20,8 +20,36 @@ import {
   DEFAULT_BATCH_DELAY_MS,
 } from './constants.js';
 
-function readCodeAnalysisConfig() {
+function getCodeAnalysisConfig() {
   return getConfig().code_analysis || {};
+}
+
+function getDebounceMs() {
+  return getCodeAnalysisConfig().debounce_ms || DEFAULT_DEBOUNCE_MS;
+}
+
+function getBatchDelayMs() {
+  return getCodeAnalysisConfig().batch_delay_ms || DEFAULT_BATCH_DELAY_MS;
+}
+
+function getBatchMaxSize() {
+  return getCodeAnalysisConfig().batch_max_size || 10;
+}
+
+function getMaxConcurrent() {
+  return getCodeAnalysisConfig().max_concurrent || 2;
+}
+
+function getQueueTimeoutMs() {
+  return getCodeAnalysisConfig().queue_timeout_ms || DEFAULT_QUEUE_TIMEOUT_MS;
+}
+
+function getQueueMaxSize() {
+  return getCodeAnalysisConfig().queue_max_size || 10;
+}
+
+function useAtomEntityApi() {
+  return getCodeAnalysisConfig().use_atom_entity_api !== false;
 }
 
 const SUPPORTED_EXTENSIONS = [
@@ -38,17 +66,6 @@ const SUPPORTED_EXTENSIONS = [
   '.java',
 ];
 
-const _cfg = readCodeAnalysisConfig();
-const DEBOUNCE_MS = _cfg.debounce_ms || DEFAULT_DEBOUNCE_MS;
-const BATCH_DELAY_MS = _cfg.batch_delay_ms || DEFAULT_BATCH_DELAY_MS;
-const BATCH_MAX_SIZE = _cfg.batch_max_size || 10;
-const MAX_CONCURRENT = _cfg.max_concurrent || 2;
-const QUEUE_TIMEOUT_MS = _cfg.queue_timeout_ms || DEFAULT_QUEUE_TIMEOUT_MS;
-const MAX_QUEUE_SIZE = _cfg.queue_max_size || 10;
-
-// BL-CA-41: Enable new Atom/Entity/Reference API
-const _USE_ATOM_ENTITY_API = _cfg.use_atom_entity_api !== false;
-
 export class AnalysisQueue {
   constructor() {
     this.queue = [];
@@ -56,12 +73,28 @@ export class AnalysisQueue {
     this.batch = [];
     this.batchTimer = null;
     this.debounceTimer = null;
-    this.wrapperClient = getWrapperClient(getConfig());
+    this._client = null;
+    this._clientTenant = null;
     this.precomputeClient = getPrecomputeClient();
     this.concurrentCount = 0;
     this.memoryIdCache = null;
     this.fingerprintCache = null;
-    this.usePrecompute = readCodeAnalysisConfig().use_precompute !== false;
+    this.usePrecompute = getCodeAnalysisConfig().use_precompute !== false;
+  }
+
+  get client() {
+    const cfg = getConfig();
+    const tenantId =
+      cfg.backend?.tenant_id ||
+      process.env.MEMORY_TENANT_ID ||
+      process.env.USERNAME ||
+      'default';
+
+    if (!this._client || this._clientTenant !== tenantId) {
+      this._clientTenant = tenantId;
+      this._client = getWrapperClient({ backend: { tenant_id: tenantId }, forceNew: true });
+    }
+    return this._client;
   }
 
   async initCache() {
@@ -110,11 +143,11 @@ export class AnalysisQueue {
         return;
       }
 
-      if (this.queue.length >= MAX_QUEUE_SIZE) {
+      if (this.queue.length >= getQueueMaxSize()) {
         const removed = this.queue.shift();
         logWarn(
           'CodeAnalysis',
-          `[CodeAnalysis] Queue full (${MAX_QUEUE_SIZE}), dropped oldest: ${removed?.filePath || 'unknown'}`
+          `[CodeAnalysis] Queue full (${getQueueMaxSize()}), dropped oldest: ${removed?.filePath || 'unknown'}`
         );
       }
 
@@ -155,7 +188,7 @@ export class AnalysisQueue {
           error
         );
       }
-    }, DEBOUNCE_MS);
+    }, getDebounceMs());
   }
 
   async processQueue() {
@@ -163,7 +196,7 @@ export class AnalysisQueue {
 
     try {
       const now = Date.now();
-      const validItems = this.queue.filter(item => now - item.timestamp < QUEUE_TIMEOUT_MS);
+      const validItems = this.queue.filter(item => now - item.timestamp < getQueueTimeoutMs());
       const expiredCount = this.queue.length - validItems.length;
       if (expiredCount > 0) {
         logInfo('CodeAnalysis', `[CodeAnalysis] Dropped ${expiredCount} expired items from queue`);
@@ -172,7 +205,7 @@ export class AnalysisQueue {
 
       if (this.queue.length === 0) return;
 
-      const availableSlots = MAX_CONCURRENT - this.concurrentCount;
+      const availableSlots = getMaxConcurrent() - this.concurrentCount;
       if (availableSlots <= 0) {
         setTimeout(() => this.processQueue(), QUEUE_POLL_DELAY_MS);
         return;
@@ -243,7 +276,7 @@ export class AnalysisQueue {
       }
 
       // BL-CA-45: Route to Atom/Entity API or legacy batch flow
-      if (_USE_ATOM_ENTITY_API) {
+      if (useAtomEntityApi()) {
         await this.uploadAsAtomEntity(item, result, content);
       } else {
         this.addToBatch(item, result, content);
@@ -286,7 +319,7 @@ export class AnalysisQueue {
       contentHash,
     });
 
-    if (this.batch.length >= BATCH_MAX_SIZE) {
+    if (this.batch.length >= getBatchMaxSize()) {
       this.flushBatch();
     } else {
       this.scheduleBatchFlush();
@@ -321,7 +354,7 @@ export class AnalysisQueue {
 
     this.batchTimer = setTimeout(() => {
       this.flushBatch();
-    }, BATCH_DELAY_MS);
+    }, getBatchDelayMs());
   }
 
   async flushBatch() {
@@ -476,7 +509,7 @@ export class AnalysisQueue {
       } catch (fpError) {
         logWarn(
           'CodeAnalysis',
-          `[CodeAnalysis] Privacy filter failed for ${item.relativePath}, skipping: ${fpError.message}`
+          `[CodeAnalysis] Fingerprint cache update failed for ${item.relativePath}, skipping: ${fpError.message}`
         );
       }
     }
@@ -487,93 +520,88 @@ export class AnalysisQueue {
       `[CodeAnalysis] Atom/Entity upload complete: ${result.atoms.length} atoms, ${result.references.length} references in ${duration.toFixed(2)}ms`
     );
 
+    if (result.entity?.id) {
+      await this._linkToConversationMemory(
+        result.entity.id,
+        item.relativePath,
+        analysisResult
+      );
+    }
+
     return { ...result, duration };
   }
 
   // ===== BL-CA-41: Atom/Entity/Reference API Implementation (standalone) =====
 
   async _createAtomsEntityReferences(relativePath, analysisResult, projectId, language, _content) {
+    const functionPromises = (analysisResult.functions || []).map(func =>
+      this.client.createAtom({
+        type: 'function',
+        name: func.name,
+        content:
+          func.signature || `${func.name}(${(func.params || []).map(p => p.name).join(', ')})`,
+        signature: func.signature,
+        params: func.params,
+        return_type: func.return_type,
+        is_exported: func.is_exported,
+        is_async: func.is_async,
+        complexity: func.complexity,
+        max_nesting_depth: func.max_nesting_depth,
+        docstring: func.jsdoc?.text,
+        start_line: func.start_line ?? func.line,
+        end_line: func.end_line,
+        project: projectId,
+        tenant_id: this.client.tenantId,
+      })
+    );
+
+    const classPromises = (analysisResult.classes || []).map(cls =>
+      this.client.createAtom({
+        type: 'class',
+        name: cls.name,
+        content: `class ${cls.name}`,
+        start_line: cls.start_line ?? cls.line,
+        end_line: cls.end_line,
+        project: projectId,
+        tenant_id: this.client.tenantId,
+      })
+    );
+
+    const importPromises = (analysisResult.imports || []).map(imp =>
+      this.client.createAtom({
+        type: 'import',
+        name: imp.source,
+        content: `import ${imp.source}`,
+        start_line: imp.line,
+        project: projectId,
+        tenant_id: this.client.tenantId,
+      })
+    );
+
+    const allPromises = [...functionPromises, ...classPromises, ...importPromises];
+    const allResults = await Promise.allSettled(allPromises);
+
     const createdAtoms = [];
     const atomIds = [];
+    let failedCount = 0;
 
-    for (const func of analysisResult.functions || []) {
-      try {
-        const atom = await this.wrapperClient.createAtom({
-          type: 'function',
-          name: func.name,
-          content:
-            func.signature || `${func.name}(${(func.params || []).map(p => p.name).join(', ')})`,
-          signature: func.signature,
-          params: func.params,
-          return_type: func.return_type,
-          is_exported: func.is_exported,
-          is_async: func.is_async,
-          complexity: func.complexity,
-          max_nesting_depth: func.max_nesting_depth,
-          docstring: func.jsdoc?.text,
-          start_line: func.start_line ?? func.line,
-          end_line: func.end_line,
-          project: projectId,
-          tenant_id: this.wrapperClient.tenantId,
-        });
-        createdAtoms.push(atom);
-        atomIds.push(atom.id);
-      } catch (error) {
-        logError(
-          'CodeAnalysis',
-          `[CodeAnalysis] Failed to upload ${relativePath} via Atom/Entity API: ${error.message}`,
-          error
-        );
+    for (const result of allResults) {
+      if (result.status === 'fulfilled' && result.value?.id) {
+        createdAtoms.push(result.value);
+        atomIds.push(result.value.id);
+      } else {
+        failedCount++;
       }
     }
 
-    for (const cls of analysisResult.classes || []) {
-      try {
-        const atom = await this.wrapperClient.createAtom({
-          type: 'class',
-          name: cls.name,
-          content: `class ${cls.name}`,
-          start_line: cls.start_line ?? cls.line,
-          end_line: cls.end_line,
-          project: projectId,
-          tenant_id: this.wrapperClient.tenantId,
-        });
-        createdAtoms.push(atom);
-        atomIds.push(atom.id);
-      } catch (error) {
-        logError(
-          'CodeAnalysis',
-          `[CodeAnalysis] Failed to create atom for class ${cls.name}:`,
-          error
-        );
-      }
-    }
-
-    for (const imp of analysisResult.imports || []) {
-      try {
-        const atom = await this.wrapperClient.createAtom({
-          type: 'import',
-          name: imp.source,
-          content: `import ${imp.source}`,
-          start_line: imp.line,
-          project: projectId,
-          tenant_id: this.wrapperClient.tenantId,
-        });
-        createdAtoms.push(atom);
-        atomIds.push(atom.id);
-      } catch (error) {
-        logError(
-          'CodeAnalysis',
-          `[CodeAnalysis] Failed to create entity for ${relativePath} via Atom/Entity API: ${error.message}`,
-          error
-        );
-      }
+    if (failedCount > 0) {
+      logWarn('CodeAnalysis', `[CodeAnalysis] Failed to create ${failedCount} atoms for ${relativePath}`);
     }
 
     let entity = null;
     if (atomIds.length > 0) {
       try {
-        entity = await this.wrapperClient.createEntity({
+        entity = await this.client.createEntity({
           type: 'code',
           abstract: this.generateAbstract(relativePath, analysisResult),
           overview: this.generateOverview(relativePath, analysisResult),
@@ -584,7 +612,7 @@ export class AnalysisQueue {
           language,
           quality_score: analysisResult.quality_score?.score,
           complexity_metrics: analysisResult.complexity_metrics,
-          tenant_id: this.wrapperClient.tenantId,
+          tenant_id: this.client.tenantId,
         });
         logInfo('CodeAnalysis', `[CodeAnalysis] Created entity: ${entity.id} (${relativePath})`);
       } catch (error) {
@@ -599,41 +627,43 @@ export class AnalysisQueue {
     }
 
     const createdReferences = [];
-    let refFailures = 0;
-    for (const call of analysisResult.calls || []) {
+    const refPayloads = (analysisResult.calls || [])
+      .filter((call) => {
+        const targetAtom = createdAtoms.find((a) => a.name === call.target);
+        return targetAtom && entity;
+      })
+      .map((call) => ({
+        from_id: entity.id,
+        to_id: createdAtoms.find((a) => a.name === call.target).id,
+        type: 'calls',
+        weight: 0.5,
+        line: call.line,
+        column: call.column,
+        file_path: call.file_path,
+        tenant_id: this.client.tenantId,
+      }));
+
+    if (refPayloads.length > 0) {
       try {
-        const targetAtom = createdAtoms.find(a => a.name === call.target);
-        if (targetAtom && entity) {
-          const reference = await this.wrapperClient.createReference({
-            from_id: entity.id,
-            to_id: targetAtom.id,
-            type: 'calls',
-            weight: 0.5,
-            line: call.line,
-            column: call.column,
-            file_path: call.file_path,
-            tenant_id: this.wrapperClient.tenantId,
-          });
-          createdReferences.push(reference);
-        }
+        const refResult = await this.client.createReferences(refPayloads);
+        createdReferences.push(...((refResult?.references) || []));
       } catch (error) {
-        refFailures++;
         logError(
           'CodeAnalysis',
-          `[CodeAnalysis] Failed to create reference for ${relativePath} via Atom/Entity API: ${error.message}`,
+          `[CodeAnalysis] Failed to create batch references for ${relativePath}:`,
           error
         );
       }
     }
 
-    if (refFailures > 0) {
+    if (createdReferences.length === 0 && refPayloads.length > 0) {
       logWarn(
         'CodeAnalysis',
-        `[CodeAnalysis] Failed to create ${refFailures} references for ${relativePath}`
+        `[CodeAnalysis] Failed to create ${refPayloads.length} references for ${relativePath}`
       );
     }
 
-    if (createdReferences.length === 0 && createdAtoms.some(a => a.type === 'function')) {
+    if (createdReferences.length === 0 && createdAtoms.some((a) => a.type === 'function')) {
       logWarn(
         'CodeAnalysis',
         `[CodeAnalysis] No references created for ${relativePath}, but functions exist - possible API issue`
@@ -641,6 +671,87 @@ export class AnalysisQueue {
     }
 
     return { atoms: createdAtoms, entity, references: createdReferences };
+  }
+
+  /**
+   * Link a code analysis Entity to related conversation memories.
+   * Searches for recent conversations mentioning the analyzed file or its symbols,
+   * then creates an "analyzes" relation (conversation → code entity).
+   *
+   * Fire-and-forget: errors are logged but never propagated to the caller.
+   *
+   * @param {string} entityId - The code analysis Entity ID
+   * @param {string} relativePath - Relative file path (used as search keyword)
+   * @param {Object} analysisResult - Code analysis result with functions/classes
+   */
+  async _linkToConversationMemory(entityId, relativePath, analysisResult) {
+    try {
+      if (!entityId) {
+        return;
+      }
+
+      const symbolNames = [
+        ...(analysisResult.functions || []).slice(0, 3).map(f => f.name),
+        ...(analysisResult.classes || []).slice(0, 2).map(c => c.name),
+      ].filter(Boolean);
+
+      const query = symbolNames.length > 0
+        ? `${basename(relativePath)} ${symbolNames.join(' ')}`
+        : basename(relativePath);
+
+      logInfo(
+        'CodeAnalysis',
+        `[CodeAnalysis] Searching for related conversations: "${query}"`
+      );
+
+      const searchResult = await this.client.search({
+        query,
+        mode: 'keyword',
+        limit: 5,
+        level: 0,
+        tenant_id: this.client.tenantId,
+      });
+
+      const results = searchResult?.results || [];
+      if (results.length === 0) {
+        logInfo(
+          'CodeAnalysis',
+          `[CodeAnalysis] No related conversations found for: ${relativePath}`
+        );
+        return;
+      }
+
+      const conversations = results.filter(r => r.type !== 'code');
+      if (conversations.length === 0) {
+        logInfo(
+          'CodeAnalysis',
+          `[CodeAnalysis] Only code entries found, skipping conversation link for: ${relativePath}`
+        );
+        return;
+      }
+
+      const bestMatch = conversations[0];
+      const conversationId = bestMatch.local_id || bestMatch.id;
+
+      await this.client.createRelation({
+        from_id: conversationId,
+        to_id: entityId,
+        type: 'analyzes',
+        weight: 0.7,
+        description: `Conversation references code in ${relativePath}`,
+        tenant_id: this.client.tenantId,
+      });
+
+      logInfo(
+        'CodeAnalysis',
+        `[CodeAnalysis] Linked conversation ${conversationId} → entity ${entityId} (analyzes: ${relativePath})`
+      );
+    } catch (error) {
+      logWarn(
+        'CodeAnalysis',
+        `[CodeAnalysis] Failed to link ${relativePath} to conversation memory: ${error.message}`
+      );
+    }
   }
 
   async analyzeWithAtomEntity(filePath, content, projectRoot) {
@@ -682,7 +793,7 @@ export class AnalysisQueue {
     logInfo('CodeAnalysis', `[CodeAnalysis] Rolling back ${atoms.length} atoms...`);
     for (const atom of atoms) {
       try {
-        await this.wrapperClient.deleteAtom(atom.id);
+        await this.client.deleteAtom(atom.id);
         logInfo('CodeAnalysis', `[CodeAnalysis] Rolled back atom: ${atom.id}`);
       } catch (error) {
         logError('CodeAnalysis', `[CodeAnalysis] Failed to rollback atom ${atom.id}:`, error);
@@ -721,7 +832,7 @@ export class AnalysisQueue {
     );
 
     try {
-      const result = await this.wrapperClient.uploadMemories(memoryItems);
+      const result = await this.client.uploadMemories(memoryItems);
       logInfo(
         'CodeAnalysis',
         `[CodeAnalysis] Upload complete: ${result.success}/${result.total} success`
@@ -767,7 +878,7 @@ export class AnalysisQueue {
   async uploadProject(projectRoot, _options = {}) {
     const startTime = performance.now();
     const projectId = await resolveProjectId({ projectRoot });
-    const tenantId = this.wrapperClient.tenantId;
+    const tenantId = this.client.tenantId;
 
     const SUPPORTED = new Set(['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.tsx']);
     const SKIP = new Set([
@@ -812,7 +923,7 @@ export class AnalysisQueue {
         const atomIds = [];
 
         for (const func of result.functions || []) {
-          const atom = await this.wrapperClient.createAtom({
+          const atom = await this.client.createAtom({
             type: 'function',
             name: func.name,
             content: `${func.name}(${(func.params || []).map(p => p.name || p).join(', ')})`,
@@ -830,7 +941,7 @@ export class AnalysisQueue {
         }
 
         for (const cls of result.classes || []) {
-          const atom = await this.wrapperClient.createAtom({
+          const atom = await this.client.createAtom({
             type: 'class',
             name: cls.name,
             content: 'class ' + cls.name,
@@ -844,7 +955,7 @@ export class AnalysisQueue {
         }
 
         if (atomIds.length > 0) {
-          const entity = await this.wrapperClient.createEntity({
+          const entity = await this.client.createEntity({
             type: 'code',
             abstract:
               relPath +
@@ -885,7 +996,7 @@ export class AnalysisQueue {
         }
         if (!targetId) continue;
         try {
-          await this.wrapperClient.createReference({
+          await this.client.createReference({
             from_id: fromId,
             to_id: targetId,
             type: 'calls',
@@ -901,16 +1012,9 @@ export class AnalysisQueue {
     }
 
     const duration = performance.now() - startTime;
-    console.log(
-      '[CodeAnalysis] uploadProject complete: ' +
-        allResults.length +
-        ' files, ' +
-        globalNameToAtomId.size +
-        ' atoms, ' +
-        refCount +
-        ' references in ' +
-        duration.toFixed(2) +
-        'ms'
+    logInfo(
+      'CodeAnalysis',
+      `uploadProject complete: ${allResults.length} files, ${globalNameToAtomId.size} atoms, ${refCount} references in ${duration.toFixed(2)}ms`
     );
 
     return {

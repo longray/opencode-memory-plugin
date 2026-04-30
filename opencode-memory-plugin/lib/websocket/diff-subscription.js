@@ -1,4 +1,5 @@
 import fastJsonPatch from 'fast-json-patch';
+import { logInfo, logWarn, logError } from '../logger.js';
 const { applyPatch } = fastJsonPatch;
 
 function escapeSurrealQL(value) {
@@ -29,7 +30,7 @@ export class DiffSubscription {
 
     this.client.send(subscribeRequest);
 
-    console.log(`[DiffSubscription] Subscribed to DIFF for ${entityId}`);
+    logInfo('DiffSubscription', `Subscribed to DIFF for ${entityId}`);
   }
 
   async unsubscribe(entityId) {
@@ -47,13 +48,13 @@ export class DiffSubscription {
     this.localCache.delete(entityId);
     this.subscriptions.delete(entityId);
 
-    console.log(`[DiffSubscription] Unsubscribed from DIFF for ${entityId}`);
+    logInfo('DiffSubscription', `Unsubscribed from DIFF for ${entityId}`);
   }
 
   applyDiff(entityId, patches) {
     const current = this.localCache.get(entityId);
     if (!current) {
-      console.warn(`[DiffSubscription] No cache found for ${entityId}`);
+      logWarn('DiffSubscription', `No cache found for ${entityId}`);
       return null;
     }
 
@@ -67,10 +68,10 @@ export class DiffSubscription {
         this.onUpdate(entityId, updated, patches);
       }
 
-      console.log(`[DiffSubscription] Applied diff to ${entityId}`);
+      logInfo('DiffSubscription', `Applied diff to ${entityId}`);
       return updated;
     } catch (error) {
-      console.error(`[DiffSubscription] Failed to apply diff: ${error.message}`);
+      logError('DiffSubscription', `Failed to apply diff: ${error.message}`);
       return null;
     }
   }

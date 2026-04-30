@@ -141,7 +141,7 @@ class WebSocketBenchmark {
         timestamp: performance.now(),
       };
 
-      const sendTime = performance.now();
+      const _sendTime = performance.now();
       this.stats.messages.sent++;
 
       conn.ws.send(JSON.stringify(message));
@@ -178,7 +178,7 @@ class WebSocketBenchmark {
     return new Promise((resolve) => {
       this.stats.heartbeats.sent++;
 
-      const pingTime = performance.now();
+      const _pingTime = performance.now();
       conn.ws.ping();
 
       const onPong = () => {
