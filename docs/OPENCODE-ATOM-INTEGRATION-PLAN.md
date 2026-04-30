@@ -49,7 +49,7 @@
 
 ### 1.2 五大集成缺口
 
-#### 🔴 缺口 1：memory_write 不暴露 atoms 参数
+#### ✅ 缺口 1：memory_write 不暴露 atoms 参数（已修复）
 
 **位置**: `tools/core.js:19-28`
 
@@ -67,7 +67,7 @@ export const memory_write = tool({
 
 **影响**: OpenCode 永远无法创建带 Atom 结构的知识树。
 
-#### 🔴 缺口 2：无 Atom 操作工具
+#### ✅ 缺口 2：无 Atom 操作工具（已修复）
 
 **位置**: `plugin.js:116-135`
 
@@ -77,7 +77,7 @@ export const memory_write = tool({
 - ❌ 没有 `atom_search`（Atom 粒度搜索）
 - ❌ 没有 `atom_create` / `atom_update` / `atom_delete`
 
-#### 🔴 缺口 3：搜索不支持 Atom 粒度
+#### ✅ 缺口 3：搜索不支持 Atom 粒度（已修复）
 
 **位置**: `tools/search.js:18-60`
 
@@ -107,7 +107,7 @@ OpenCode 的 system prompt 中**没有 Atom Architecture 的概念**，AI 不知
   ↓ atoms 参数不传给后端！
 ```
 
-**关键 Bug**: `syncMemoryToBackend()` 构造的同步对象**不包含 atoms**，本地 Atom 树永远无法同步到后端。
+**关键 Bug**: ~~`syncMemoryToBackend()` 构造的同步对象**不包含 atoms**，本地 Atom 树永远无法同步到后端。~~ ✅ 已修复：`syncMemoryToBackend` 现在正确传递 atoms 到后端。
 
 ---
 
@@ -623,12 +623,12 @@ export async function loadContextByLevel(entryId, maxLevel = 2) {
 
 | 天数 | 任务 | 产出 |
 |------|------|------|
-| Day 1 | 修复 memory_write 暴露 atoms | ✅ 可创建 Atom 树 |
-| Day 1 | 修复 syncMemoryToBackend | ✅ 本地 ↔ 后端同步 |
-| Day 2 | 新增 entity_update 工具 | ✅ 可批量操作 Atom |
-| Day 2 | 新增 entity_atoms 工具 | ✅ 可查询 Atom 树 |
-| Day 3 | 扩展 memory_search | ✅ Atom 粒度搜索 |
-| Day 3 | 更新 plugin.js 注册 | ✅ 工具可用 |
+| Day 1 | 修复 memory_write 暴露 atoms | ✅ COMPLETED |
+| Day 1 | 修复 syncMemoryToBackend | ✅ COMPLETED |
+| Day 2 | 新增 entity_update 工具 | ✅ COMPLETED |
+| Day 2 | 新增 entity_atoms 工具 | ✅ COMPLETED |
+| Day 3 | 扩展 memory_search | ✅ COMPLETED |
+| Day 3 | 更新 plugin.js 注册 | ✅ COMPLETED |
 | Day 4-5 | 编写测试 | ✅ 10+ 新测试通过 |
 
 ### Phase 2: Prompt 工程（Week 2）
