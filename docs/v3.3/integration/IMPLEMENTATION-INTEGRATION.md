@@ -355,7 +355,7 @@ Copy-Item "$env:USERPROFILE\.opencode\memory\TOOLS.md" "$env:USERPROFILE\.openco
 
 **目标**: 改造 Agent 工作流，让 The Observer 自动萃取 Atom 树，让 The Librarian 按 Atom 粒度整合碎片。
 
-**当前状态**: 🔄 进行中 — Task 3.1 (Observer) ✅ 已完成，Task 3.2 (Librarian) ✅ 已完成，Task 3.4 (上下文管理) ✅ 已实现，Task 3.3 (代码分析关联) ⏳ 待实施
+**当前状态**: ✅ 已完成 — 所有 4 个 Task 实施完毕
 
 ---
 
@@ -445,79 +445,45 @@ Copy-Item "$env:USERPROFILE\.opencode\memory\TOOLS.md" "$env:USERPROFILE\.openco
 
 **文件**: `opencode-memory-plugin/lib/code-analysis-service.js`
 
-**状态**: ⏳ 待实施（标记为 `// TODO: Experimental`）
+**状态**: ✅ 已完成
 
 **设计文档参考**: `DESIGN-INTEGRATION.md` 任务 3.3（代码分析结果关联到对话记忆）
 
-**实施步骤**:
+**实施记录**:
 
-#### 步骤 1：定义关联函数
+`_linkToConversationMemory()` 方法已实现于 `code-analysis-service.js:690`，并在 `uploadAsAtomEntity()` 成功后自动调用（`code-analysis-service.js:526`）。实现要点：
 
-在 `code-analysis-service.js` 中新增 `linkToConversationMemory` 方法：
+1. **符号提取**: 从分析结果中提取前 3 个函数名和前 2 个类名作为搜索关键词
+2. **搜索关联**: 使用 `this.client.search()` 以 keyword 模式搜索相关对话记忆（limit=5, level=0）
+3. **过滤代码条目**: 排除 `type === 'code'` 的条目，只关联对话记忆
+4. **创建关系**: 通过 `this.client.createRelation()` 创建 `analyzes` 关系（weight=0.7）
+5. **配置开关**: `code_analysis.auto_link_to_conversation`（默认 `true`，可通过 `memory-config.json` 关闭）
+6. **错误处理**: fire-and-forget，失败仅记录 warn 日志，不影响代码分析主流程
 
-```javascript
-async linkToConversationMemory(entityId, filePath) {
-  try {
-    const recentMemories = await this.wrapperClient.search({
-      query: `code analysis ${path.basename(filePath)}`,
-      limit: 5,
-      level: 0,
-    });
+#### 配置项
 
-    if (recentMemories.results && recentMemories.results.length > 0) {
-      for (const mem of recentMemories.results.slice(0, 3)) {
-        await this.wrapperClient.relate({
-          action: "create",
-          from_id: mem.id,
-          to_id: entityId,
-          relation_type: "analyzes",
-          weight: 0.8,
-        });
-      }
-    }
-  } catch (err) {
-    this.logger.warn({
-      msg: "Failed to link code analysis to conversation memory",
-      entityId,
-      filePath,
-      error: err.message,
-    });
-  }
-}
-```
-
-#### 步骤 2：在 `uploadAsAtomEntity()` 中调用
-
-在 `uploadAsAtomEntity()` 成功返回后追加调用：
-
-```javascript
-// 现有代码：const result = await this.uploadAsAtomEntity(fileResult);
-// 新增：
-if (result && result.localId) {
-  await this.linkToConversationMemory(result.localId, filePath).catch(() => {});
-}
-```
-
-#### 步骤 3：添加配置开关
-
-在 `memory-config.json` 中添加：
+在 `memory-config.json` 中添加（可选）：
 
 ```json
 {
-  "codeAnalysis": {
-    "autoLinkToConversation": true
+  "code_analysis": {
+    "auto_link_to_conversation": true
   }
 }
 ```
 
+默认启用（`true`），设为 `false` 可关闭自动关联。
+
 #### 集成点
 
-| 集成点 | 文件 | 说明 |
-|--------|------|------|
-| 调用入口 | `code-analysis-service.js` `uploadAsAtomEntity()` | 分析完成后自动关联 |
-| 搜索 API | `wrapper-client.js` `search()` | 查找最近相关对话记忆 |
-| 关系 API | `wrapper-client.js` `relate()` | 创建 `analyzes` 关系 |
-| 配置 | `memory-config.json` | `codeAnalysis.autoLinkToConversation` 开关 |
+| 集成点 | 文件 | 代码位置 | 说明 |
+|--------|------|----------|------|
+| 实现方法 | `code-analysis-service.js` | line 690 | `_linkToConversationMemory()` |
+| 调用入口 | `code-analysis-service.js` | line 526 | `uploadAsAtomEntity()` 成功后调用 |
+| 配置开关 | `code-analysis-service.js` | line 51 | `isAutoLinkToConversation()` |
+| 搜索 API | `wrapper-client.js` | `search()` | 查找最近相关对话记忆 |
+| 关系 API | `wrapper-client.js` | `createRelation()` | 创建 `analyzes` 关系 |
+| 配置 | `memory-config.json` | `code_analysis.auto_link_to_conversation` | 功能开关 |
 
 **测试场景**:
 
@@ -530,10 +496,10 @@ if (result && result.localId) {
 
 **验收标准**:
 
-- [ ] 代码分析 Entity 创建后自动关联到对话记忆
-- [ ] 关联关系可通过 `memory_graph` 查询到
-- [ ] 关联失败不影响代码分析主流程（仅 warn 日志）
-- [ ] 可通过配置关闭此功能
+- [x] 代码分析 Entity 创建后自动关联到对话记忆
+- [x] 关联关系可通过 `memory_graph` 查询到
+- [x] 关联失败不影响代码分析主流程（仅 warn 日志）
+- [x] 可通过配置关闭此功能（`code_analysis.auto_link_to_conversation: false`）
 
 **回滚策略**: 关联调用使用 `.catch(() => {})` 包装，失败不影响主流程。回滚时删除 `linkToConversationMemory` 方法和调用点即可。
 

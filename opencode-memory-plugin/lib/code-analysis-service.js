@@ -48,6 +48,10 @@ function getQueueMaxSize() {
   return getCodeAnalysisConfig().queue_max_size || 10;
 }
 
+function isAutoLinkToConversation() {
+  return getCodeAnalysisConfig().auto_link_to_conversation !== false;
+}
+
 function useAtomEntityApi() {
   return getCodeAnalysisConfig().use_atom_entity_api !== false;
 }
@@ -520,7 +524,7 @@ export class AnalysisQueue {
       `[CodeAnalysis] Atom/Entity upload complete: ${result.atoms.length} atoms, ${result.references.length} references in ${duration.toFixed(2)}ms`
     );
 
-    if (result.entity?.id) {
+    if (result.entity?.id && isAutoLinkToConversation()) {
       await this._linkToConversationMemory(
         result.entity.id,
         item.relativePath,

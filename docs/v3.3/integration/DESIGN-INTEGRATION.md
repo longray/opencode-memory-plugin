@@ -9,9 +9,9 @@ owner: Prometheus
 
 **版本**: v1.1 (升级自 `docs/OPENCODE-ATOM-INTEGRATION-PLAN.md`)
 **日期**: 2026-05-01
-**状态**: Phase 1 ✅ 已完成，Phase 2 ✅ 已完成 (Prompt 注入完成，Agent 行为待验证)，Phase 3 ⏳ 待实施
+**状态**: Phase 1 ✅ 已完成，Phase 2 ✅ 已完成 (Prompt 注入完成，Agent 行为待验证)，Phase 3 ✅ 已完成
 
-> **Phase 1 和 Phase 2 已全部完成，缺口 1-5 已解决。** Phase 3 工作流改造待实施。
+> **Phase 1、Phase 2 和 Phase 3 已全部完成，缺口 1-5 已解决。**
 
 ---
 
@@ -304,22 +304,16 @@ workflow:
 
 **文件**: `lib/code-analysis-service.js`
 
-```javascript
-// TODO: Experimental
-// 创建代码分析 Entity 后，尝试关联到最近的对话记忆
-async linkToConversationMemory(entityId, filePath) {
-  const recentMemories = await memory_search({
-    query: `code analysis ${filePath}`,
-    limit: 5,
-  });
+**状态**: ✅ 已完成 — `_linkToConversationMemory()` 实现于 line 690，由 `uploadAsAtomEntity()` 在成功后自动调用（line 526）。配置开关 `code_analysis.auto_link_to_conversation` 默认启用。
 
-  if (recentMemories.length > 0) {
-    await memory_relate({
-      from_id: recentMemories[0].id,
-      to_id: entityId,
-      relation_type: "analyzes",
-    });
-  }
+```javascript
+// ✅ 已实现 (code-analysis-service.js:690)
+async _linkToConversationMemory(entityId, relativePath, analysisResult) {
+  // 1. 提取符号名（前3函数+前2类）
+  // 2. keyword 搜索相关对话记忆
+  // 3. 过滤 code 类型条目
+  // 4. 创建 analyzes 关系（weight=0.7）
+  // 5. fire-and-forget 错误处理
 }
 ```
 
@@ -349,7 +343,7 @@ export async function loadContextByLevel(entryId, maxLevel = 2) {
 }
 ```
 
-> **注意**: 任务 3.3（代码分析关联）标记为 `// TODO: Experimental`，属于探索性功能。任务 3.4（上下文管理）已实现为 `load_context_level`（`tools/core.js:355`）和 `load_context_budget`（`tools/core.js:292`）工具，需验证 Agent 是否在实际对话中使用。
+> **注意**: 任务 3.3（代码分析关联）已实现为 `_linkToConversationMemory()`（`code-analysis-service.js:690`），通过 `code_analysis.auto_link_to_conversation` 配置控制。任务 3.4（上下文管理）已实现为 `load_context_level`（`tools/core.js:355`）和 `load_context_budget`（`tools/core.js:292`）工具，需验证 Agent 是否在实际对话中使用。
 
 ---
 
@@ -376,16 +370,14 @@ export async function loadContextByLevel(entryId, maxLevel = 2) {
 | 更新 TOOLS.md   | 使用示例         | ✅ COMPLETED                     |
 | 验证 Agent 行为 | 自动创建 Atom 树 | ✅ COMPLETED (Agent 行为验证 ⏳) |
 
-### Phase 3: 工作流改造 — 🔄 进行中（Agent 改造已完成，代码分析关联待实现）
+### Phase 3: 工作流改造 — ✅ COMPLETED
 
-> **注意**: Agent 改造已完成（Observer 支持 Atom 树候选输出，Librarian 支持 Atom Tree Consolidation），待行为验证。唯一剩余任务为 3.3 代码分析关联（`linkToConversationMemory`）。
-
-| 任务               | 产出          | 状态                               |
-| ------------------ | ------------- | ---------------------------------- |
-| 改造 The Observer  | 自动萃取 Atom | ✅ 已完成                          |
-| 改造 The Librarian | 按 Atom 整合  | ✅ 已完成                          |
-| 代码分析关联       | 双向链接      | ⏳ PENDING                         |
-| 上下文管理         | Atom 粒度加载 | ✅ 已实现 (Agent 行为验证 ⏳)       |
+| 任务               | 产出          | 状态                         |
+| ------------------ | ------------- | ---------------------------- |
+| 改造 The Observer  | 自动萃取 Atom | ✅ 已完成                    |
+| 改造 The Librarian | 按 Atom 整合  | ✅ 已完成                    |
+| 代码分析关联       | 双向链接      | ✅ 已完成                    |
+| 上下文管理         | Atom 粒度加载 | ✅ 已实现 (Agent 行为验证 ⏳) |
 
 ---
 
@@ -443,9 +435,9 @@ export async function loadContextByLevel(entryId, maxLevel = 2) {
 
 **验收标准**:
 
-- [ ] 代码分析 Entity 创建后自动关联到对话记忆
-- [ ] 关联关系可通过 `memory_graph` 查询到
-- [ ] 关联失败不影响代码分析主流程
+- [x] 代码分析 Entity 创建后自动关联到对话记忆
+- [x] 关联关系可通过 `memory_graph` 查询到
+- [x] 关联失败不影响代码分析主流程
 
 ### 任务 3.4：上下文管理按 Atom 粒度
 
@@ -501,7 +493,7 @@ assert(update.success === true);
 - [x] OpenCode 调用 entity_update 成功
 - [x] OpenCode 调用 entity_atoms 成功
 - [ ] Agent 自动创建 Atom 树（观察 The Observer 行为）
-- [ ] 代码分析结果自动关联到对话记忆
+- [x] 代码分析结果自动关联到对话记忆
 
 ---
 
