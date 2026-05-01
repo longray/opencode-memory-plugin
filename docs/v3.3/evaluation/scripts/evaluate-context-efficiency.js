@@ -19,16 +19,8 @@
  * Output: Token usage comparison report (JSON)
  */
 
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-
-// TODO: Import actual functions when available
-// import { memory_read } from '../../../opencode-memory-plugin/tools/core.js';
-// import { getEntityAtoms } from '../../../opencode-memory-plugin/lib/memory-core.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { getEntryById } from '../../../opencode-memory-plugin/lib/storage.js';
+import { getEntityAtoms } from '../../../opencode-memory-plugin/lib/memory-core.js';
 
 // Simple token estimator (~4 chars per token for English, ~2 for CJK)
 function estimateTokens(text) {
@@ -43,29 +35,62 @@ function estimateTokens(text) {
 }
 
 async function measureEntityMode(entryId) {
-  // DESIGN-EVALUATION.md §2.1: Full entity load at level=2
-  // TODO: Replace with actual memory_read call
-  console.error(`TODO: Load full entity ${entryId} at level=2`);
+  const entry = getEntryById(entryId);
+  if (!entry) {
+    console.error(`Warning: Entry ${entryId} not found`);
+    return { mode: 'entity', entry_id: entryId, tokens: 0, bytes: 0, atom_count: 0 };
+  }
+  const fullText = [entry.abstract, entry.overview, entry.content].filter(Boolean).join('\n');
+  const tokens = estimateTokens(fullText);
   return {
     mode: 'entity',
     entry_id: entryId,
-    tokens: 0,
-    bytes: 0,
-    atom_count: 0,
+    tokens,
+    bytes: JSON.stringify(entry).length,
+    atom_count: entry.atoms?.length || 0,
   };
 }
 
+function flattenAtomTree(nodes) {
+  const flat = [];
+  for (const node of nodes) {
+    flat.push(node);
+    if (node.children && node.children.length > 0) {
+      flat.push(...flattenAtomTree(node.children));
+    }
+  }
+  return flat;
+}
+
 async function measureAtomMode(entryId) {
-  // DESIGN-EVALUATION.md §2.1: Targeted atom load (abstracts + selected atoms)
-  // TODO: Replace with actual getEntityAtoms + selective load
-  console.error(`TODO: Load atoms for ${entryId} (targeted)`);
+  const result = await getEntityAtoms({ entry_id: entryId, include_content: true });
+  if (!result.success || !result.tree || result.total_atoms === 0) {
+    console.error(`Warning: No atoms for ${entryId}, falling back to entity mode`);
+    const entityResult = await measureEntityMode(entryId);
+    return { ...entityResult, mode: 'atom', fallback: 'entity' };
+  }
+  const atoms = flattenAtomTree(result.tree);
+  const allText = atoms.map((a) => [a.name, a.content].filter(Boolean).join('\n')).join('\n');
+  const tokens = estimateTokens(allText);
   return {
     mode: 'atom',
     entry_id: entryId,
-    tokens: 0,
-    bytes: 0,
-    atom_count: 0,
+    tokens,
+    bytes: JSON.stringify(result.tree).length,
+    atom_count: result.total_atoms,
+    breakdown: countByType(atoms),
   };
+}
+
+function countByType(atoms) {
+  const map = {};
+  for (const a of atoms) {
+    const t = a.type || 'unknown';
+    if (!map[t]) map[t] = { count: 0, tokens: 0 };
+    map[t].count++;
+    map[t].tokens += estimateTokens([a.name, a.content].filter(Boolean).join('\n'));
+  }
+  return map;
 }
 
 function parseArgs(argv) {
@@ -114,7 +139,11 @@ async function measureContextEfficiency(entryId, mode = 'compare') {
       };
     }
 
-    // TODO: Add breakdown by atom type (chapter/section/note) per DESIGN-EVALUATION.md
+    if (report.atom?.breakdown) {
+      report.atom.breakdown_summary = Object.entries(report.atom.breakdown).map(
+        ([type, info]) => ({ type, count: info.count, tokens: info.tokens }),
+      );
+    }
     console.log(JSON.stringify(report, null, 2));
   } catch (error) {
     console.error(`Error measuring context efficiency: ${error.message}`);

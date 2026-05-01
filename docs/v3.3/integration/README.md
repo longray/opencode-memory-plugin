@@ -30,7 +30,7 @@ integration/
 **内容**:
 
 - 五大缺口分析（已完成 ✅）
-- 三阶段实施路线（Phase 1 ✅ / Phase 2 ✅ / Phase 3 ⏳）
+- 三阶段实施路线（Phase 1 ✅ / Phase 2 ✅ / Phase 3 🔄 进行中）
 - Agent 改造方案（The Observer / The Librarian）
 - Prompt 工程计划（SOUL.md / AGENTS.md / TOOLS.md）
 - 代码示例和 API 契约
@@ -80,11 +80,11 @@ integration/
 |             | AGENTS.md 操作规范                | ✅                          |
 |             | TOOLS.md 工具说明                 | ✅                          |
 |             | Agent 行为验证                    | ⏳                          |
-| **Phase 3** | 工作流改造                        | ⏳ 待实施                   |
-|             | The Observer 自动萃取             | ⏳                          |
-|             | The Librarian 按 Atom 整合        | ⏳                          |
+| **Phase 3** | 工作流改造                        | 🔄 进行中 (Agent 改造已完成) |
+|             | The Observer 自动萃取             | ✅                          |
+|             | The Librarian 按 Atom 整合        | ✅                          |
 |             | 代码分析关联对话                  | ⏳                          |
-|             | 上下文管理 Atom 粒度              | ⏳                          |
+|             | 上下文管理 Atom 粒度              | ✅ (Agent 行为验证 ⏳)      |
 
 ---
 

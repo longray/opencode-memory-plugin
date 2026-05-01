@@ -376,14 +376,16 @@ export async function loadContextByLevel(entryId, maxLevel = 2) {
 | 更新 TOOLS.md   | 使用示例         | ✅ COMPLETED                     |
 | 验证 Agent 行为 | 自动创建 Atom 树 | ✅ COMPLETED (Agent 行为验证 ⏳) |
 
-### Phase 3: 工作流改造 — ⏳ PENDING
+### Phase 3: 工作流改造 — 🔄 进行中（Agent 改造已完成，代码分析关联待实现）
 
-| 任务               | 产出          | 状态                          |
-| ------------------ | ------------- | ----------------------------- |
-| 改造 The Observer  | 自动萃取 Atom | ⏳ PENDING                    |
-| 改造 The Librarian | 按 Atom 整合  | ⏳ PENDING                    |
-| 代码分析关联       | 双向链接      | ⏳ PENDING                    |
-| 上下文管理         | Atom 粒度加载 | ✅ 已实现 (Agent 行为验证 ⏳) |
+> **注意**: Agent 改造已完成（Observer 支持 Atom 树候选输出，Librarian 支持 Atom Tree Consolidation），待行为验证。唯一剩余任务为 3.3 代码分析关联（`linkToConversationMemory`）。
+
+| 任务               | 产出          | 状态                               |
+| ------------------ | ------------- | ---------------------------------- |
+| 改造 The Observer  | 自动萃取 Atom | ✅ 已完成                          |
+| 改造 The Librarian | 按 Atom 整合  | ✅ 已完成                          |
+| 代码分析关联       | 双向链接      | ⏳ PENDING                         |
+| 上下文管理         | Atom 粒度加载 | ✅ 已实现 (Agent 行为验证 ⏳)       |
 
 ---
 

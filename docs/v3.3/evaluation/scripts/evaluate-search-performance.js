@@ -27,22 +27,52 @@
  * Output: JSON comparison report
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-
-// TODO: Import actual search functions when available
-// import { memory_search } from '../../../opencode-memory-plugin/tools/search.js';
+import { getConfig } from '../../../opencode-memory-plugin/lib/storage.js';
+import { getWrapperClient } from '../../../opencode-memory-plugin/lib/wrapper-client.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Placeholder - actual search function will be injected
+let client = null;
+
+function getClient() {
+  if (!client) {
+    const config = getConfig();
+    client = getWrapperClient(config);
+  }
+  return client;
+}
+
 async function searchWithScope(query, scope, limit = 10) {
-  // DESIGN-EVALUATION.md §2.1: Run same query with scope="atom" vs scope="entity"
-  // TODO: Replace with actual memory_search call
-  console.error(`TODO: Implement search for "${query}" with scope="${scope}"`);
-  return { results: [], time_ms: 0 };
+  const c = getClient();
+  const searchParams = {
+    query,
+    mode: 'hybrid',
+    limit,
+    level: 0,
+    scope: scope === 'atom' ? 'atom' : 'all',
+  };
+
+  const start = performance.now();
+  try {
+    const result = await c.search(searchParams);
+    const time_ms = performance.now() - start;
+    const results = (result.results || []).map(r => ({
+      id: r.local_id || r.id,
+      entity_id: r.entity_id || null,
+      type: r.type || 'general',
+      atom_type: r.atom_type || null,
+      score: r.score || 0,
+    }));
+    return { results, time_ms };
+  } catch (error) {
+    const time_ms = performance.now() - start;
+    console.error(`Warning: search failed for "${query}" (scope=${scope}): ${error.message}`);
+    return { results: [], time_ms };
+  }
 }
 
 function calculatePrecisionAtK(results, relevantIds, k) {
@@ -65,12 +95,14 @@ function calculateMRR(results, relevantIds) {
 }
 
 function parseArgs(argv) {
-  const args = { queryFile: null, top: 5, help: false };
+  const args = { queryFile: null, top: 5, output: null, help: false };
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === '--queries' || argv[i] === '-q') {
       args.queryFile = argv[++i];
     } else if (argv[i] === '--top' || argv[i] === '-k') {
       args.top = parseInt(argv[++i], 10);
+    } else if (argv[i] === '--output' || argv[i] === '-o') {
+      args.output = argv[++i];
     } else if (argv[i] === '--help' || argv[i] === '-h') {
       args.help = true;
     } else if (!args.queryFile) {
@@ -80,7 +112,7 @@ function parseArgs(argv) {
   return args;
 }
 
-async function evaluateSearchPerformance(queryFile, topK = 5) {
+async function evaluateSearchPerformance(queryFile, topK = 5, outputFile = null) {
   try {
     const filePath = resolve(__dirname, queryFile);
     const queryData = JSON.parse(readFileSync(filePath, 'utf-8'));
@@ -134,7 +166,13 @@ async function evaluateSearchPerformance(queryFile, topK = 5) {
     };
 
     // TODO: Add statistical significance testing (t-test or Wilcoxon)
-    console.log(JSON.stringify(report, null, 2));
+    const reportJson = JSON.stringify(report, null, 2);
+    console.log(reportJson);
+    if (outputFile) {
+      const outPath = resolve(__dirname, outputFile);
+      writeFileSync(outPath, reportJson, 'utf-8');
+      console.error(`Report saved to ${outPath}`);
+    }
   } catch (error) {
     console.error(`Error evaluating search performance: ${error.message}`);
     process.exit(1);
@@ -155,6 +193,7 @@ if (args.help || !args.queryFile) {
   console.error('Options:');
   console.error('  -q, --queries <file>  Query file path (positional also works)');
   console.error('  -k, --top <n>         Top-K for precision calculation (default: 5)');
+  console.error('  -o, --output <file>   Save report to file (JSON)');
   console.error('  -h, --help             Show this help message');
   console.error('');
   console.error('Query file format:');
@@ -164,4 +203,4 @@ if (args.help || !args.queryFile) {
   process.exit(args.help ? 0 : 1);
 }
 
-evaluateSearchPerformance(args.queryFile, args.top);
+evaluateSearchPerformance(args.queryFile, args.top, args.output);

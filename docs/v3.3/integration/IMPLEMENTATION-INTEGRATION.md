@@ -355,7 +355,7 @@ Copy-Item "$env:USERPROFILE\.opencode\memory\TOOLS.md" "$env:USERPROFILE\.openco
 
 **目标**: 改造 Agent 工作流，让 The Observer 自动萃取 Atom 树，让 The Librarian 按 Atom 粒度整合碎片。
 
-**当前状态**: ⏳ 待实施
+**当前状态**: 🔄 进行中 — Task 3.1 (Observer) ✅ 已完成，Task 3.2 (Librarian) ✅ 已完成，Task 3.4 (上下文管理) ✅ 已实现，Task 3.3 (代码分析关联) ⏳ 待实施
 
 ---
 
