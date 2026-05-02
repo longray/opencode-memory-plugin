@@ -345,15 +345,14 @@ d_z = M_diff / S_diff
 
 ### 5.1 自动化测试脚本
 
-> **注意**: 以下脚本为伪代码设计，待实现为可执行脚本。可执行版本将放置在 `./scripts/` 目录。
+> **注意**: 以下脚本已实现为可执行版本，位于 `./scripts/` 目录。此处伪代码保留作为设计参考。
 >
 > **依赖路径**: 实际脚本中，`lib/` 和 `tools/` 的相对路径应为 `../../../lib/` 和 `../../../tools/`（从 `docs/v3.3/evaluation/scripts/` 到项目根目录）。
 
 #### 脚本 1: 知识组织质量分析
 
 ```javascript
-// evaluate-atom-quality.js — 伪代码 → 待实现为可执行脚本
-// 可执行版本: ./scripts/evaluate-atom-quality.js
+// evaluate-atom-quality.js — 已实现为可执行脚本，见 ./scripts/evaluate-atom-quality.js
 import { getEntityAtoms } from '../../../lib/memory-core.js';
 import { getConfig } from '../../../lib/storage.js';
 
@@ -402,8 +401,7 @@ async function batchEvaluate() {
 #### 脚本 2: 检索性能对比
 
 ```javascript
-// evaluate-search-performance.js — 伪代码 → 待实现为可执行脚本
-// 可执行版本: ./scripts/evaluate-search-performance.js
+// evaluate-search-performance.js — 已实现为可执行脚本，见 ./scripts/evaluate-search-performance.js
 import { memory_search } from '../../../tools/search.js';
 
 const TEST_QUERIES = [
@@ -472,8 +470,7 @@ async function runComparison() {
 #### 脚本 3: 上下文效率测量
 
 ```javascript
-// evaluate-context-efficiency.js — 伪代码 → 待实现为可执行脚本
-// 可执行版本: ./scripts/evaluate-context-efficiency.js
+// evaluate-context-efficiency.js — 已实现为可执行脚本，见 ./scripts/evaluate-context-efficiency.js
 import { memory_read } from '../../../tools/core.js';
 import { getEntityAtoms } from '../../../lib/memory-core.js';
 

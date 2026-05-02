@@ -79,12 +79,12 @@ integration/
 |             | SOUL.md Atom 认知                 | ✅                          |
 |             | AGENTS.md 操作规范                | ✅                          |
 |             | TOOLS.md 工具说明                 | ✅                          |
-|             | Agent 行为验证                    | ⏳                          |
+|             | Agent 行为验证                    | ✅                          |
 | **Phase 3** | 工作流改造                        | 🔄 进行中 (Agent 改造已完成) |
 |             | The Observer 自动萃取             | ✅                          |
 |             | The Librarian 按 Atom 整合        | ✅                          |
-|             | 代码分析关联对话                  | ⏳                          |
-|             | 上下文管理 Atom 粒度              | ✅ (Agent 行为验证 ⏳)      |
+|             | 代码分析关联对话                  | ✅                          |
+|             | 上下文管理 Atom 粒度              | ✅                          |
 
 ---
 

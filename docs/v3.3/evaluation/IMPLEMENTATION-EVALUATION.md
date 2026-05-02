@@ -106,7 +106,7 @@ New-Item -ItemType Directory -Force -Path docs/v3.3/evaluation/logs
 
 ### 2.2 生成样例数据
 
-使用 `scripts/generate-test-data.js`（待实现）批量生成，或手动通过 `memory_write` 写入。
+批量生成脚本尚未实现（计划位于 `scripts/generate-test-data.js`），目前需手动通过 `memory_write` 写入测试数据。
 
 **手动写入 Atom 化 Entity 示例**：
 

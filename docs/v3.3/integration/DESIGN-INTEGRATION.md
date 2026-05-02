@@ -29,7 +29,7 @@ owner: Prometheus
 
 1. **工具层修复**（P0，1-2天）：暴露 atoms 参数，新增 Atom 操作工具 — ✅ 已完成
 2. **Prompt 工程**（P1，2-3天）：注入 Atom 架构认知到 Agent — ✅ 已完成（Prompt 注入完成，Agent 行为待验证）
-3. **工作流改造**（P2，1周）：Agent 自动萃取和组织 Atom 树 — ⏳ 待实施
+3. **工作流改造**（P2，1周）：Agent 自动萃取和组织 Atom 树 — ✅ 已完成
 
 ### 预期效果
 
@@ -257,7 +257,7 @@ return {
 
 **TOOLS.md**: Atom 工具使用示例（memory_write with atoms、entity_update、entity_atoms、memory_search with atom scope）
 
-### 2.3 第三阶段：工作流改造（P2） — ⏳ PENDING
+### 2.3 第三阶段：工作流改造（P2） — ✅ 已完成
 
 #### 任务 3.1：改造 The Observer 自动萃取 Atom
 

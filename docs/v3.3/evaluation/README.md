@@ -61,7 +61,7 @@ evaluation/
 - `evaluate-search-performance.js`: 检索性能对比（Atom vs Entity）
 - `evaluate-context-efficiency.js`: Token 使用效率测量
 
-**状态**: WIP - 框架已完成，evaluate-atom-quality.js 部分实现
+**状态**: ✅ 已实现 — 3 个脚本均已接入实际 API，可执行
 
 ---
 
