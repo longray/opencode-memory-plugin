@@ -35,7 +35,7 @@ evaluation/
 - 统计方法（假设检验、置信区间）
 - 验收标准（定义"显著改进"）
 
-**状态**: ✅ 已升级并实施完成 (status: draft)
+**状态**: ✅ 已升级并实施完成
 
 ### IMPLEMENTATION-EVALUATION.md
 
