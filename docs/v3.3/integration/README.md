@@ -2,7 +2,7 @@
 
 > **状态**: implemented  
 > **版本**: v3.3.0  
-> **最后更新**: 2026-05-01
+> **最后更新**: 2026-05-02
 
 ---
 
@@ -67,24 +67,30 @@ integration/
 
 ## 集成状态
 
-| Phase       | 任务                              | 状态                        |
-| ----------- | --------------------------------- | --------------------------- |
-| **Phase 1** | 工具层修复                        | ✅ 已完成                   |
-|             | memory_write 暴露 atoms           | ✅                          |
-|             | syncMemoryToBackend 同步 atoms    | ✅                          |
-|             | entity_update / entity_atoms 工具 | ✅                          |
-|             | memory_search Atom 粒度           | ✅                          |
-|             | plugin.js 注册                    | ✅                          |
-| **Phase 2** | Prompt 工程                       | ✅ 已完成 (Prompt 注入完成) |
-|             | SOUL.md Atom 认知                 | ✅                          |
-|             | AGENTS.md 操作规范                | ✅                          |
-|             | TOOLS.md 工具说明                 | ✅                          |
-|             | Agent 行为验证                    | ✅                          |
-| **Phase 3** | 工作流改造                        | ✅ 已完成                    |
-|             | The Observer 自动萃取             | ✅                          |
-|             | The Librarian 按 Atom 整合        | ✅                          |
-|             | 代码分析关联对话                  | ✅                          |
-|             | 上下文管理 Atom 粒度              | ✅                          |
+| Phase        | 任务                              | 状态                        |
+| ------------ | --------------------------------- | --------------------------- |
+| **Phase 1**  | 工具层修复                        | ✅ 已完成                   |
+|              | memory_write 暴露 atoms           | ✅                          |
+|              | syncMemoryToBackend 同步 atoms    | ✅                          |
+|              | entity_update / entity_atoms 工具 | ✅                          |
+|              | memory_search Atom 粒度           | ✅                          |
+|              | plugin.js 注册                    | ✅                          |
+| **Phase 2**  | Prompt 工程                       | ✅ 已完成 (Prompt 注入完成) |
+|              | SOUL.md Atom 认知                 | ✅                          |
+|              | AGENTS.md 操作规范                | ✅                          |
+|              | TOOLS.md 工具说明                 | ✅                          |
+|              | Agent 行为验证                    | ✅                          |
+| **Phase 3**  | 工作流改造                        | ✅ 已完成                   |
+|              | The Observer 自动萃取             | ✅                          |
+|              | The Librarian 按 Atom 整合        | ✅                          |
+|              | 代码分析关联对话                  | ✅                          |
+|              | 上下文管理 Atom 粒度              | ✅                          |
+| **Bug 修复** | syncFull() atoms 字段丢失         | ✅ 已修复 (2026-05-02)      |
+|              | search() 未路由统一搜索端点       | ✅ 已修复 (2026-05-02)      |
+| **CLI**      | Atom 支持（6 项新命令）           | ✅ v3.3.0                   |
+| **测试**     | Agent frontmatter 自动化测试      | ✅ 53 用例 (2026-05-02)     |
+|              | Atom 搜索测试                     | ✅ 10 用例 (2026-05-02)     |
+|              | 总测试覆盖率                      | ✅ 779 用例 / 55 suites     |
 
 ---
 

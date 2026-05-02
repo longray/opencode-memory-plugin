@@ -5,7 +5,7 @@
  * This script runs automatically on npm install or can be run manually
  */
 
-import { logError, logInfo } from '../lib/logger.js';
+const { logError } = require('../lib/logger.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -183,17 +183,25 @@ function updateOpenCodeConfig() {
 
   if (!config.agent['memory-automation']) {
     config.agent['memory-automation'] = {
-      description: 'Automatically saves important information to memory',
-      mode: 'subagent',
+      description:
+        'Memory Observer — analyzes conversations and extracts valuable insights as flat entries or Atom tree structures. Returns ONLY high-confidence candidates. Never saves; only proposes.',
+      mode: 'primary',
+      model: 'anthropic/claude-sonnet-4-20250514',
       tools: {
-        memory_write: true,
-        memory_read: true,
         memory_search: true,
+        memory_suggest: true,
+        memory_timeline: true,
+        memory_topics: true,
+        bash: false,
+        write: false,
+        edit: false,
+        read: false,
       },
       permission: {
-        memory_write: 'allow',
-        memory_read: 'allow',
         memory_search: 'allow',
+        memory_suggest: 'allow',
+        memory_timeline: 'allow',
+        memory_topics: 'allow',
       },
     };
     log('  ✓ Added memory-automation agent', 'green');
@@ -201,21 +209,43 @@ function updateOpenCodeConfig() {
 
   if (!config.agent['memory-consolidate']) {
     config.agent['memory-consolidate'] = {
-      description: 'Consolidates daily logs into long-term memory',
+      description:
+        'Automatically organizes and summarizes recent memory logs. Runs periodically to consolidate fragmented information into high-value knowledge graphs with Atom tree structures.',
       mode: 'subagent',
+      model: 'anthropic/claude-haiku-4-20250514',
       tools: {
         memory_write: true,
         memory_read: true,
         memory_search: true,
-        list_daily: true,
-        rebuild_index: true,
+        memory_suggest: true,
+        memory_timeline: true,
+        memory_topics: true,
+        memory_relate: true,
+        memory_graph: true,
+        memory_pin: true,
+        entity_update: true,
+        incremental_sync: true,
+        conflict_list: true,
+        conflict_resolve: true,
+        bash: false,
+        write: false,
+        edit: false,
+        read: false,
       },
       permission: {
         memory_write: 'allow',
         memory_read: 'allow',
         memory_search: 'allow',
-        list_daily: 'allow',
-        rebuild_index: 'allow',
+        memory_suggest: 'allow',
+        memory_timeline: 'allow',
+        memory_topics: 'allow',
+        memory_relate: 'allow',
+        memory_graph: 'allow',
+        memory_pin: 'allow',
+        entity_update: 'allow',
+        incremental_sync: 'allow',
+        conflict_list: 'allow',
+        conflict_resolve: 'allow',
       },
     };
     log('  ✓ Added memory-consolidate agent', 'green');

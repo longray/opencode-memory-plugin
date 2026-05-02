@@ -12,7 +12,7 @@
   },
   "bin": {
     "opencode-memory-plugin": "bin/install.cjs",
-    "opencode-memory": "cli/index.cjs"
+    "opencode-memory": "cli/index.mjs"
   },
   "repository": {
     "type": "git",

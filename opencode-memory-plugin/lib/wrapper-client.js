@@ -47,10 +47,7 @@
  */
 
 import { writeLog, logWarn } from './logger.js';
-import {
-  DEFAULT_HTTP_TIMEOUT_MS,
-  RETRY_BASE_DELAY_MS,
-} from './constants.js';
+import { DEFAULT_HTTP_TIMEOUT_MS, RETRY_BASE_DELAY_MS } from './constants.js';
 import { DEFAULT_API_PORT } from './constants.js';
 
 function logInfo(category, message, data) {
@@ -289,12 +286,16 @@ export class WrapperClient {
     level = 2,
     tenant_id,
     project_id,
+    scope,
+    atom_types,
   }) {
+    const effectiveTenantId = tenant_id || this.tenantId;
     logInfo('SEARCH', 'search called', {
       query,
       mode,
       limit,
-      tenant_id: tenant_id || this.tenantId,
+      scope,
+      tenant_id: effectiveTenantId,
     });
 
     const requestBody = {
@@ -303,19 +304,30 @@ export class WrapperClient {
       limit,
       threshold,
       level,
-      tenant_id: tenant_id || this.tenantId,
+      tenant_id: effectiveTenantId,
     };
 
     if (project_id) {
       requestBody.project_id = project_id;
     }
 
-    const result = await withRetry(
-      () => this.http.post('/api/v1/memories/search', requestBody),
-      this.maxRetries
-    );
+    const useUnifiedEndpoint = scope && scope !== 'all';
 
-    logInfo('SEARCH', 'search completed', { result_count: result.results?.length || 0 });
+    if (useUnifiedEndpoint) {
+      requestBody.scope = scope;
+      if (atom_types && atom_types.length > 0) {
+        requestBody.atom_types = atom_types;
+      }
+    }
+
+    const endpoint = useUnifiedEndpoint ? '/api/v1/search' : '/api/v1/memories/search';
+
+    const result = await withRetry(() => this.http.post(endpoint, requestBody), this.maxRetries);
+
+    logInfo('SEARCH', 'search completed', {
+      result_count: result.results?.length || 0,
+      endpoint,
+    });
 
     return result;
   }
@@ -556,6 +568,7 @@ export class WrapperClient {
         source: m.source || 'plugin',
         metadata: m.metadata || {},
         tenant_id: m.tenant_id || this.tenantId,
+        atoms: m.atoms || undefined,
       })),
       tenant_id: tenant_id || this.tenantId,
     };
@@ -667,8 +680,16 @@ export class WrapperClient {
     logInfo('ATOM', 'createAtom called', { type: atomData.type, name: atomData.name });
 
     const VALID_ATOM_TYPES = new Set([
-      'function', 'class', 'interface', 'import',
-      'note', 'section', 'chapter', 'goal', 'scope', 'task',
+      'function',
+      'class',
+      'interface',
+      'import',
+      'note',
+      'section',
+      'chapter',
+      'goal',
+      'scope',
+      'task',
     ]);
 
     if (!VALID_ATOM_TYPES.has(atomData.type)) {

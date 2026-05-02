@@ -1,7 +1,7 @@
 ---
 status: implemented
 version: 1.0.0
-last_updated: 2026-05-01
+last_updated: 2026-05-02
 owner: Atlas
 ---
 
@@ -41,11 +41,11 @@ owner: Atlas
 
 **涉及文件**（均在 `~/.opencode/memory/` 下）:
 
-| 文件 | 注入内容 | 状态 |
-|------|----------|------|
-| `SOUL.md` | Atom Architecture 认知 | ✅ 已完成 |
-| `AGENTS.md` | Atom 操作规范 | ✅ 已完成 |
-| `TOOLS.md` | Atom 工具使用说明 | ✅ 已完成 |
+| 文件        | 注入内容               | 状态      |
+| ----------- | ---------------------- | --------- |
+| `SOUL.md`   | Atom Architecture 认知 | ✅ 已完成 |
+| `AGENTS.md` | Atom 操作规范          | ✅ 已完成 |
+| `TOOLS.md`  | Atom 工具使用说明      | ✅ 已完成 |
 
 > **注**: Phase 2 已全部完成。以下为已完成内容的详细记录，供审计和回滚参考。
 
@@ -59,7 +59,7 @@ owner: Atlas
 
 **注入内容**:
 
-```markdown
+````markdown
 ## Atom Architecture 认知 (v3.3)
 
 ### 什么是 Atom Architecture？
@@ -81,12 +81,14 @@ owner: Atlas
 ### 何时创建 Atom 树？
 
 **应该创建 Atom 树的情况**:
+
 - 代码分析结果（函数、类、导入）
 - 技术文档（章节、小节、要点）
 - 复杂对话（主题 → 要点 → 细节）
 - 项目知识（模块 → 组件 → 函数）
 
 **可以扁平存储的情况**:
+
 - 简单笔记（<500 字）
 - 临时想法
 - 单条日志
@@ -118,6 +120,7 @@ owner: Atlas
   }
 ]
 ```
+````
 
 ### 使用 [[local_id]] 链接
 
@@ -136,7 +139,7 @@ owner: Atlas
 4. **链接丰富**: 相关内容用 [[local_id]] 互相链接
 5. **定期整理**: 使用 @memory-consolidate 整合碎片
 
-```
+````
 
 预期输出: 匹配到 "## Atom Architecture 认知 (v3.3)" 标题。
 
@@ -215,7 +218,7 @@ owner: Atlas
 - `参考 [[01CHAP001|Composition API 章节]]`
 
 系统会自动解析这些链接并建立关系图谱。
-```
+````
 
 **验证方法**:
 
@@ -233,7 +236,7 @@ owner: Atlas
 
 **注入内容**:
 
-```markdown
+````markdown
 ## Atom 相关工具 (v3.3)
 
 ### memory_write with atoms
@@ -265,13 +268,14 @@ memory_write({
           order: "a0",
           heading_level: 2,
           parent_id: "01CHAP001",
-          children: []
-        }
-      ]
-    }
-  ]
+          children: [],
+        },
+      ],
+    },
+  ],
 });
 ```
+````
 
 ### entity_update
 
@@ -295,7 +299,7 @@ entity_update({
 ```javascript
 entity_atoms({
   entry_id: "01HQ...",
-  include_content: true  // 是否包含完整内容
+  include_content: true, // 是否包含完整内容
 });
 // 返回树形结构，可用于导航或展示
 ```
@@ -307,9 +311,9 @@ Atom 粒度搜索：
 ```javascript
 memory_search({
   query: "setup function",
-  scope: "atom",           // 只搜索 Atom
+  scope: "atom", // 只搜索 Atom
   atom_types: ["function", "section"],
-  limit: 10
+  limit: 10,
 });
 // 返回 Atom 级别结果，而非整个 Entity
 ```
@@ -376,14 +380,14 @@ Copy-Item "$env:USERPROFILE\.opencode\memory\TOOLS.md" "$env:USERPROFILE\.openco
 
 **测试场景**:
 
-| # | 场景 | 输入 | 预期输出 | 验证方法 |
-|---|------|------|----------|----------|
-| T3.1.1 | 代码讨论（3 个函数） | 对话中讨论了 `auth` 模块的 `verifyToken()`、`refreshSession()` 和 `logout()` | Atom 树：1 chapter + 3 function atoms | Tab 切换到 Observer，观察输出格式 |
-| T3.1.2 | 简单偏好 | "以后都用 pnpm" | 扁平存储 | Tab 切换到 Observer，确认无 Atom 树 |
-| T3.1.3 | 边界（2 个相关主题 < 500 字） | 讨论了 Bun 和 better-sqlite3 | 扁平存储 | Tab 切换到 Observer，确认降级 |
-| T3.1.4 | 大型文档讨论（> 1000 字，3 个章节） | 讨论了 Vue3 Composition API 的 3 个子主题 | Atom 树：1 chapter + 3 section + notes | Tab 切换到 Observer，检查树结构 |
-| T3.1.5 | 用户编辑 Atom 节点 | "Edit 01KQEDZ3S3WM4E8CKESJ6WWKPK" | Observer 修改指定节点内容并重新展示 | Tab 切换，执行编辑命令 |
-| T3.1.6 | 用户降级 Atom 树 | "Flatten T1" | Observer 将 Atom 树转为扁平存储 | Tab 切换，执行降级命令 |
+| #      | 场景                                | 输入                                                                         | 预期输出                               | 验证方法                            |
+| ------ | ----------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------- | ----------------------------------- |
+| T3.1.1 | 代码讨论（3 个函数）                | 对话中讨论了 `auth` 模块的 `verifyToken()`、`refreshSession()` 和 `logout()` | Atom 树：1 chapter + 3 function atoms  | Tab 切换到 Observer，观察输出格式   |
+| T3.1.2 | 简单偏好                            | "以后都用 pnpm"                                                              | 扁平存储                               | Tab 切换到 Observer，确认无 Atom 树 |
+| T3.1.3 | 边界（2 个相关主题 < 500 字）       | 讨论了 Bun 和 better-sqlite3                                                 | 扁平存储                               | Tab 切换到 Observer，确认降级       |
+| T3.1.4 | 大型文档讨论（> 1000 字，3 个章节） | 讨论了 Vue3 Composition API 的 3 个子主题                                    | Atom 树：1 chapter + 3 section + notes | Tab 切换到 Observer，检查树结构     |
+| T3.1.5 | 用户编辑 Atom 节点                  | "Edit 01KQEDZ3S3WM4E8CKESJ6WWKPK"                                            | Observer 修改指定节点内容并重新展示    | Tab 切换，执行编辑命令              |
+| T3.1.6 | 用户降级 Atom 树                    | "Flatten T1"                                                                 | Observer 将 Atom 树转为扁平存储        | Tab 切换，执行降级命令              |
 
 **验收标准**:
 
@@ -417,14 +421,14 @@ Copy-Item "$env:USERPROFILE\.opencode\memory\TOOLS.md" "$env:USERPROFILE\.openco
 
 **测试场景**:
 
-| # | 场景 | 输入 | 预期输出 | 验证方法 |
-|---|------|------|----------|----------|
-| T3.2.1 | 5 条 Docker 碎片 | `memory_timeline` 返回 5 条 Docker 相关碎片 | Atom 树整合：3 chapter + 5 section | `@memory-consolidate` 触发 |
-| T3.2.2 | 2 条简单碎片 | 2 条关于 var/let 的碎片 | Flat 整合 | `@memory-consolidate` 触发 |
-| T3.2.3 | 已整合碎片 | `meta.consolidated: true` | 跳过，不重复整合 | 多次触发，检查是否重复 |
-| T3.2.4 | 关系建立 | 整合完成后 | 5 条 summarizes 关系 + 跨主题关系 | `memory_graph` 查询 |
-| T3.2.5 | 源碎片标记 | 整合完成后 | 所有源碎片有 `meta.consolidated` | `memory_read` 检查 |
-| T3.2.6 | 置顶 | 关键约定 | 整合节点被置顶 | `memory_timeline` 检查 pinned |
+| #      | 场景             | 输入                                        | 预期输出                           | 验证方法                      |
+| ------ | ---------------- | ------------------------------------------- | ---------------------------------- | ----------------------------- |
+| T3.2.1 | 5 条 Docker 碎片 | `memory_timeline` 返回 5 条 Docker 相关碎片 | Atom 树整合：3 chapter + 5 section | `@memory-consolidate` 触发    |
+| T3.2.2 | 2 条简单碎片     | 2 条关于 var/let 的碎片                     | Flat 整合                          | `@memory-consolidate` 触发    |
+| T3.2.3 | 已整合碎片       | `meta.consolidated: true`                   | 跳过，不重复整合                   | 多次触发，检查是否重复        |
+| T3.2.4 | 关系建立         | 整合完成后                                  | 5 条 summarizes 关系 + 跨主题关系  | `memory_graph` 查询           |
+| T3.2.5 | 源碎片标记       | 整合完成后                                  | 所有源碎片有 `meta.consolidated`   | `memory_read` 检查            |
+| T3.2.6 | 置顶             | 关键约定                                    | 整合节点被置顶                     | `memory_timeline` 检查 pinned |
 
 **验收标准**:
 
@@ -476,23 +480,23 @@ Copy-Item "$env:USERPROFILE\.opencode\memory\TOOLS.md" "$env:USERPROFILE\.openco
 
 #### 集成点
 
-| 集成点 | 文件 | 代码位置 | 说明 |
-|--------|------|----------|------|
-| 实现方法 | `code-analysis-service.js` | line 690 | `_linkToConversationMemory()` |
-| 调用入口 | `code-analysis-service.js` | line 526 | `uploadAsAtomEntity()` 成功后调用 |
-| 配置开关 | `code-analysis-service.js` | line 51 | `isAutoLinkToConversation()` |
-| 搜索 API | `wrapper-client.js` | `search()` | 查找最近相关对话记忆 |
-| 关系 API | `wrapper-client.js` | `createRelation()` | 创建 `analyzes` 关系 |
-| 配置 | `memory-config.json` | `code_analysis.auto_link_to_conversation` | 功能开关 |
+| 集成点   | 文件                       | 代码位置                                  | 说明                              |
+| -------- | -------------------------- | ----------------------------------------- | --------------------------------- |
+| 实现方法 | `code-analysis-service.js` | line 690                                  | `_linkToConversationMemory()`     |
+| 调用入口 | `code-analysis-service.js` | line 526                                  | `uploadAsAtomEntity()` 成功后调用 |
+| 配置开关 | `code-analysis-service.js` | line 51                                   | `isAutoLinkToConversation()`      |
+| 搜索 API | `wrapper-client.js`        | `search()`                                | 查找最近相关对话记忆              |
+| 关系 API | `wrapper-client.js`        | `createRelation()`                        | 创建 `analyzes` 关系              |
+| 配置     | `memory-config.json`       | `code_analysis.auto_link_to_conversation` | 功能开关                          |
 
 **测试场景**:
 
-| # | 场景 | 预期 | 验证 |
-|---|------|------|------|
+| #      | 场景                   | 预期                                  | 验证                                  |
+| ------ | ---------------------- | ------------------------------------- | ------------------------------------- |
 | T3.3.1 | 分析 JS 文件后检查关联 | `memory_graph` 能查到 `analyzes` 关系 | 分析 → `memory_graph(from=entity_id)` |
-| T3.3.2 | 无对话记忆时分析 | 不报错，静默跳过 | 清空记忆后分析 |
-| T3.3.3 | 关联失败 | 不影响代码分析主流程 | mock API 返回错误 |
-| T3.3.4 | 配置关闭 | 不执行关联 | 设置 `autoLinkToConversation: false` |
+| T3.3.2 | 无对话记忆时分析       | 不报错，静默跳过                      | 清空记忆后分析                        |
+| T3.3.3 | 关联失败               | 不影响代码分析主流程                  | mock API 返回错误                     |
+| T3.3.4 | 配置关闭               | 不执行关联                            | 设置 `autoLinkToConversation: false`  |
 
 **验收标准**:
 
@@ -513,10 +517,10 @@ Copy-Item "$env:USERPROFILE\.opencode\memory\TOOLS.md" "$env:USERPROFILE\.openco
 
 **已实现工具**:
 
-| 工具 | 位置 | 功能 |
-|------|------|------|
+| 工具                  | 位置                | 功能                           |
+| --------------------- | ------------------- | ------------------------------ |
 | `load_context_budget` | `tools/core.js:292` | 按 token 预算加载最相关的 Atom |
-| `load_context_level` | `tools/core.js:355` | 按层级过滤 Atom 内容 |
+| `load_context_level`  | `tools/core.js:355` | 按层级过滤 Atom 内容           |
 
 **需要验证的行为**:
 
@@ -530,12 +534,12 @@ Agent 在实际对话中是否使用这些工具替代 `memory_read` 加载长�
 
 **测试场景**:
 
-| # | 场景 | 预期 | 验证 |
-|---|------|------|------|
-| T3.4.1 | 加载长文档（> 2000 字） | Agent 使用 `load_context_level` | 观察 Agent 工具调用 |
-| T3.4.2 | token 预算限制 | `load_context_budget` 在预算内返回 | 检查返回内容长度 |
-| T3.4.3 | 渐进加载 L0 → L1 → L2 | 先看 abstract，再按需加载 detail | 观察 Agent 多轮调用 |
-| T3.4.4 | 无 Atom 的条目 | 降级为普通读取 | 创建无 Atom 条目，调用工具 |
+| #      | 场景                    | 预期                               | 验证                       |
+| ------ | ----------------------- | ---------------------------------- | -------------------------- |
+| T3.4.1 | 加载长文档（> 2000 字） | Agent 使用 `load_context_level`    | 观察 Agent 工具调用        |
+| T3.4.2 | token 预算限制          | `load_context_budget` 在预算内返回 | 检查返回内容长度           |
+| T3.4.3 | 渐进加载 L0 → L1 → L2   | 先看 abstract，再按需加载 detail   | 观察 Agent 多轮调用        |
+| T3.4.4 | 无 Atom 的条目          | 降级为普通读取                     | 创建无 Atom 条目，调用工具 |
 
 **验收标准**:
 
@@ -554,23 +558,23 @@ Agent 在实际对话中是否使用这些工具替代 `memory_read` 加载长�
 
 > Phase 2 已完成，以下为实际执行记录。
 
-| 天 | 任务 | 产出 | 验证 |
-|----|------|------|------|
-| D1 | Task 2.1: 更新 SOUL.md | Atom Architecture 认知章节 | `Select-String "Atom Architecture" SOUL.md` |
-| D2 | Task 2.2: 更新 AGENTS.md | Atom 操作规范章节 | `Select-String "Atom 操作规范" AGENTS.md` |
-| D3 | Task 2.3: 更新 TOOLS.md + 验证 | Atom 工具示例 + 全量验证 | 三文件完整性检查 |
+| 天  | 任务                           | 产出                       | 验证                                        |
+| --- | ------------------------------ | -------------------------- | ------------------------------------------- |
+| D1  | Task 2.1: 更新 SOUL.md         | Atom Architecture 认知章节 | `Select-String "Atom Architecture" SOUL.md` |
+| D2  | Task 2.2: 更新 AGENTS.md       | Atom 操作规范章节          | `Select-String "Atom 操作规范" AGENTS.md`   |
+| D3  | Task 2.3: 更新 TOOLS.md + 验证 | Atom 工具示例 + 全量验证   | 三文件完整性检查                            |
 
 **里程碑**: Phase 2 完成 — Agent 理解 Atom 概念并能正确构建 Atom 树。
 
 ### Phase 3 日程（5 天）
 
-| 天 | 任务 | 产出 | 检查点 |
-|----|------|------|--------|
-| D1 | Task 3.1: 审查 Observer 改造 | 确认已完成内容正确 | T3.1.1-T3.1.3 手动测试 |
-| D2 | Task 3.2: 审查 Librarian 改造 | 确认已完成内容正确 | T3.2.1-T3.2.3 手动测试 |
-| D3 | Task 3.3: 代码分析关联 | `linkToConversationMemory()` | T3.3.1-T3.3.4 单元测试 |
-| D4 | Task 3.4: 上下文管理验证 | 验证 `load_context_*` 工具 | T3.4.1-T3.4.4 集成测试 |
-| D5 | 全量验收 + 文档更新 | 验收报告 + 文档状态更新 | 完成验收清单 |
+| 天  | 任务                          | 产出                         | 检查点                 |
+| --- | ----------------------------- | ---------------------------- | ---------------------- |
+| D1  | Task 3.1: 审查 Observer 改造  | 确认已完成内容正确           | T3.1.1-T3.1.3 手动测试 |
+| D2  | Task 3.2: 审查 Librarian 改造 | 确认已完成内容正确           | T3.2.1-T3.2.3 手动测试 |
+| D3  | Task 3.3: 代码分析关联        | `linkToConversationMemory()` | T3.3.1-T3.3.4 单元测试 |
+| D4  | Task 3.4: 上下文管理验证      | 验证 `load_context_*` 工具   | T3.4.1-T3.4.4 集成测试 |
+| D5  | 全量验收 + 文档更新           | 验收报告 + 文档状态更新      | 完成验收清单           |
 
 **里程碑**:
 
@@ -586,7 +590,7 @@ Agent 在实际对话中是否使用这些工具替代 `memory_read` 加载长�
 
 ```markdown
 ---
-description: '[更新后的描述，说明是否支持 Atom]'
+description: "[更新后的描述，说明是否支持 Atom]"
 mode: primary | subagent
 model: anthropic/claude-sonnet-4-20250514
 tools:
@@ -605,6 +609,7 @@ tools:
 [具体步骤描述]
 
 **Atom 树构建**（如适用）:
+
 - 识别顶层概念 → chapter (heading_level: 1)
 - 识别子要点 → section (heading_level: 2)
 - 识别细节 → note (heading_level: 3)
@@ -616,7 +621,7 @@ tools:
 
 ### 模板 2: 添加新工具使用示例
 
-```markdown
+````markdown
 ### [工具名称]
 
 [一句话说明]
@@ -625,10 +630,10 @@ tools:
 
 **参数**:
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| param1 | string | 是 | [说明] |
-| param2 | number | 否 | 默认值 |
+| 参数   | 类型   | 必填 | 说明   |
+| ------ | ------ | ---- | ------ |
+| param1 | string | 是   | [说明] |
+| param2 | number | 否   | 默认值 |
 
 **示例**:
 
@@ -639,6 +644,7 @@ tools:
 });
 // 预期输出: [描述]
 ```
+````
 
 **注意事项**:
 
@@ -648,7 +654,7 @@ tools:
 ### 模板 3: 测试用例
 
 ```javascript
-describe('[功能名称]', () => {
+describe("[功能名称]", () => {
   let client;
   let testEntryId;
 
@@ -662,9 +668,11 @@ describe('[功能名称]', () => {
     // 清理测试数据
   });
 
-  test('[测试场景描述]', async () => {
+  test("[测试场景描述]", async () => {
     // Arrange
-    const input = { /* 测试输入 */ };
+    const input = {
+      /* 测试输入 */
+    };
 
     // Act
     const result = await [被测函数](input);
@@ -674,7 +682,7 @@ describe('[功能名称]', () => {
     expect(result.data).toBeDefined();
   });
 
-  test('[边界情况描述]', async () => {
+  test("[边界情况描述]", async () => {
     // Arrange: 准备边界条件
 
     // Act
@@ -692,34 +700,116 @@ describe('[功能名称]', () => {
 
 ### Phase 2 完成标准
 
-| # | 检查项 | 通过标准 | 验证方法 |
-|---|--------|----------|----------|
-| P2.1 | SOUL.md Atom 认知 | 包含完整 Atom Architecture 章节 | 文件内容检查 |
+| #    | 检查项             | 通过标准                               | 验证方法     |
+| ---- | ------------------ | -------------------------------------- | ------------ |
+| P2.1 | SOUL.md Atom 认知  | 包含完整 Atom Architecture 章节        | 文件内容检查 |
 | P2.2 | AGENTS.md 操作规范 | 包含决策流程图 + 类型指南 + 启发式规则 | 文件内容检查 |
-| P2.3 | TOOLS.md 工具说明 | 包含 4 个 Atom 工具示例 | 文件内容检查 |
-| P2.4 | 内容一致性 | 三个文件中的 Atom 结构定义一致 | 交叉对比 |
-| P2.5 | 无重复 | SOUL/AGENTS/TOOLS 各有侧重，无重复段落 | 人工审查 |
+| P2.3 | TOOLS.md 工具说明  | 包含 4 个 Atom 工具示例                | 文件内容检查 |
+| P2.4 | 内容一致性         | 三个文件中的 Atom 结构定义一致         | 交叉对比     |
+| P2.5 | 无重复             | SOUL/AGENTS/TOOLS 各有侧重，无重复段落 | 人工审查     |
 
 ### Phase 3 完成标准
 
-| # | 检查项 | 通过标准 | 验证方法 |
-|---|--------|----------|----------|
-| P3.1 | Observer Atom 树萃取 | 结构化对话触发 Atom 树输出 | T3.1.1-T3.1.6 |
-| P3.2 | Librarian Atom 整合 | 3+ 碎片触发 Atom Tree 整合 | T3.2.1-T3.2.6 |
-| P3.3 | 代码分析关联 | Entity 创建后自动关联对话记忆 | T3.3.1-T3.3.4 |
-| P3.4 | 上下文管理 | Agent 使用 `load_context_*` 加载长文档 | T3.4.1-T3.4.4 |
-| P3.5 | 向后兼容 | 无 Atom 的旧记忆正常读取 | 读取 v3.2 格式记忆 |
-| P3.6 | 降级策略 | Atom 构建失败不影响主流程 | mock 失败场景 |
+| #    | 检查项               | 通过标准                               | 验证方法           |
+| ---- | -------------------- | -------------------------------------- | ------------------ |
+| P3.1 | Observer Atom 树萃取 | 结构化对话触发 Atom 树输出             | T3.1.1-T3.1.6      |
+| P3.2 | Librarian Atom 整合  | 3+ 碎片触发 Atom Tree 整合             | T3.2.1-T3.2.6      |
+| P3.3 | 代码分析关联         | Entity 创建后自动关联对话记忆          | T3.3.1-T3.3.4      |
+| P3.4 | 上下文管理           | Agent 使用 `load_context_*` 加载长文档 | T3.4.1-T3.4.4      |
+| P3.5 | 向后兼容             | 无 Atom 的旧记忆正常读取               | 读取 v3.2 格式记忆 |
+| P3.6 | 降级策略             | Atom 构建失败不影响主流程              | mock 失败场景      |
 
 ### 集成测试场景
 
-| # | 场景 | 步骤 | 预期结果 |
-|---|------|------|----------|
-| IT.1 | 端到端 Atom 创建 | 对话 → Observer 萃取 → 用户确认 → 主代理保存 → Librarian 整合 | Atom 树从创建到整合的完整链路 |
-| IT.2 | 代码分析 → 记忆关联 | 保存文件 → 代码分析 → Atom Entity 创建 → 自动关联对话记忆 | 双向链接可查询 |
-| IT.3 | 跨会话 Atom 查询 | 会话 A 创建 Atom 树 → 会话 B 使用 `load_context_level` 加载 | 按层级正确返回 |
-| IT.4 | Atom 搜索 | 创建含 Atom 的 Entity → `memory_search(scope="atom")` | 返回 Atom 级别结果 |
-| IT.5 | 碎片整合 + 关系 | 5 条碎片 → Librarian 整合 → `memory_graph` 查询 | 溯源关系完整 |
+| #    | 场景                | 步骤                                                          | 预期结果                      |
+| ---- | ------------------- | ------------------------------------------------------------- | ----------------------------- |
+| IT.1 | 端到端 Atom 创建    | 对话 → Observer 萃取 → 用户确认 → 主代理保存 → Librarian 整合 | Atom 树从创建到整合的完整链路 |
+| IT.2 | 代码分析 → 记忆关联 | 保存文件 → 代码分析 → Atom Entity 创建 → 自动关联对话记忆     | 双向链接可查询                |
+| IT.3 | 跨会话 Atom 查询    | 会话 A 创建 Atom 树 → 会话 B 使用 `load_context_level` 加载   | 按层级正确返回                |
+| IT.4 | Atom 搜索           | 创建含 Atom 的 Entity → `memory_search(scope="atom")`         | 返回 Atom 级别结果            |
+| IT.5 | 碎片整合 + 关系     | 5 条碎片 → Librarian 整合 → `memory_graph` 查询               | 溯源关系完整                  |
+
+---
+
+### Bug Fixes (2026-05-02)
+
+#### B1: syncFull() atoms 字段丢失 [已修复]
+
+**问题**: `wrapper-client.js` 的 `syncFull()` 方法在映射 memory 对象时未包含 `atoms` 字段，导致全量同步时 Atom Architecture 数据丢失。
+
+**修复**: 在 `syncFull()` 的 memory 映射中添加 `atoms: m.atoms || undefined`（与 `uploadMemories()` 保持一致）。
+
+**文件**: `lib/wrapper-client.js:558`
+
+**验证**: 779 测试用例全部通过
+
+#### B2: search() 未路由到统一搜索端点 [已修复]
+
+**问题**: `wrapper-client.js` 的 `search()` 方法静默丢弃 `scope` 和 `atom_types` 参数，始终调用旧端点 `/api/v1/memories/search`（不支持 Atom 粒度搜索）。
+
+**修复**:
+
+- `search()` 接受 `scope`/`atom_types` 参数
+- `scope !== 'all'` 时路由到统一端点 `/api/v1/search`
+- `formatSearchResults()` 兼容统一端点的 `entity_type` 字段
+
+**文件**: `lib/wrapper-client.js:284-332`, `tools/search.js:139-166`
+
+**验证**: 10 个新增 atom-search 测试用例 + 779 总测试通过
+
+### CLI v3.3.0 Atom 支持
+
+CLI (`cli/index.cjs`) 已升级至 v3.3.0，新增 6 项 Atom 功能：
+
+| 命令                  | 参数                                                                | 路由到                |
+| --------------------- | ------------------------------------------------------------------- | --------------------- |
+| `write`               | `--atoms '<json>'`                                                  | `memory_write`        |
+| `entity-update`       | `--entry-id`, `--atoms-batch '<json>'`, `--entity-updates '<json>'` | `entity_update`       |
+| `entity-atoms`        | `--entry-id`, `--no-content`                                        | `entity_atoms`        |
+| `search`              | `--scope atom`, `--atom-types "fn,class"`                           | `memory_search`       |
+| `load-context-budget` | `--entry-id`, `--query`, `--max-tokens`, `--strategy`               | `load_context_budget` |
+| `load-context-level`  | `--entry-id`, `--max-level`, `--no-breadcrumbs`                     | `load_context_level`  |
+
+**使用示例**:
+
+```bash
+# 写入带 Atom 树的记忆
+node cli/index.cjs write "Vue3指南" --abstract "Vue3最佳实践" --overview "核心概念" --atoms '[{"local_id":"01","type":"chapter","name":"入门","content":"...","parent_id":null,"heading_level":1}]'
+
+# 查看 Atom 树
+node cli/index.cjs entity-atoms --entry-id 01KQ...
+
+# Atom 粒度搜索
+node cli/index.cjs search "setup函数" --scope atom --atom-types "function,section"
+
+# Token 预算加载
+node cli/index.cjs load-context-budget --entry-id 01KQ... --query "错误处理" --max-tokens 2000
+```
+
+### Agent 自动化测试 (2026-05-02)
+
+新增 `tests/unit/agents/agent-frontmatter.test.js`（53 个测试用例）：
+
+- Observer/Librarian frontmatter schema 验证
+- Tool 白名单一致性检查
+- 跨代理一致性（Observer 无 memory_write、Librarian 有 entity_update）
+- Prompt 内容检查（Atom 支持确认）
+- `install.cjs` 配置与 `.md` 文件一致性验证
+
+**Bug Fix**: `install.cjs` 的 agent 配置已更新：
+
+- Observer: `mode` 从 `subagent` → `primary`，tools 从 3 个扩展到 8 个
+- Librarian: tools 从 5 个（含废弃工具）更新为 15 个
+
+### 测试覆盖率总结
+
+| 类别                  | 文件数        | 用例数  | 状态    |
+| --------------------- | ------------- | ------- | ------- |
+| Atom 核心测试         | 14            | ~160    | ✅      |
+| 搜索测试 (atom scope) | 1             | 10      | ✅ 新增 |
+| Agent 测试            | 1             | 53      | ✅ 新增 |
+| E2E 测试              | 1             | 5       | ✅      |
+| **总计**              | **55 suites** | **779** | ✅ 全绿 |
 
 ---
 

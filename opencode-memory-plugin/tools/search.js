@@ -140,26 +140,29 @@ function formatSearchResults(results, level, _scope = 'all') {
   return results
     .map((r, i) => {
       const isAtom = r.type === 'atom' || r.atom_type;
-      const typeLabel = isAtom ? `atom:${r.atom_type || r.type}` : (r.type || 'general');
-      
+      const entityType = r.entity_type || r.type;
+      const typeLabel = isAtom ? `atom:${r.atom_type || r.type}` : entityType || 'general';
+
       let content;
       if (isAtom) {
-        content = level === 0
-          ? (r.name || '').substring(0, 50)
-          : level === 1
-            ? (r.content || r.name || '').substring(0, 100)
-            : (r.content || r.name || '').substring(0, 500);
+        content =
+          level === 0
+            ? (r.name || '').substring(0, 50)
+            : level === 1
+              ? (r.content || r.name || '').substring(0, 100)
+              : (r.content || r.name || '').substring(0, 500);
       } else {
-        content = level === 0
-          ? (r.abstract || '').substring(0, 50)
-          : level === 1
-            ? (r.overview || r.abstract || '').substring(0, 100)
-            : (r.content || r.overview || r.abstract || '').substring(0, 500);
+        content =
+          level === 0
+            ? (r.abstract || '').substring(0, 50)
+            : level === 1
+              ? (r.overview || r.abstract || '').substring(0, 100)
+              : (r.content || r.overview || r.abstract || '').substring(0, 500);
       }
-      
+
       const id = r.local_id || r.id;
       const entityRef = isAtom && r.entity_id ? ` (in ${r.entity_id})` : '';
-      
+
       return `${i + 1}. [${typeLabel}] ${content}${level >= 2 ? '' : '...'}\n   ID: ${id}${entityRef}`;
     })
     .join('\n\n');

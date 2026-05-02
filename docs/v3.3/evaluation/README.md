@@ -2,7 +2,7 @@
 
 > **状态**: implemented  
 > **版本**: v3.3.0  
-> **最后更新**: 2026-05-01
+> **最后更新**: 2026-05-02
 
 ---
 
@@ -62,6 +62,31 @@ evaluation/
 - `evaluate-context-efficiency.js`: Token 使用效率测量
 
 **状态**: ✅ 已实现 — 3 个脚本均已接入实际 API，可执行
+
+---
+
+### 种子数据
+
+评估脚本需要预置的测试数据才能运行。项目提供了种子数据生成工具：
+
+| 资源     | 文件                         | 说明                                           |
+| -------- | ---------------------------- | ---------------------------------------------- |
+| 种子脚本 | `scripts/seed-test-data.mjs` | 生成"JavaScript 异步编程指南" Entity (15 Atom) |
+| 搜索查询 | `scripts/queries.json`       | 7 条评测查询，覆盖所有 Atom                    |
+| 报告输出 | `reports/`                   | 评估脚本输出目录                               |
+
+**运行方式**:
+
+```bash
+# 1. 生成种子数据
+cd docs/v3.3/evaluation/scripts
+node seed-test-data.mjs
+
+# 2. 运行评估（使用输出的 entryId）
+node evaluate-atom-quality.js <entryId>
+node evaluate-context-efficiency.js <entryId> compare
+node evaluate-search-performance.js queries.json
+```
 
 ---
 

@@ -17,13 +17,13 @@ owner: Prometheus
 
 ### 1.1 前置条件
 
-| 项目 | 要求 | 验证命令 |
-|------|------|----------|
-| Node.js | >= 18.0.0 | `node -v` |
-| 后端服务 | localhost:18008 运行中 | `(Invoke-WebRequest -Uri http://localhost:18008/health).Content` |
-| API Key | `WRAPPER_MEILI_API_KEY` 已设置 | `$env:WRAPPER_MEILI_API_KEY` |
-| 内存 | >= 4GB 可用 | `Get-CimInstance Win32_OperatingSystem \| Select-Object FreePhysicalMemory` |
-| 磁盘 | >= 2GB 可用 | `Get-PSDrive C` |
+| 项目     | 要求                           | 验证命令                                                                    |
+| -------- | ------------------------------ | --------------------------------------------------------------------------- |
+| Node.js  | >= 18.0.0                      | `node -v`                                                                   |
+| 后端服务 | localhost:18008 运行中         | `(Invoke-WebRequest -Uri http://localhost:18008/health).Content`            |
+| API Key  | `WRAPPER_MEILI_API_KEY` 已设置 | `$env:WRAPPER_MEILI_API_KEY`                                                |
+| 内存     | >= 4GB 可用                    | `Get-CimInstance Win32_OperatingSystem \| Select-Object FreePhysicalMemory` |
+| 磁盘     | >= 2GB 可用                    | `Get-PSDrive C`                                                             |
 
 ### 1.2 安装依赖
 
@@ -96,13 +96,13 @@ New-Item -ItemType Directory -Force -Path docs/v3.3/evaluation/logs
 
 ### 2.1 数据集规格
 
-| 属性 | 要求 |
-|------|------|
-| Entity 总数 | >= 100 |
-| Atom 化比例 | ~50%（50 个含 atoms，50 个不含） |
+| 属性         | 要求                                                                           |
+| ------------ | ------------------------------------------------------------------------------ |
+| Entity 总数  | >= 100                                                                         |
+| Atom 化比例  | ~50%（50 个含 atoms，50 个不含）                                               |
 | 内容类型分布 | 代码查询 20%、概念检索 15%、对话记忆 15%、项目知识 10%、边界场景 10%、补充 30% |
-| 标签覆盖 | >= 10 个不同标签 |
-| 时间跨度 | 最近 30 天内 |
+| 标签覆盖     | >= 10 个不同标签                                                               |
+| 时间跨度     | 最近 30 天内                                                                   |
 
 ### 2.2 生成样例数据
 
@@ -114,7 +114,8 @@ New-Item -ItemType Directory -Force -Path docs/v3.3/evaluation/logs
 // 代码分析类（带 Atom 树）
 await memory_write({
   abstract: "Vue3 Composition API 核心概念",
-  overview: "涵盖 setup、ref、reactive、computed、watch 等 Composition API 核心函数的使用方式和最佳实践",
+  overview:
+    "涵盖 setup、ref、reactive、computed、watch 等 Composition API 核心函数的使用方式和最佳实践",
   content: "Vue3 Composition API 是 Vue3 的核心编程模型...",
   type: "memory",
   tags: ["vue3", "composition-api", "frontend"],
@@ -123,7 +124,8 @@ await memory_write({
       local_id: "01CHAP001",
       type: "chapter",
       name: "setup() 函数",
-      content: "setup 是 Composition API 的入口函数，在 beforeCreate 之前执行...",
+      content:
+        "setup 是 Composition API 的入口函数，在 beforeCreate 之前执行...",
       order: "a0",
       heading_level: 1,
       parent_id: null,
@@ -136,32 +138,33 @@ await memory_write({
           order: "a0",
           heading_level: 2,
           parent_id: "01CHAP001",
-          children: []
-        }
-      ]
-    }
-  ]
+          children: [],
+        },
+      ],
+    },
+  ],
 });
 
 // 传统模式 Entity（不带 atoms）
 await memory_write({
   abstract: "Error handling patterns in Node.js",
-  overview: "Node.js 中常见的错误处理模式，包括 try-catch、event emitters、async/await 等",
+  overview:
+    "Node.js 中常见的错误处理模式，包括 try-catch、event emitters、async/await 等",
   content: "Node.js 错误处理的最佳实践和实践模式...",
   type: "memory",
-  tags: ["nodejs", "error-handling", "backend"]
+  tags: ["nodejs", "error-handling", "backend"],
 });
 ```
 
 ### 2.3 Atom 化指南
 
-| 内容类型 | Atom 结构建议 | 每个 Atom 内容长度 |
-|----------|---------------|--------------------|
-| 代码分析 | function/class → section → detail | 200-500 字 |
-| 技术文档 | chapter → section → note | 200-500 字 |
-| API 文档 | endpoint → params → examples | 150-300 字 |
-| 项目知识 | module → component → function | 200-400 字 |
-| 决策记录 | context → options → decision | 100-300 字 |
+| 内容类型 | Atom 结构建议                     | 每个 Atom 内容长度 |
+| -------- | --------------------------------- | ------------------ |
+| 代码分析 | function/class → section → detail | 200-500 字         |
+| 技术文档 | chapter → section → note          | 200-500 字         |
+| API 文档 | endpoint → params → examples      | 150-300 字         |
+| 项目知识 | module → component → function     | 200-400 字         |
+| 决策记录 | context → options → decision      | 100-300 字         |
 
 **Atom 质量检查清单**：
 
@@ -204,67 +207,70 @@ await memory_write({
 
 **查询类别分布**（与 DESIGN-EVALUATION.md 对齐）：
 
-| 类别 | 数量 | 覆盖重点 |
-|------|------|----------|
-| 代码查询 | 20 | 函数名、API 用法、代码模式 |
-| 概念检索 | 15 | 设计模式、架构概念、最佳实践 |
-| 对话记忆 | 15 | 用户偏好、历史决策、经验教训 |
-| 项目知识 | 10 | 模块结构、依赖关系、配置 |
-| 边界场景 | 10 | 空结果、拼写错误、歧义查询 |
-| 补充 | 30+ | 跨类别混合查询 |
+| 类别     | 数量 | 覆盖重点                     |
+| -------- | ---- | ---------------------------- |
+| 代码查询 | 20   | 函数名、API 用法、代码模式   |
+| 概念检索 | 15   | 设计模式、架构概念、最佳实践 |
+| 对话记忆 | 15   | 用户偏好、历史决策、经验教训 |
+| 项目知识 | 10   | 模块结构、依赖关系、配置     |
+| 边界场景 | 10   | 空结果、拼写错误、歧义查询   |
+| 补充     | 30+  | 跨类别混合查询               |
 
 ---
 
 ## 三、执行步骤
 
+> **前提条件**: 运行评估脚本前，先执行 `node scripts/seed-test-data.mjs` 生成测试数据。
+> 脚本会输出 entryId，后续评估脚本使用该 ID。
+
 ### 3.1 Week 1: 准备阶段
 
-| 天 | 任务 | 产出 | 验收标准 |
-|----|------|------|----------|
-| D1 | 搭建隔离测试环境 | 可用的测试后端 | `index_status` 返回健康 |
-| D1 | 创建目录结构 | `data/`, `reports/`, `logs/` | 目录存在 |
-| D2 | 编写/完善测试数据生成脚本 | `generate-test-data.js` | 可生成 100+ Entity |
-| D2-D3 | 生成测试数据集 | 100+ Entity（50% Atom 化） | 数据集导入成功 |
-| D3 | 准备查询集 | `data/queries.json` | 50-100 个查询，5 类覆盖 |
-| D3 | 人工标注期望结果 | `data/expected-results.json` | 每个查询有 expected_keywords |
-| D4 | 实现评估脚本（Atom 质量） | `evaluate-atom-quality.js` | 可运行并输出 JSON |
-| D4 | 实现评估脚本（检索性能） | `evaluate-search-performance.js` | 可运行并输出 JSON |
-| D5 | 实现评估脚本（上下文效率） | `evaluate-context-efficiency.js` | 可运行并输出 JSON |
-| D5 | 端到端测试全部脚本 | 脚本全部可运行 | 无报错，输出格式正确 |
+| 天    | 任务                       | 产出                             | 验收标准                     |
+| ----- | -------------------------- | -------------------------------- | ---------------------------- |
+| D1    | 搭建隔离测试环境           | 可用的测试后端                   | `index_status` 返回健康      |
+| D1    | 创建目录结构               | `data/`, `reports/`, `logs/`     | 目录存在                     |
+| D2    | 编写/完善测试数据生成脚本  | `generate-test-data.js`          | 可生成 100+ Entity           |
+| D2-D3 | 生成测试数据集             | 100+ Entity（50% Atom 化）       | 数据集导入成功               |
+| D3    | 准备查询集                 | `data/queries.json`              | 50-100 个查询，5 类覆盖      |
+| D3    | 人工标注期望结果           | `data/expected-results.json`     | 每个查询有 expected_keywords |
+| D4    | 实现评估脚本（Atom 质量）  | `evaluate-atom-quality.js`       | 可运行并输出 JSON            |
+| D4    | 实现评估脚本（检索性能）   | `evaluate-search-performance.js` | 可运行并输出 JSON            |
+| D5    | 实现评估脚本（上下文效率） | `evaluate-context-efficiency.js` | 可运行并输出 JSON            |
+| D5    | 端到端测试全部脚本         | 脚本全部可运行                   | 无报错，输出格式正确         |
 
 ### 3.2 Week 2: 基线测量
 
-| 天 | 任务 | 产出 | 验收标准 |
-|----|------|------|----------|
-| D6 | 确认测试数据完整 | 数据完整性报告 | 100+ Entity 已同步 |
-| D6 | 运行基线测量（第 1 轮） | `reports/baseline/run-1/` | 所有指标有数值 |
-| D7 | 运行基线测量（第 2 轮） | `reports/baseline/run-2/` | 与第 1 轮偏差 < 10% |
-| D7 | 运行基线测量（第 3 轮） | `reports/baseline/run-3/` | 取中位数作为基线 |
-| D8 | Atom 模式测量（第 1 轮） | `reports/atom/run-1/` | 所有指标有数值 |
-| D8 | Atom 模式测量（第 2 轮） | `reports/atom/run-2/` | 与第 1 轮偏差 < 10% |
-| D9 | Atom 模式测量（第 3 轮） | `reports/atom/run-3/` | 取中位数 |
-| D9-D10 | 对比分析 | 初步对比报告 | t 检验/Mann-Whitney 完成 |
+| 天     | 任务                     | 产出                      | 验收标准                 |
+| ------ | ------------------------ | ------------------------- | ------------------------ |
+| D6     | 确认测试数据完整         | 数据完整性报告            | 100+ Entity 已同步       |
+| D6     | 运行基线测量（第 1 轮）  | `reports/baseline/run-1/` | 所有指标有数值           |
+| D7     | 运行基线测量（第 2 轮）  | `reports/baseline/run-2/` | 与第 1 轮偏差 < 10%      |
+| D7     | 运行基线测量（第 3 轮）  | `reports/baseline/run-3/` | 取中位数作为基线         |
+| D8     | Atom 模式测量（第 1 轮） | `reports/atom/run-1/`     | 所有指标有数值           |
+| D8     | Atom 模式测量（第 2 轮） | `reports/atom/run-2/`     | 与第 1 轮偏差 < 10%      |
+| D9     | Atom 模式测量（第 3 轮） | `reports/atom/run-3/`     | 取中位数                 |
+| D9-D10 | 对比分析                 | 初步对比报告              | t 检验/Mann-Whitney 完成 |
 
 ### 3.3 Week 3-4: 用户研究
 
-| 周 | 任务 | 方法 | 产出 |
-|----|------|------|------|
-| W3 D1-2 | 设计问卷 | 基于 SUS + NPS 模板 | 在线问卷链接 |
-| W3 D2-3 | 招募参与者 | 社区邀请 + 内部推荐 | 50+ 注册用户 |
-| W3 D3-5 | 定量数据收集 | 在线问卷 | 原始问卷数据 |
-| W4 D1-3 | 定性访谈 | 30 分钟/人，10-15 人 | 访谈记录 |
-| W4 D3-4 | 可用性测试 | 任务完成测试，8-10 人 | 测试录屏 + 记录 |
-| W4 D4-5 | 数据整理 | 编码、清洗 | 结构化数据集 |
+| 周      | 任务         | 方法                  | 产出            |
+| ------- | ------------ | --------------------- | --------------- |
+| W3 D1-2 | 设计问卷     | 基于 SUS + NPS 模板   | 在线问卷链接    |
+| W3 D2-3 | 招募参与者   | 社区邀请 + 内部推荐   | 50+ 注册用户    |
+| W3 D3-5 | 定量数据收集 | 在线问卷              | 原始问卷数据    |
+| W4 D1-3 | 定性访谈     | 30 分钟/人，10-15 人  | 访谈记录        |
+| W4 D3-4 | 可用性测试   | 任务完成测试，8-10 人 | 测试录屏 + 记录 |
+| W4 D4-5 | 数据整理     | 编码、清洗            | 结构化数据集    |
 
 ### 3.4 Week 5: 报告生成
 
-| 天 | 任务 | 产出 |
-|----|------|------|
-| D1-D2 | 统计分析 | 描述性统计 + 假设检验结果 |
-| D2-D3 | 可视化图表 | 对比图、分布图、趋势图 |
-| D3-D4 | 撰写综合报告 | PDF + 在线仪表板 |
-| D4 | 交叉评审 | 内部评审意见 |
-| D5 | 优化建议 | 优先级排序的改进项列表 |
+| 天    | 任务         | 产出                      |
+| ----- | ------------ | ------------------------- |
+| D1-D2 | 统计分析     | 描述性统计 + 假设检验结果 |
+| D2-D3 | 可视化图表   | 对比图、分布图、趋势图    |
+| D3-D4 | 撰写综合报告 | PDF + 在线仪表板          |
+| D4    | 交叉评审     | 内部评审意见              |
+| D5    | 优化建议     | 优先级排序的改进项列表    |
 
 ---
 
@@ -300,7 +306,7 @@ node docs/v3.3/evaluation/scripts/evaluate-atom-quality.js --tenant evaluation-t
     "content_std": 145,
     "total_atoms": 320,
     "total_links": 96,
-    "link_density": 0.30,
+    "link_density": 0.3,
     "orphan_rate": 0.04,
     "dead_link_rate": 0.02
   },
@@ -372,7 +378,7 @@ node docs/v3.3/evaluation/scripts/evaluate-search-performance.js --repeats 3
     "zero_result_queries": 3
   },
   "comparison": {
-    "precision_improvement": 0.50,
+    "precision_improvement": 0.5,
     "mrr_improvement": 0.37,
     "speed_improvement": 0.33
   },
@@ -380,8 +386,8 @@ node docs/v3.3/evaluation/scripts/evaluate-search-performance.js --repeats 3
     {
       "query_id": "Q001",
       "query": "Vue3 Composition API",
-      "atom_precision_at_10": 0.80,
-      "entity_precision_at_10": 0.50,
+      "atom_precision_at_10": 0.8,
+      "entity_precision_at_10": 0.5,
       "atom_response_time_ms": 85,
       "entity_response_time_ms": 160
     }
@@ -451,15 +457,15 @@ node docs/v3.3/evaluation/scripts/evaluate-context-efficiency.js --atomized-only
 
 ### 4.4 常见问题排查
 
-| 问题 | 症状 | 解决方案 |
-|------|------|----------|
-| 后端连接失败 | `ECONNREFUSED` | 检查后端是否在 18008 端口运行 |
-| tenant 不匹配 | 查询返回 0 结果 | 确认 `WRAPPER_MEILI_API_KEY` 和 tenant 一致 |
-| 数据未同步 | `synced: false` | 运行 `full_sync` 后重试 |
-| 脚本模块导入失败 | `ERR_MODULE_NOT_FOUND` | 从项目根目录运行，检查相对路径 |
-| 内存不足 | 进程 OOM | 减少 batch size 或分批处理 |
-| 中文编码乱码 | 输出乱码 | 设置 `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` |
-| 结果偏差大 | 轮次间偏差 > 20% | 检查后端负载，增加 repeats 次数 |
+| 问题             | 症状                   | 解决方案                                                        |
+| ---------------- | ---------------------- | --------------------------------------------------------------- |
+| 后端连接失败     | `ECONNREFUSED`         | 检查后端是否在 18008 端口运行                                   |
+| tenant 不匹配    | 查询返回 0 结果        | 确认 `WRAPPER_MEILI_API_KEY` 和 tenant 一致                     |
+| 数据未同步       | `synced: false`        | 运行 `full_sync` 后重试                                         |
+| 脚本模块导入失败 | `ERR_MODULE_NOT_FOUND` | 从项目根目录运行，检查相对路径                                  |
+| 内存不足         | 进程 OOM               | 减少 batch size 或分批处理                                      |
+| 中文编码乱码     | 输出乱码               | 设置 `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` |
+| 结果偏差大       | 轮次间偏差 > 20%       | 检查后端负载，增加 repeats 次数                                 |
 
 ---
 
@@ -504,8 +510,8 @@ function median(arr) {
 }
 
 const baseline = {
-  precision_at_10: median(runs.map(r => r.precision_at_10)),
-  response_time_ms: median(runs.map(r => r.response_time_ms)),
+  precision_at_10: median(runs.map((r) => r.precision_at_10)),
+  response_time_ms: median(runs.map((r) => r.response_time_ms)),
 };
 // baseline = { precision_at_10: 0.72, response_time_ms: 122 }
 ```
@@ -532,39 +538,51 @@ const baseline = {
 # OpenCode 记忆插件效果评估报告
 
 ## 1. 执行摘要
+
 - 评估目标、方法、主要发现（1 页）
 
 ## 2. 评估环境
+
 - 硬件配置、后端版本、数据集描述
 
 ## 3. 基线数据
+
 - v3.2（传统模式）各指标数值
 
 ## 4. Atom 模式结果
+
 - 各维度指标数值
 
 ## 5. 对比分析
+
 ### 5.1 知识组织质量
+
 - Atom 结构深度、链接密度、孤立率
 
 ### 5.2 检索精准度
+
 - Precision@5/10、MRR、响应时间
 - 统计检验结果（p 值、效应量）
 
 ### 5.3 上下文效率
+
 - Token 节省比例（按场景分类）
 
 ### 5.4 链接利用率
+
 - 链接创建率、有效性、双向率
 
 ## 6. 用户满意度
+
 - SUS 评分、NPS、定性反馈汇总
 
 ## 7. 结论与建议
+
 - 是否达到成功标准
 - 优先级排序的改进项
 
 ## 附录
+
 - 原始数据表
 - 统计检验详细结果
 - 用户反馈原文
@@ -572,13 +590,13 @@ const baseline = {
 
 ### 6.2 可视化指南
 
-| 图表类型 | 用途 | 数据源 |
-|----------|------|--------|
-| 分组柱状图 | Atom vs Entity 指标对比 | 检索性能、Token 效率 |
-| 箱线图 | 指标分布和离群值 | 3 轮测量数据 |
-| 散点图 | 链接密度 vs 检索精准度相关性 | Atom 质量数据 |
-| 雷达图 | 多维度综合评分 | 5 个评估维度 |
-| 热力图 | 按查询类别的精准度矩阵 | 检索性能明细 |
+| 图表类型   | 用途                         | 数据源               |
+| ---------- | ---------------------------- | -------------------- |
+| 分组柱状图 | Atom vs Entity 指标对比      | 检索性能、Token 效率 |
+| 箱线图     | 指标分布和离群值             | 3 轮测量数据         |
+| 散点图     | 链接密度 vs 检索精准度相关性 | Atom 质量数据        |
+| 雷达图     | 多维度综合评分               | 5 个评估维度         |
+| 热力图     | 按查询类别的精准度矩阵       | 检索性能明细         |
 
 ### 6.3 关键发现格式
 

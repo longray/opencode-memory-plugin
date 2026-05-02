@@ -26,12 +26,17 @@ async function clearBackendMemories() {
   const baseUrl = `http://localhost:${apiPort}`;
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch(`${baseUrl}/api/v1/memories/clear`, {
       method: "DELETE",
       headers: {
         WRAPPER_MEILI_API_KEY: apiKey,
       },
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     if (!response.ok) {
       const errorText = await response.text();

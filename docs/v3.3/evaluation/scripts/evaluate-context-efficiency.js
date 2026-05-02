@@ -19,8 +19,8 @@
  * Output: Token usage comparison report (JSON)
  */
 
-import { getEntryById } from '../../../opencode-memory-plugin/lib/storage.js';
-import { getEntityAtoms } from '../../../opencode-memory-plugin/lib/memory-core.js';
+import { getEntryById } from "../../../../opencode-memory-plugin/lib/storage.js";
+import { getEntityAtoms } from "../../../../opencode-memory-plugin/lib/memory-core.js";
 
 // Simple token estimator (~4 chars per token for English, ~2 for CJK)
 function estimateTokens(text) {
@@ -38,16 +38,31 @@ async function measureEntityMode(entryId) {
   const entry = getEntryById(entryId);
   if (!entry) {
     console.error(`Warning: Entry ${entryId} not found`);
-    return { mode: 'entity', entry_id: entryId, tokens: 0, bytes: 0, atom_count: 0 };
+    return {
+      mode: "entity",
+      entry_id: entryId,
+      tokens: 0,
+      bytes: 0,
+      atom_count: 0,
+    };
   }
-  const fullText = [entry.abstract, entry.overview, entry.content].filter(Boolean).join('\n');
-  const tokens = estimateTokens(fullText);
+  const fullText = [entry.abstract, entry.overview, entry.content]
+    .filter(Boolean)
+    .join("\n");
+  const atomsText = entry.atoms
+    ? flattenAtomTree(entry.atoms)
+        .map((a) => [a.name, a.content].filter(Boolean).join("\n"))
+        .join("\n")
+    : "";
+  const allText = [fullText, atomsText].filter(Boolean).join("\n");
+  const tokens = estimateTokens(allText);
+  const totalAtoms = entry.atoms ? flattenAtomTree(entry.atoms).length : 0;
   return {
-    mode: 'entity',
+    mode: "entity",
     entry_id: entryId,
     tokens,
     bytes: JSON.stringify(entry).length,
-    atom_count: entry.atoms?.length || 0,
+    atom_count: totalAtoms,
   };
 }
 
@@ -63,17 +78,24 @@ function flattenAtomTree(nodes) {
 }
 
 async function measureAtomMode(entryId) {
-  const result = await getEntityAtoms({ entry_id: entryId, include_content: true });
+  const result = await getEntityAtoms({
+    entry_id: entryId,
+    include_content: true,
+  });
   if (!result.success || !result.tree || result.total_atoms === 0) {
-    console.error(`Warning: No atoms for ${entryId}, falling back to entity mode`);
+    console.error(
+      `Warning: No atoms for ${entryId}, falling back to entity mode`,
+    );
     const entityResult = await measureEntityMode(entryId);
-    return { ...entityResult, mode: 'atom', fallback: 'entity' };
+    return { ...entityResult, mode: "atom", fallback: "entity" };
   }
   const atoms = flattenAtomTree(result.tree);
-  const allText = atoms.map((a) => [a.name, a.content].filter(Boolean).join('\n')).join('\n');
+  const allText = atoms
+    .map((a) => [a.name, a.content].filter(Boolean).join("\n"))
+    .join("\n");
   const tokens = estimateTokens(allText);
   return {
-    mode: 'atom',
+    mode: "atom",
     entry_id: entryId,
     tokens,
     bytes: JSON.stringify(result.tree).length,
@@ -85,42 +107,44 @@ async function measureAtomMode(entryId) {
 function countByType(atoms) {
   const map = {};
   for (const a of atoms) {
-    const t = a.type || 'unknown';
+    const t = a.type || "unknown";
     if (!map[t]) map[t] = { count: 0, tokens: 0 };
     map[t].count++;
-    map[t].tokens += estimateTokens([a.name, a.content].filter(Boolean).join('\n'));
+    map[t].tokens += estimateTokens(
+      [a.name, a.content].filter(Boolean).join("\n"),
+    );
   }
   return map;
 }
 
 function parseArgs(argv) {
-  const args = { entryId: null, mode: 'compare', help: false };
+  const args = { entryId: null, mode: "compare", help: false };
   for (let i = 2; i < argv.length; i++) {
-    if (argv[i] === '--mode' || argv[i] === '-m') {
+    if (argv[i] === "--mode" || argv[i] === "-m") {
       args.mode = argv[++i];
-    } else if (argv[i] === '--help' || argv[i] === '-h') {
+    } else if (argv[i] === "--help" || argv[i] === "-h") {
       args.help = true;
     } else if (!args.entryId) {
       args.entryId = argv[i];
-    } else if (!args.mode || args.mode === 'compare') {
+    } else if (!args.mode || args.mode === "compare") {
       args.mode = argv[i];
     }
   }
   return args;
 }
 
-async function measureContextEfficiency(entryId, mode = 'compare') {
+async function measureContextEfficiency(entryId, mode = "compare") {
   try {
     const report = {
       entry_id: entryId,
       timestamp: new Date().toISOString(),
     };
 
-    if (mode === 'entity' || mode === 'compare') {
+    if (mode === "entity" || mode === "compare") {
       report.entity = await measureEntityMode(entryId);
     }
 
-    if (mode === 'atom' || mode === 'compare') {
+    if (mode === "atom" || mode === "compare") {
       report.atom = await measureAtomMode(entryId);
     }
 
@@ -134,7 +158,8 @@ async function measureContextEfficiency(entryId, mode = 'compare') {
         savings_tokens: entityTokens - atomTokens,
         savings_percent:
           entityTokens > 0
-            ? Math.round(((entityTokens - atomTokens) / entityTokens) * 10000) / 100
+            ? Math.round(((entityTokens - atomTokens) / entityTokens) * 10000) /
+              100
             : 0,
       };
     }
@@ -155,27 +180,31 @@ async function measureContextEfficiency(entryId, mode = 'compare') {
 const args = parseArgs(process.argv);
 
 if (args.help || !args.entryId) {
-  console.error('Usage: node evaluate-context-efficiency.js [options] <entryId> [mode]');
-  console.error('');
-  console.error('Measure token usage for atom vs entity loading modes.');
-  console.error('');
-  console.error('Arguments:');
-  console.error('  entryId    ULID of the memory entry to measure');
-  console.error('  mode       atom | entity | compare (default: compare)');
-  console.error('');
-  console.error('Options:');
-  console.error('  -m, --mode <mode>  Loading mode: atom, entity, or compare');
-  console.error('  -h, --help          Show this help message');
-  console.error('');
-  console.error('Examples:');
-  console.error('  node evaluate-context-efficiency.js 01HQABCDEF compare');
-  console.error('  node evaluate-context-efficiency.js 01HQABCDEF atom');
-  console.error('  node evaluate-context-efficiency.js -m entity 01HQABCDEF');
+  console.error(
+    "Usage: node evaluate-context-efficiency.js [options] <entryId> [mode]",
+  );
+  console.error("");
+  console.error("Measure token usage for atom vs entity loading modes.");
+  console.error("");
+  console.error("Arguments:");
+  console.error("  entryId    ULID of the memory entry to measure");
+  console.error("  mode       atom | entity | compare (default: compare)");
+  console.error("");
+  console.error("Options:");
+  console.error("  -m, --mode <mode>  Loading mode: atom, entity, or compare");
+  console.error("  -h, --help          Show this help message");
+  console.error("");
+  console.error("Examples:");
+  console.error("  node evaluate-context-efficiency.js 01HQABCDEF compare");
+  console.error("  node evaluate-context-efficiency.js 01HQABCDEF atom");
+  console.error("  node evaluate-context-efficiency.js -m entity 01HQABCDEF");
   process.exit(args.help ? 0 : 1);
 }
 
-if (!['atom', 'entity', 'compare'].includes(args.mode)) {
-  console.error(`Error: Invalid mode "${args.mode}". Must be: atom, entity, or compare`);
+if (!["atom", "entity", "compare"].includes(args.mode)) {
+  console.error(
+    `Error: Invalid mode "${args.mode}". Must be: atom, entity, or compare`,
+  );
   process.exit(1);
 }
 

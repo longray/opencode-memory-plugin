@@ -1,7 +1,7 @@
 ﻿---
 status: implemented
 version: v3.3.0
-last_updated: 2026-05-01
+last_updated: 2026-05-02
 owner: Sisyphus
 ---
 
@@ -16,14 +16,14 @@ owner: Sisyphus
 
 ### 1.1 按智能体角色分配
 
-| 智能体 | 主要参考文档 | 辅助文档 | 产出物 |
-|--------|-------------|----------|--------|
-| **Sisyphus (编排者)** | `README.md` (目录总览) | `AGENTS.md` (分工指南) | 任务分配、进度追踪 |
-| **Prometheus (规划者)** | `architecture/ATOM-ARCHITECTURE.md` | `evaluation/DESIGN-EVALUATION.md` | 实施计划、里程碑 |
-| **Atlas (执行者)** | `integration/IMPLEMENTATION-INTEGRATION.md` | `integration/test-plans/*.md` | 代码、测试用例 |
-| **Oracle (架构师)** | `architecture/ATOM-ARCHITECTURE.md` | `integration/DESIGN-INTEGRATION.md` | 设计决策、技术选型 |
-| **The Observer** | `integration/DESIGN-INTEGRATION.md` | `architecture/ATOM-ARCHITECTURE.md` | Atom 树候选 |
-| **The Librarian** | `integration/IMPLEMENTATION-INTEGRATION.md` | `evaluation/DESIGN-EVALUATION.md` | 整合报告 |
+| 智能体                  | 主要参考文档                                | 辅助文档                            | 产出物             |
+| ----------------------- | ------------------------------------------- | ----------------------------------- | ------------------ |
+| **Sisyphus (编排者)**   | `README.md` (目录总览)                      | `AGENTS.md` (分工指南)              | 任务分配、进度追踪 |
+| **Prometheus (规划者)** | `architecture/ATOM-ARCHITECTURE.md`         | `evaluation/DESIGN-EVALUATION.md`   | 实施计划、里程碑   |
+| **Atlas (执行者)**      | `integration/IMPLEMENTATION-INTEGRATION.md` | `integration/test-plans/*.md`       | 代码、测试用例     |
+| **Oracle (架构师)**     | `architecture/ATOM-ARCHITECTURE.md`         | `integration/DESIGN-INTEGRATION.md` | 设计决策、技术选型 |
+| **The Observer**        | `integration/DESIGN-INTEGRATION.md`         | `architecture/ATOM-ARCHITECTURE.md` | Atom 树候选        |
+| **The Librarian**       | `integration/IMPLEMENTATION-INTEGRATION.md` | `evaluation/DESIGN-EVALUATION.md`   | 整合报告           |
 
 ### 1.2 按任务类型分配
 
@@ -58,31 +58,34 @@ owner: Sisyphus
 ### 2.1 阅读顺序
 
 **新成员 onboarding**:
+
 1. `README.md` → 了解目录结构
 2. `architecture/ATOM-ARCHITECTURE.md` → 理解核心概念
 3. `integration/DESIGN-INTEGRATION.md` → 了解功能缺口
 4. `AGENTS.md` → 明确自己的角色
 
 **实施任务时**:
+
 1. `integration/IMPLEMENTATION-INTEGRATION.md` → 找到对应任务
 2. `integration/test-plans/*.md` → 查看测试要求
 3. `architecture/ATOM-ARCHITECTURE.md` → 确认设计约束
 
 **评估任务时**:
+
 1. `evaluation/DESIGN-EVALUATION.md` → 了解评估指标
 2. `evaluation/IMPLEMENTATION-EVALUATION.md` → 执行步骤
 3. `evaluation/scripts/*.js` → 运行脚本
 
 ### 2.2 文档更新规则
 
-| 场景 | 更新文档 | 更新内容 |
-|------|----------|----------|
-| 架构变更 | `architecture/ATOM-ARCHITECTURE.md` | 设计决策、数据结构变更 |
-| 新增功能 | `integration/DESIGN-INTEGRATION.md` | 功能设计、API 契约 |
-| 功能实现 | `integration/IMPLEMENTATION-INTEGRATION.md` | 代码示例、检查清单 |
-| 新增测试 | `integration/test-plans/*.md` | 测试用例、边界条件 |
-| 评估结果 | `evaluation/DESIGN-EVALUATION.md` | 基线数据、指标调整 |
-| 目录调整 | `README.md` + `AGENTS.md` | 结构变更、分工调整 |
+| 场景     | 更新文档                                    | 更新内容               |
+| -------- | ------------------------------------------- | ---------------------- |
+| 架构变更 | `architecture/ATOM-ARCHITECTURE.md`         | 设计决策、数据结构变更 |
+| 新增功能 | `integration/DESIGN-INTEGRATION.md`         | 功能设计、API 契约     |
+| 功能实现 | `integration/IMPLEMENTATION-INTEGRATION.md` | 代码示例、检查清单     |
+| 新增测试 | `integration/test-plans/*.md`               | 测试用例、边界条件     |
+| 评估结果 | `evaluation/DESIGN-EVALUATION.md`           | 基线数据、指标调整     |
+| 目录调整 | `README.md` + `AGENTS.md`                   | 结构变更、分工调整     |
 
 ### 2.3 文档状态标记
 
@@ -178,17 +181,20 @@ owner: AgentName
 ### 4.1 何时保存到记忆
 
 **必须保存**:
+
 - 架构决策（type: architecture）
 - 设计变更（type: decision）
 - 评估结果（type: research）
 - 发现的模式（type: pattern）
 
 **建议保存**:
+
 - 实施过程中的经验教训
 - 测试发现的边界情况
 - 用户反馈和偏好
 
 **保存格式**:
+
 ```javascript
 memory_write({
   abstract: "简短摘要（建议 ≤100 字符）",
@@ -203,18 +209,20 @@ memory_write({
 ### 4.2 何时查询记忆
 
 **必须查询**:
+
 - 做架构决策前（搜索历史方案）
 - 写测试用例前（搜索边界情况）
 - 评估效果前（搜索基线数据）
 
 **查询方式**:
+
 ```javascript
 memory_search({
   query: "关键词",
   scope: "all", // 或 "atom" 精准搜索
-  level: 1,     // 先看概述
-  limit: 10
-})
+  level: 1, // 先看概述
+  limit: 10,
+});
 ```
 
 ---
@@ -224,6 +232,7 @@ memory_search({
 ### 5.1 文档质量检查清单
 
 **新增/修改文档时必须检查**:
+
 - [ ] 文档顶部有状态标记（status/version/last_updated/owner）
 - [ ] 与其他文档的交叉引用正确
 - [ ] 代码示例可执行（或明确标记为伪代码）
@@ -233,11 +242,14 @@ memory_search({
 ### 5.2 代码质量检查清单
 
 **提交代码时必须检查**:
+
 - [ ] 有对应的测试用例（test-plans/ 或实际测试文件）
 - [ ] 文档已更新（DESIGN- 和 IMPLEMENTATION-）
 - [ ] 向后兼容性已考虑
 - [ ] 性能影响已评估
 - [ ] 通过 Oxlint 检查
+- [ ] Agent frontmatter 通过 schema 验证 (`npm test -- --testPathPattern="agent-frontmatter"`)
+- [ ] `install.cjs` agent 配置与 `.md` frontmatter 一致
 
 ---
 
@@ -245,13 +257,13 @@ memory_search({
 
 ### 6.1 术语表
 
-| 术语 | 说明 |
-|------|------|
-| **Atom** | 原子化知识节点，层级化组织 |
-| **Entity** | 知识实体，包含 Atom 树 |
-| **Phase 1/2/3** | 集成方案的三个实施阶段 |
-| **DESIGN-** | 设计文档（What & Why） |
-| **IMPLEMENTATION-** | 实施手册（How） |
+| 术语                | 说明                       |
+| ------------------- | -------------------------- |
+| **Atom**            | 原子化知识节点，层级化组织 |
+| **Entity**          | 知识实体，包含 Atom 树     |
+| **Phase 1/2/3**     | 集成方案的三个实施阶段     |
+| **DESIGN-**         | 设计文档（What & Why）     |
+| **IMPLEMENTATION-** | 实施手册（How）            |
 
 ### 6.2 参考文档
 
@@ -262,4 +274,4 @@ memory_search({
 ---
 
 **维护者**: OpenCode Agent  
-**最后更新**: 2026-05-01
+**最后更新**: 2026-05-02

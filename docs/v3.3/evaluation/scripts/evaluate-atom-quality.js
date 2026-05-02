@@ -18,8 +18,8 @@
  * Output: JSON report to stdout
  */
 
-import { getEntityAtoms } from "../../../opencode-memory-plugin/lib/memory-core.js";
-import { getConfig } from "../../../opencode-memory-plugin/lib/storage.js";
+import { getEntityAtoms } from "../../../../opencode-memory-plugin/lib/memory-core.js";
+import { getConfig } from "../../../../opencode-memory-plugin/lib/storage.js";
 
 function calculateAvgDepth(atoms, depth = 0) {
   // DESIGN-EVALUATION.md §2.1: avg_depth = mean(depth_i) for all atoms
@@ -97,29 +97,33 @@ function calculateOrphanRate(atoms) {
 
 async function evaluateAtomQuality(entryId) {
   try {
-    const config = await getConfig();
+    const _config = await getConfig();
     const result = await getEntityAtoms({
       entry_id: entryId,
       include_content: true,
     });
 
-    if (!result || !result.atoms) {
+    if (
+      !result ||
+      !result.success ||
+      !result.tree ||
+      result.total_atoms === 0
+    ) {
       console.error(`Error: No atoms found for entry ${entryId}`);
       process.exit(1);
     }
 
-    const depthResult = calculateAvgDepth(result.atoms);
+    const atoms = result.tree;
+    const depthResult = calculateAvgDepth(atoms);
     const report = {
       entry_id: entryId,
       timestamp: new Date().toISOString(),
       metrics: {
         avg_depth: Math.round(depthResult.avg * 100) / 100,
         total_atoms: depthResult.count,
-        content_std: Math.round(calculateContentStd(result.atoms) * 100) / 100,
-        link_density:
-          Math.round(calculateLinkDensity(result.atoms) * 1000) / 1000,
-        orphan_rate:
-          Math.round(calculateOrphanRate(result.atoms) * 1000) / 1000,
+        content_std: Math.round(calculateContentStd(atoms) * 100) / 100,
+        link_density: Math.round(calculateLinkDensity(atoms) * 1000) / 1000,
+        orphan_rate: Math.round(calculateOrphanRate(atoms) * 1000) / 1000,
       },
     };
 

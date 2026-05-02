@@ -1,0 +1,36 @@
+{
+  "queries": [
+    {
+      "query": "如何处理 async 函数中的错误",
+      "relevant_ids": ["01KEVAL01SE00000000000005", "01KEVAL01SE00000000000002"]
+    },
+    {
+      "query": "Promise.all 和 Promise.race 的区别",
+      "relevant_ids": [
+        "01KEVAL01SE00000000000003",
+        "01KEVAL01NT00000000000001",
+        "01KEVAL01NT00000000000002"
+      ]
+    },
+    {
+      "query": "并发请求限制数量",
+      "relevant_ids": ["01KEVAL01SE00000000000006", "01KEVAL01NT00000000000004"]
+    },
+    {
+      "query": "async await 基本语法",
+      "relevant_ids": ["01KEVAL01SE00000000000004", "01KEVAL01CH00000000000002"]
+    },
+    {
+      "query": "取消正在执行的异步操作",
+      "relevant_ids": ["01KEVAL01SE00000000000008"]
+    },
+    {
+      "query": "Promise 状态转换",
+      "relevant_ids": ["01KEVAL01SE00000000000001"]
+    },
+    {
+      "query": "异步迭代器 for await of",
+      "relevant_ids": ["01KEVAL01SE00000000000007"]
+    }
+  ]
+}

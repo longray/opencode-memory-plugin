@@ -2,7 +2,7 @@ const FRONTMATTER_REGEX = /^---\n([\s\S]*?)\n---/;
 const SECTION_ABSTRACT = /# ≡≡≡ Abstract ≡≡≡\n```\n([\s\S]*?)```/;
 const SECTION_OVERVIEW = /# ≡≡≡ Overview ≡≡≡\n```\n([\s\S]*?)```/;
 const SECTION_CONTENTS = /# ≡≡≡ Contents ≡≡≡\n```\n([\s\S]*?)```/;
-const SECTION_ATOMS = /# ≡≡≡ Atoms ≡≡≡\n```json\n([\s\S]*?)```/;
+const SECTION_ATOMS = /# ≡≡≡ Atoms ≡≡≡\n```json\n([\s\S]*)```/;
 
 /**
  * Parse YAML frontmatter from markdown content.

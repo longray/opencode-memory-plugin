@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 
 /**
- * OpenCode Memory Plugin - CLI Tool (v3.2.0)
+ * OpenCode Memory Plugin - CLI Tool (v3.3.0)
  *
  * CLI commands delegate to tools/ — one codebase, multiple entry points.
  * Usage: opencode-memory <command> [options]
  */
 
-import { logInfo, logError, logWarn } from '../lib/logger.js';
+import { logInfo, logError } from '../lib/logger.js';
 
-const VERSION = 'v3.2.0';
+const VERSION = 'v3.3.0';
 
 const commands = {
   write: writeCommand,
@@ -21,6 +21,10 @@ const commands = {
   graph: graphCommand,
   pin: pinCommand,
   suggest: suggestCommand,
+  'entity-update': entityUpdateCommand,
+  'entity-atoms': entityAtomsCommand,
+  'load-context-budget': loadContextBudgetCommand,
+  'load-context-level': loadContextLevelCommand,
   init: initCommand,
   status: statusCommand,
   sync: syncCommand,
@@ -46,7 +50,9 @@ function parseTags(raw) {
 }
 
 function showHelp() {
-  logInfo('cli', `
+  logInfo(
+    'cli',
+    `
 ┌─────────────────────────────────────────────────────────────┐
 │                        OpenCode Memory CLI                  │
 │                    Persistent Memory System                 │
@@ -64,6 +70,10 @@ Commands:
   graph    Traverse memory graph
   pin      Pin/unpin memories
   suggest  Get search suggestions
+  entity-update    Batch update atoms (add/update/remove)
+  entity-atoms     Get atom tree structure for an entity
+  load-context-budget  Load entity context within token budget
+  load-context-level   Load entity context filtered by level
   init     Initialize memory system
   status   Check system status
   sync     Sync memories to backend
@@ -79,7 +89,8 @@ Examples:
   opencode-memory status
 
 For detailed help on a command: opencode-memory <command> --help
-`);
+`
+  );
 }
 
 // ─── Core Commands ────────────────────────────────────────────────
@@ -105,6 +116,16 @@ async function writeCommand(args) {
   }
 
   try {
+    let atoms;
+    if (args['atoms']) {
+      try {
+        atoms = JSON.parse(args['atoms']);
+      } catch (parseErr) {
+        log(`Error: --atoms is not valid JSON: ${parseErr.message}`, 'red');
+        process.exit(1);
+      }
+    }
+
     const { memory_write } = await import('../tools/core.js');
     const result = await memory_write.execute({
       content,
@@ -113,6 +134,7 @@ async function writeCommand(args) {
       type: args.type || 'general',
       tags: parseTags(args.tags),
       pinned: false,
+      ...(atoms && { atoms }),
     });
 
     log('✅ Entry written successfully', 'green');
@@ -155,6 +177,14 @@ async function searchCommand(args) {
     process.exit(1);
   }
 
+  const scope = args.scope || 'all';
+  const atom_types = args['atom-types']
+    ? args['atom-types']
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean)
+    : undefined;
+
   try {
     const { memory_search } = await import('../tools/search.js');
     const result = await memory_search.execute({
@@ -162,6 +192,8 @@ async function searchCommand(args) {
       mode: args.mode || 'hybrid',
       limit: parseInt(args.limit) || 10,
       level: parseInt(args.level) || 0,
+      scope,
+      ...(atom_types && { atom_types }),
     });
     console.log(result);
   } catch (e) {
@@ -303,6 +335,124 @@ async function pinCommand(args) {
     logInfo('cli-pin', result);
   } catch (e) {
     log(`❌ Pin failed: ${e.message}`, 'red');
+    process.exit(1);
+  }
+}
+
+// ─── Entity Commands ──────────────────────────────────────────
+
+async function entityUpdateCommand(args) {
+  if (!args['entry-id']) {
+    log('Error: --entry-id is required', 'red');
+    log(
+      'Usage: opencode-memory entity-update --entry-id <id> --atoms-batch <json> [--entity-updates <json>]',
+      'yellow'
+    );
+    process.exit(1);
+  }
+
+  let atomsBatch;
+  if (args['atoms-batch']) {
+    try {
+      atomsBatch = JSON.parse(args['atoms-batch']);
+    } catch (e) {
+      log(`Error: --atoms-batch is not valid JSON: ${e.message}`, 'red');
+      process.exit(1);
+    }
+  }
+
+  let entityUpdates;
+  if (args['entity-updates']) {
+    try {
+      entityUpdates = JSON.parse(args['entity-updates']);
+    } catch (e) {
+      log(`Error: --entity-updates is not valid JSON: ${e.message}`, 'red');
+      process.exit(1);
+    }
+  }
+
+  try {
+    const { entity_update } = await import('../tools/core.js');
+    const params = { entry_id: args['entry-id'] };
+    if (atomsBatch) params.atoms_batch = atomsBatch;
+    if (entityUpdates) params.entity_updates = entityUpdates;
+    const result = await entity_update.execute(params);
+    logInfo('cli-entity-update', result);
+  } catch (e) {
+    log(`❌ Entity update failed: ${e.message}`, 'red');
+    process.exit(1);
+  }
+}
+
+async function entityAtomsCommand(args) {
+  if (!args['entry-id']) {
+    log('Error: --entry-id is required', 'red');
+    log('Usage: opencode-memory entity-atoms --entry-id <id> [--no-content]', 'yellow');
+    process.exit(1);
+  }
+
+  try {
+    const { entity_atoms } = await import('../tools/core.js');
+    const result = await entity_atoms.execute({
+      entry_id: args['entry-id'],
+      include_content: !args['no-content'],
+    });
+    console.log(result);
+  } catch (e) {
+    log(`❌ Entity atoms failed: ${e.message}`, 'red');
+    process.exit(1);
+  }
+}
+
+async function loadContextBudgetCommand(args) {
+  if (!args['entry-id']) {
+    log('Error: --entry-id is required', 'red');
+    log(
+      'Usage: opencode-memory load-context-budget --entry-id <id> --query <text> [--max-tokens 2000] [--strategy relevance]',
+      'yellow'
+    );
+    process.exit(1);
+  }
+  if (!args.query) {
+    log('Error: --query is required', 'red');
+    process.exit(1);
+  }
+
+  try {
+    const { load_context_budget } = await import('../tools/core.js');
+    const result = await load_context_budget.execute({
+      entry_id: args['entry-id'],
+      query: args.query,
+      max_tokens: parseInt(args['max-tokens']) || 2000,
+      strategy: args.strategy || 'relevance',
+    });
+    console.log(result);
+  } catch (e) {
+    log(`❌ Load context budget failed: ${e.message}`, 'red');
+    process.exit(1);
+  }
+}
+
+async function loadContextLevelCommand(args) {
+  if (!args['entry-id']) {
+    log('Error: --entry-id is required', 'red');
+    log(
+      'Usage: opencode-memory load-context-level --entry-id <id> [--max-level 2] [--no-breadcrumbs]',
+      'yellow'
+    );
+    process.exit(1);
+  }
+
+  try {
+    const { load_context_level } = await import('../tools/core.js');
+    const result = await load_context_level.execute({
+      entry_id: args['entry-id'],
+      max_level: parseInt(args['max-level']) || 2,
+      include_breadcrumbs: !args['no-breadcrumbs'],
+    });
+    console.log(result);
+  } catch (e) {
+    log(`❌ Load context level failed: ${e.message}`, 'red');
     process.exit(1);
   }
 }

@@ -1285,7 +1285,8 @@ export async function getEntityAtoms({ entry_id, include_content = false }) {
       };
     }
 
-    const atoms = entry.atoms || [];
+    const rawAtoms = entry.atoms || [];
+    const atoms = flattenAtomTree(rawAtoms);
     const tree = buildAtomTree(atoms, include_content);
 
     return {
