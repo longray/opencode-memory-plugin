@@ -51,9 +51,9 @@ owner: Prometheus
 | Atom 更新        | `lib/memory-core.js:804`           | ✅ `updateEntity({atoms_batch})` 支持增删改     |
 | Atom 树查询      | `lib/memory-core.js:1271`          | ✅ `getEntityAtoms()` 返回树结构                |
 | 死链标记         | `lib/memory-core.js:1478`          | ✅ `markDeadLinks()` 完整实现                   |
-| Wiki 链接解析    | `lib/memory-core.js:468`           | ✅ `extractWikiLinks()` / `findIncomingLinks()` |
+| Wiki 链接解析    | `lib/memory-core.js:501`           | ✅ `extractWikiLinks()` / `findIncomingLinks()` |
 | 树算法           | `lib/atom-tree.js`                 | ✅ O(n) 建树、循环检测、分数索引                |
-| 代码分析 Atom 化 | `lib/code-analysis-service.js:487` | ✅ `uploadAsAtomEntity()` 已完整实现            |
+| 代码分析 Atom 化 | `lib/code-analysis-service.js:491` | ✅ `uploadAsAtomEntity()` 已完整实现            |
 
 ### 1.2 五大集成缺口
 
