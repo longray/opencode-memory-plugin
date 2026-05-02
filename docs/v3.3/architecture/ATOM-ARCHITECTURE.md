@@ -1,5 +1,5 @@
 ---
-status: partially_implemented
+status: implemented
 version: 3.3.0
 last_updated: 2026-05-01
 owner: Oracle

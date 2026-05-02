@@ -1,7 +1,11 @@
-# 评估脚本
+---
+status: draft
+version: v3.3.0
+last_updated: 2026-05-02
+owner: Atlas
+---
 
-> **状态**: draft  
-> **版本**: v3.3.0
+# 评估脚本
 
 ---
 
@@ -9,7 +13,7 @@
 
 | 脚本                             | 功能            | 状态                                  |
 | -------------------------------- | --------------- | ------------------------------------- |
-| `evaluate-atom-quality.js`       | Atom 树质量分析 | WIP - 框架已完成，待接入实际 API 调用 |
+| `evaluate-atom-quality.js`       | Atom 树质量分析 | ✅ 已实现（接入 getEntityAtoms API，部分 metric 计算待完善） |
 | `evaluate-search-performance.js` | 检索性能对比    | ✅ 已实现（接入 WrapperClient.search API） |
 | `evaluate-context-efficiency.js` | Token 使用效率  | ✅ 已实现（接入 getEntryById/getEntityAtoms API） |
 

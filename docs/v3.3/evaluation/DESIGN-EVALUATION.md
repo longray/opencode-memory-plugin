@@ -710,9 +710,9 @@ NPS = 推荐者比例(%) - 贬损者比例(%)
 
 | 脚本 | 功能 | 输出 | 状态 |
 |------|------|------|------|
-| `evaluate-atom-quality.js` | Atom 结构质量分析 | JSON 报告 | 伪代码 |
-| `evaluate-search-performance.js` | 检索性能对比 | JSON 报告 | 伪代码 |
-| `evaluate-context-efficiency.js` | 上下文效率测量 | JSON 报告 | 伪代码 |
+| `evaluate-atom-quality.js` | Atom 结构质量分析 | JSON 报告 | ✅ 可执行 (`./scripts/`) |
+| `evaluate-search-performance.js` | 检索性能对比 | JSON 报告 | ✅ 可执行 (`./scripts/`) |
+| `evaluate-context-efficiency.js` | 上下文效率测量 | JSON 报告 | ✅ 可执行 (`./scripts/`) |
 
 ### 附录 C：问卷模板
 
