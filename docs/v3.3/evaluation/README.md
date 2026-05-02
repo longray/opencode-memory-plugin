@@ -1,4 +1,4 @@
-# v3.3 效果评估文档
+﻿# v3.3 效果评估文档
 
 > **状态**: draft  
 > **版本**: v3.3.0  
@@ -35,7 +35,7 @@ evaluation/
 - 统计方法（假设检验、置信区间）
 - 验收标准（定义"显著改进"）
 
-**状态**: 待从根目录 `MEMORY-PLUGIN-EVALUATION-PLAN.md` 升级
+**状态**: ✅ 已升级并实施完成 (status: draft)
 
 ### IMPLEMENTATION-EVALUATION.md
 
@@ -49,7 +49,7 @@ evaluation/
 - 数据收集和输出格式
 - 报告生成模板
 
-**状态**: 待编写
+**状态**: ✅ 已编写 (622 行)
 
 ### scripts/
 

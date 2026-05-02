@@ -1,4 +1,4 @@
----
+﻿---
 status: draft
 version: 1.0.0
 last_updated: 2026-05-01
@@ -515,11 +515,11 @@ const baseline = {
 评估完成后，将所有数据导出为标准格式：
 
 ```bash
-# 导出为 CSV（便于 Excel 分析）
-node docs/v3.3/evaluation/scripts/export-csv.js --input reports/ --output reports/final/all-metrics.csv
+# 导出为 CSV（便于 Excel 分析）— 规划中，尚未实现
+# node docs/v3.3/evaluation/scripts/export-csv.js --input reports/ --output reports/final/all-metrics.csv
 
-# 导出为 JSON（便于程序分析）
-node docs/v3.3/evaluation/scripts/export-json.js --input reports/ --output reports/final/all-metrics.json
+# 导出为 JSON（便于程序分析）— 规划中，尚未实现
+# node docs/v3.3/evaluation/scripts/export-json.js --input reports/ --output reports/final/all-metrics.json
 ```
 
 ---

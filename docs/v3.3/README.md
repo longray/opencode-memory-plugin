@@ -1,4 +1,4 @@
-# OpenCode Memory Plugin v3.3 开发文档
+﻿# OpenCode Memory Plugin v3.3 开发文档
 
 > **版本**: v3.3.0 (Atom Architecture Edition)  
 > **日期**: 2026-05-01  
@@ -76,8 +76,8 @@ docs/v3.3/
 | 旧文档（根目录）                    | 新位置                                   | 状态   |
 | ----------------------------------- | ---------------------------------------- | ------ |
 | `v3.3-ATOM-ARCHITECTURE-DESIGN.md`  | `v3.3/architecture/ATOM-ARCHITECTURE.md` | 已移入 |
-| `MEMORY-PLUGIN-EVALUATION-PLAN.md`  | `v3.3/evaluation/DESIGN-EVALUATION.md`   | 待升级 |
-| `OPENCODE-ATOM-INTEGRATION-PLAN.md` | `v3.3/integration/DESIGN-INTEGRATION.md` | 待升级 |
+| `MEMORY-PLUGIN-EVALUATION-PLAN.md`  | `v3.3/evaluation/DESIGN-EVALUATION.md`   | 已移入 ✅ |
+| `OPENCODE-ATOM-INTEGRATION-PLAN.md` | `v3.3/integration/DESIGN-INTEGRATION.md` | 已移入 ✅ |
 
 ---
 

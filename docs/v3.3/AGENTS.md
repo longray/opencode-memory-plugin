@@ -1,3 +1,10 @@
+﻿---
+status: implemented
+version: v3.3.0
+last_updated: 2026-05-01
+owner: Sisyphus
+---
+
 # v3.3 文档分工与智能体操作指南
 
 > **版本**: v3.3.0  

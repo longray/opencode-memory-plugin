@@ -1,4 +1,4 @@
----
+﻿---
 status: draft
 version: 1.1.0
 last_updated: 2026-05-01
@@ -7,7 +7,7 @@ owner: Prometheus
 
 # OpenCode 记忆插件效果评估方案
 
-**版本**: v1.1 (upgraded)
+**版本**: v1.1.0 (upgraded)
 **日期**: 2026-05-01
 **状态**: 设计完成，待实施
 **评估对象**: opencode-memory-plugin v3.3 Atom Architecture

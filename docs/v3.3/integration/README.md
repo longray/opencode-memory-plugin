@@ -1,4 +1,4 @@
-# v3.3 Atom 架构集成文档
+﻿# v3.3 Atom 架构集成文档
 
 > **状态**: draft  
 > **版本**: v3.3.0  
@@ -35,7 +35,7 @@ integration/
 - Prompt 工程计划（SOUL.md / AGENTS.md / TOOLS.md）
 - 代码示例和 API 契约
 
-**状态**: 待从根目录 `OPENCODE-ATOM-INTEGRATION-PLAN.md` 升级
+**状态**: ✅ 已升级并实施完成 (status: implemented)
 
 ### IMPLEMENTATION-INTEGRATION.md
 
