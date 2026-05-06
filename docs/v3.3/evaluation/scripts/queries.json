@@ -1,36 +1,205 @@
 {
+  "seed_entities": {
+    "entity1": {
+      "name": "JavaScript 异步编程完全指南",
+      "entry_id": "01KQPZNYVFM21BNE3MG7A5NQ5H",
+      "surreal_id": "entity:01was1jd3haz5a3eoykx"
+    },
+    "entity2": {
+      "name": "Vue 3 Composition API 指南",
+      "entry_id": "01KQPZNYXMKRMNSAF867PV9JGE",
+      "surreal_id": "entity:c0z4j0r9675dnlxiek9n"
+    },
+    "entity3": {
+      "name": "Node.js 流式处理架构指南",
+      "entry_id": "01KQPZNYYQXN5FACHY6GQ4FS8S",
+      "surreal_id": "entity:eh3zgcaqkm97nici4cul"
+    },
+    "entity4": {
+      "name": "Git 分支管理策略对比指南",
+      "entry_id": "01KQPZNYZXFEZ351QEBJJP837M",
+      "surreal_id": "entity:ue1o9upf6p2g1ta2io6i"
+    }
+  },
   "queries": [
     {
-      "query": "如何处理 async 函数中的错误",
-      "relevant_ids": ["01KEVAL01SE00000000000005", "01KEVAL01SE00000000000002"]
+      "query": "Promise 错误处理",
+      "relevant_atom_ids": ["EVALS01", "EVALS02"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
     },
     {
-      "query": "Promise.all 和 Promise.race 的区别",
-      "relevant_ids": [
-        "01KEVAL01SE00000000000003",
-        "01KEVAL01NT00000000000001",
-        "01KEVAL01NT00000000000002"
+      "query": "async await",
+      "relevant_atom_ids": ["EVALCH02", "EVALS03"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "Promise.all 并发",
+      "relevant_atom_ids": ["EVALCH03", "EVALS04"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "Promise.race",
+      "relevant_atom_ids": ["EVALNT02"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "AbortController",
+      "relevant_atom_ids": ["EVALS03"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "Promise 状态",
+      "relevant_atom_ids": ["EVALCH01"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "微任务 setTimeout",
+      "relevant_atom_ids": ["EVALS03"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "Composition API setup 函数用法",
+      "relevant_atom_ids": ["EVAL2CH01", "EVAL2S01"],
+      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
+    },
+    {
+      "query": "ref reactive 区别",
+      "relevant_atom_ids": ["EVAL2CH02", "EVAL2S02"],
+      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
+    },
+    {
+      "query": "Composition API computed watchEffect",
+      "relevant_atom_ids": ["EVAL2CH03", "EVAL2S03"],
+      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
+    },
+    {
+      "query": "Readable Writable 流 pipe",
+      "relevant_atom_ids": ["EVAL3CH01", "EVAL3CH02"],
+      "relevant_entity_ids": ["entity:eh3zgcaqkm97nici4cul"]
+    },
+    {
+      "query": "pipe 方法 背压",
+      "relevant_atom_ids": ["EVAL3S01", "EVAL3S02"],
+      "relevant_entity_ids": ["entity:eh3zgcaqkm97nici4cul"]
+    },
+    {
+      "query": "stream pipeline 错误处理",
+      "relevant_atom_ids": ["EVAL3S03", "EVAL3CH03"],
+      "relevant_entity_ids": ["entity:eh3zgcaqkm97nici4cul"]
+    },
+    {
+      "query": "GitFlow feature 分支",
+      "relevant_atom_ids": ["EVAL4CH01", "EVAL4S01"],
+      "relevant_entity_ids": ["entity:ue1o9upf6p2g1ta2io6i"]
+    },
+    {
+      "query": "GitHub Flow release 管理",
+      "relevant_atom_ids": ["EVAL4CH02", "EVAL4S02"],
+      "relevant_entity_ids": ["entity:ue1o9upf6p2g1ta2io6i"]
+    },
+    {
+      "query": "hotfix 紧急修复流程",
+      "relevant_atom_ids": ["EVAL4S03", "EVAL4CH03"],
+      "relevant_entity_ids": ["entity:ue1o9upf6p2g1ta2io6i"]
+    },
+    {
+      "query": "Promise.race 超时",
+      "category": "exact",
+      "relevant_atom_ids": ["EVALNT02"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "如何处理 JavaScript 中异步操作的失败情况",
+      "category": "semantic",
+      "relevant_atom_ids": ["EVALS01", "EVALS02"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "组件之间怎么共享响应式数据 ref reactive",
+      "category": "semantic",
+      "relevant_atom_ids": ["EVAL2CH02", "EVAL2S02"],
+      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
+    },
+    {
+      "query": "Promise 错误处理 best practice",
+      "category": "hybrid",
+      "relevant_atom_ids": ["EVALS01", "EVALS02"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "xyznonexistent123",
+      "category": "negative",
+      "relevant_atom_ids": [],
+      "relevant_entity_ids": []
+    },
+    {
+      "query": "promse",
+      "category": "typo",
+      "relevant_atom_ids": ["EVALCH01"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "异步 并发 控制",
+      "category": "chinese",
+      "relevant_atom_ids": ["EVALCH03", "EVALS04"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "错误处理模式",
+      "category": "cross-entity",
+      "relevant_atom_ids": ["EVALS01", "EVAL3S03"],
+      "relevant_entity_ids": [
+        "entity:01was1jd3haz5a3eoykx",
+        "entity:eh3zgcaqkm97nici4cul"
       ]
     },
     {
-      "query": "并发请求限制数量",
-      "relevant_ids": ["01KEVAL01SE00000000000006", "01KEVAL01NT00000000000004"]
+      "query": "stream backpressure 背压",
+      "category": "semantic",
+      "relevant_atom_ids": ["EVAL3S02"],
+      "relevant_entity_ids": ["entity:eh3zgcaqkm97nici4cul"]
     },
     {
-      "query": "async await 基本语法",
-      "relevant_ids": ["01KEVAL01SE00000000000004", "01KEVAL01CH00000000000002"]
+      "query": "分支合并 merge 策略对比",
+      "category": "semantic",
+      "relevant_atom_ids": ["EVAL4CH02"],
+      "relevant_entity_ids": ["entity:ue1o9upf6p2g1ta2io6i"]
     },
     {
-      "query": "取消正在执行的异步操作",
-      "relevant_ids": ["01KEVAL01SE00000000000008"]
+      "query": "AbortController signal",
+      "category": "exact",
+      "relevant_atom_ids": ["EVALS03"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
     },
     {
-      "query": "Promise 状态转换",
-      "relevant_ids": ["01KEVAL01SE00000000000001"]
+      "query": "computed watch 区别",
+      "category": "semantic",
+      "relevant_atom_ids": ["EVAL2S03"],
+      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
     },
     {
-      "query": "异步迭代器 for await of",
-      "relevant_ids": ["01KEVAL01SE00000000000007"]
+      "query": "Transform stream 双工",
+      "category": "semantic",
+      "relevant_atom_ids": ["EVAL3CH03"],
+      "relevant_entity_ids": ["entity:eh3zgcaqkm97nici4cul"]
+    },
+    {
+      "query": "feature release trunk based",
+      "category": "exact",
+      "relevant_atom_ids": ["EVAL4S01", "EVAL4S03"],
+      "relevant_entity_ids": ["entity:ue1o9upf6p2g1ta2io6i"]
+    },
+    {
+      "query": "async generator",
+      "category": "exact",
+      "relevant_atom_ids": ["EVALS04"],
+      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+    },
+    {
+      "query": "setup ref reactive 生命周期",
+      "category": "hybrid",
+      "relevant_atom_ids": ["EVAL2S01", "EVAL2S02"],
+      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
     }
   ]
 }

@@ -1024,6 +1024,40 @@ export class WrapperClient {
       completeness: refAtomIds.size > 0 ? 'PASS' : 'INCOMPLETE',
     };
   }
+
+  /**
+   * 获取搜索建议（基于后端搜索 API）
+   * @param {string} prefix - 前缀
+   * @param {number} limit - 建议数量
+   * @param {string} tenant_id - 租户 ID
+   * @returns {Promise<Array>} 建议列表
+   */
+  async suggest({ prefix, limit = 10, tenant_id } = {}) {
+    const effectiveTenantId = tenant_id || this.tenantId;
+    // 使用 keyword 模式搜索前缀匹配
+    const result = await withRetry(
+      () =>
+        this.http.post('/api/v1/memories/search', {
+          query: prefix,
+          mode: 'keyword',
+          limit,
+          threshold: 0.01,
+          level: 0,
+          tenant_id: effectiveTenantId,
+        }),
+      this.maxRetries
+    );
+
+    // 从搜索结果中提取唯一的关键词建议
+    const suggestions = new Set();
+    if (result.results) {
+      for (const r of result.results) {
+        if (r.abstract) suggestions.add(r.abstract.substring(0, 50));
+        if (r.name) suggestions.add(r.name);
+      }
+    }
+    return [...suggestions].slice(0, limit);
+  }
 }
 
 let wrapperClientInstance = null;

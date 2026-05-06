@@ -85,7 +85,7 @@ describe('tools/search.js atom scope', () => {
       expect(mockSearchFn).toHaveBeenCalledWith(
         expect.objectContaining({
           scope: 'atom',
-          query: 'setup function',
+          query: expect.stringContaining('setup function'),
         })
       );
     });

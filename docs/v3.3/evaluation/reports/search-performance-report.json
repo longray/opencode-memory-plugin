@@ -1,0 +1,1228 @@
+{
+  "timestamp": "2026-05-05T03:53:10.275Z",
+  "config": {
+    "top_k": 5,
+    "query_count": 32,
+    "modes": ["hybrid", "keyword", "vector"],
+    "scope": "atom"
+  },
+  "queries": [
+    {
+      "query": "Promise 错误处理",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 197.5238,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 28.210699999999974,
+          "result_count": 3
+        },
+        "vector": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 56.94060000000002,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "async await",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.1837889117207785,
+          "mrr": 1,
+          "time_ms": 78.11240000000004,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 17.71750000000003,
+          "result_count": 1
+        },
+        "vector": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 65.49399999999997,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "Promise.all 并发",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 81.87509999999997,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 18.526299999999992,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 67.29160000000002,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "Promise.race",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 82.04770000000008,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 19.2894,
+          "result_count": 5
+        },
+        "vector": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 52.33609999999999,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "AbortController",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 79.66579999999999,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 20.07249999999999,
+          "result_count": 5
+        },
+        "vector": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 62.21939999999995,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "Promise 状态",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 0.6,
+          "recall": 3,
+          "f1": 0.9999999999999999,
+          "ndcg": 2.1309297535714578,
+          "mrr": 1,
+          "time_ms": 67.83860000000004,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 13.123800000000074,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.6,
+          "recall": 3,
+          "f1": 0.9999999999999999,
+          "ndcg": 2.1309297535714578,
+          "mrr": 1,
+          "time_ms": 51.30119999999988,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "微任务 setTimeout",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 0.6,
+          "recall": 3,
+          "f1": 0.9999999999999999,
+          "ndcg": 2.1309297535714578,
+          "mrr": 1,
+          "time_ms": 71.0625,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 15.768199999999979,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.6,
+          "recall": 3,
+          "f1": 0.9999999999999999,
+          "ndcg": 2.1309297535714578,
+          "mrr": 1,
+          "time_ms": 56.7174,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "Composition API setup 函数用法",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 0.8,
+          "recall": 2,
+          "f1": 1.142857142857143,
+          "ndcg": 1.5706417189553201,
+          "mrr": 1,
+          "time_ms": 66.28340000000003,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 14.110699999999952,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.8,
+          "recall": 2,
+          "f1": 1.142857142857143,
+          "ndcg": 1.5706417189553201,
+          "mrr": 1,
+          "time_ms": 46.78610000000003,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "ref reactive 区别",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 71.67129999999997,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 15.6858000000002,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 60.86410000000001,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "Composition API computed watchEffect",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 86.28829999999994,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 14.186500000000024,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 52.6567,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "Readable Writable 流 pipe",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 81.84569999999985,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 14.145399999999881,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 59.80420000000004,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "pipe 方法 背压",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 67.41100000000006,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 15.313899999999876,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 54.14440000000013,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "stream pipeline 错误处理",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 67.08539999999994,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 15.73680000000013,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 55.8458999999998,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "GitFlow feature 分支",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 59.73279999999977,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 13.897899999999936,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 57.20129999999972,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "GitHub Flow release 管理",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 79.29219999999987,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 14.734399999999823,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 53.858600000000024,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "hotfix 紧急修复流程",
+      "category": "unknown",
+      "modes": {
+        "hybrid": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 69.22040000000015,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 13.761599999999817,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 45.98919999999998,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "Promise.race 超时",
+      "category": "exact",
+      "modes": {
+        "hybrid": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 63.152500000000146,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 13.61909999999989,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 59.514700000000175,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "如何处理 JavaScript 中异步操作的失败情况",
+      "category": "semantic",
+      "modes": {
+        "hybrid": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 71.18700000000035,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 13.82990000000018,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 48.80060000000003,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "组件之间怎么共享响应式数据 ref reactive",
+      "category": "semantic",
+      "modes": {
+        "hybrid": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 59.53520000000026,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 15.367400000000089,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 1,
+          "recall": 2.5,
+          "f1": 1.4285714285714286,
+          "ndcg": 1.8078394317246163,
+          "mrr": 1,
+          "time_ms": 51.52510000000029,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "Promise 错误处理 best practice",
+      "category": "hybrid",
+      "modes": {
+        "hybrid": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 63.89429999999993,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 15.101400000000012,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.6,
+          "recall": 1.5,
+          "f1": 0.857142857142857,
+          "ndcg": 1.3065735963827294,
+          "mrr": 1,
+          "time_ms": 56.68870000000015,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "xyznonexistent123",
+      "category": "negative",
+      "modes": {
+        "hybrid": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 68.53049999999985,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 14.423600000000079,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 62.41300000000001,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "promse",
+      "category": "typo",
+      "modes": {
+        "hybrid": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 90.23090000000002,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 15.334100000000035,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 47.19010000000026,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "异步 并发 控制",
+      "category": "chinese",
+      "modes": {
+        "hybrid": {
+          "precision": 0.4,
+          "recall": 1,
+          "f1": 0.5714285714285715,
+          "ndcg": 0.5012658353418871,
+          "mrr": 0.25,
+          "time_ms": 54.784799999999905,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 14.16229999999996,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.4,
+          "recall": 1,
+          "f1": 0.5714285714285715,
+          "ndcg": 0.5012658353418871,
+          "mrr": 0.25,
+          "time_ms": 55.670300000000225,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "错误处理模式",
+      "category": "cross-entity",
+      "modes": {
+        "hybrid": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 75.17349999999988,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 18.173499999999876,
+          "result_count": 4
+        },
+        "vector": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 52.15869999999995,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "stream backpressure 背压",
+      "category": "semantic",
+      "modes": {
+        "hybrid": {
+          "precision": 0.6,
+          "recall": 3,
+          "f1": 0.9999999999999999,
+          "ndcg": 2.1309297535714578,
+          "mrr": 1,
+          "time_ms": 68.79010000000017,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 16.690299999999752,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.6,
+          "recall": 3,
+          "f1": 0.9999999999999999,
+          "ndcg": 2.1309297535714578,
+          "mrr": 1,
+          "time_ms": 57.457000000000335,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "分支合并 merge 策略对比",
+      "category": "semantic",
+      "modes": {
+        "hybrid": {
+          "precision": 0.6,
+          "recall": 3,
+          "f1": 0.9999999999999999,
+          "ndcg": 1.4484591188793923,
+          "mrr": 0.5,
+          "time_ms": 64.2512999999999,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 14.021799999999985,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.6,
+          "recall": 3,
+          "f1": 0.9999999999999999,
+          "ndcg": 1.4484591188793923,
+          "mrr": 0.5,
+          "time_ms": 52.9387999999999,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "AbortController signal",
+      "category": "exact",
+      "modes": {
+        "hybrid": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 67.58090000000038,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 14.085099999999784,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 50.055800000000545,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "computed watch 区别",
+      "category": "semantic",
+      "modes": {
+        "hybrid": {
+          "precision": 0.4,
+          "recall": 2,
+          "f1": 0.6666666666666667,
+          "ndcg": 0.9306765580733931,
+          "mrr": 0.3333333333333333,
+          "time_ms": 64.07759999999962,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 16.58259999999973,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.4,
+          "recall": 2,
+          "f1": 0.6666666666666667,
+          "ndcg": 0.9306765580733931,
+          "mrr": 0.3333333333333333,
+          "time_ms": 54.02049999999963,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "Transform stream 双工",
+      "category": "semantic",
+      "modes": {
+        "hybrid": {
+          "precision": 0.6,
+          "recall": 3,
+          "f1": 0.9999999999999999,
+          "ndcg": 2.1309297535714578,
+          "mrr": 1,
+          "time_ms": 65.39189999999962,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 15.915899999999965,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.6,
+          "recall": 3,
+          "f1": 0.9999999999999999,
+          "ndcg": 2.1309297535714578,
+          "mrr": 1,
+          "time_ms": 48.39570000000003,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "feature release trunk based",
+      "category": "exact",
+      "modes": {
+        "hybrid": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 66.22320000000036,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 14.592599999999948,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 60.060599999999795,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "async generator",
+      "category": "exact",
+      "modes": {
+        "hybrid": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 73.59600000000046,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 14.17529999999988,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 53.90189999999984,
+          "result_count": 5
+        }
+      }
+    },
+    {
+      "query": "setup ref reactive 生命周期",
+      "category": "hybrid",
+      "modes": {
+        "hybrid": {
+          "precision": 0.4,
+          "recall": 1,
+          "f1": 0.5714285714285715,
+          "ndcg": 0.5012658353418871,
+          "mrr": 0.25,
+          "time_ms": 58.91579999999976,
+          "result_count": 5
+        },
+        "keyword": {
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "ndcg": 0,
+          "mrr": 0,
+          "time_ms": 12.11239999999998,
+          "result_count": 0
+        },
+        "vector": {
+          "precision": 0.4,
+          "recall": 1,
+          "f1": 0.5714285714285715,
+          "ndcg": 0.5012658353418871,
+          "mrr": 0.25,
+          "time_ms": 53.152100000000246,
+          "result_count": 5
+        }
+      }
+    }
+  ],
+  "mode_comparison": {
+    "hybrid": {
+      "atom_scope": {
+        "precision_at_k": [
+          0.6, 0.6, 1, 0, 0, 0.6, 0.6, 0.8, 1, 1, 1, 1, 0.6, 0.6, 0.6, 1, 0, 0,
+          1, 0.6, 0, 0, 0.4, 0, 0.6, 0.6, 0, 0.4, 0.6, 0, 0, 0.4
+        ],
+        "recall_at_k": [
+          1.5, 1.5, 2.5, 0, 0, 3, 3, 2, 2.5, 2.5, 2.5, 2.5, 1.5, 1.5, 1.5, 2.5,
+          0, 0, 2.5, 1.5, 0, 0, 1, 0, 3, 3, 0, 2, 3, 0, 0, 1
+        ],
+        "f1_at_k": [
+          0.857142857142857, 0.857142857142857, 1.4285714285714286, 0, 0,
+          0.9999999999999999, 0.9999999999999999, 1.142857142857143,
+          1.4285714285714286, 1.4285714285714286, 1.4285714285714286,
+          1.4285714285714286, 0.857142857142857, 0.857142857142857,
+          0.857142857142857, 1.4285714285714286, 0, 0, 1.4285714285714286,
+          0.857142857142857, 0, 0, 0.5714285714285715, 0, 0.9999999999999999,
+          0.9999999999999999, 0, 0.6666666666666667, 0.9999999999999999, 0, 0,
+          0.5714285714285715
+        ],
+        "ndcg_at_k": [
+          1.3065735963827294, 1.1837889117207785, 1.8078394317246163, 0, 0,
+          2.1309297535714578, 2.1309297535714578, 1.5706417189553201,
+          1.8078394317246163, 1.8078394317246163, 1.8078394317246163,
+          1.8078394317246163, 1.3065735963827294, 1.3065735963827294,
+          1.3065735963827294, 1.8078394317246163, 0, 0, 1.8078394317246163,
+          1.3065735963827294, 0, 0, 0.5012658353418871, 0, 2.1309297535714578,
+          1.4484591188793923, 0, 0.9306765580733931, 2.1309297535714578, 0, 0,
+          0.5012658353418871
+        ],
+        "mrr": [
+          1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0,
+          0.25, 0, 1, 0.5, 0, 0.3333333333333333, 1, 0, 0, 0.25
+        ],
+        "response_times": [
+          197.5238, 78.11240000000004, 81.87509999999997, 82.04770000000008,
+          79.66579999999999, 67.83860000000004, 71.0625, 66.28340000000003,
+          71.67129999999997, 86.28829999999994, 81.84569999999985,
+          67.41100000000006, 67.08539999999994, 59.73279999999977,
+          79.29219999999987, 69.22040000000015, 63.152500000000146,
+          71.18700000000035, 59.53520000000026, 63.89429999999993,
+          68.53049999999985, 90.23090000000002, 54.784799999999905,
+          75.17349999999988, 68.79010000000017, 64.2512999999999,
+          67.58090000000038, 64.07759999999962, 65.39189999999962,
+          66.22320000000036, 73.59600000000046, 58.91579999999976
+        ]
+      }
+    },
+    "keyword": {
+      "atom_scope": {
+        "precision_at_k": [
+          0.6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0
+        ],
+        "recall_at_k": [
+          1.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0
+        ],
+        "f1_at_k": [
+          0.857142857142857, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ],
+        "ndcg_at_k": [
+          1.3065735963827294, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ],
+        "mrr": [
+          1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0
+        ],
+        "response_times": [
+          28.210699999999974, 17.71750000000003, 18.526299999999992, 19.2894,
+          20.07249999999999, 13.123800000000074, 15.768199999999979,
+          14.110699999999952, 15.6858000000002, 14.186500000000024,
+          14.145399999999881, 15.313899999999876, 15.73680000000013,
+          13.897899999999936, 14.734399999999823, 13.761599999999817,
+          13.61909999999989, 13.82990000000018, 15.367400000000089,
+          15.101400000000012, 14.423600000000079, 15.334100000000035,
+          14.16229999999996, 18.173499999999876, 16.690299999999752,
+          14.021799999999985, 14.085099999999784, 16.58259999999973,
+          15.915899999999965, 14.592599999999948, 14.17529999999988,
+          12.11239999999998
+        ]
+      }
+    },
+    "vector": {
+      "atom_scope": {
+        "precision_at_k": [
+          0.6, 0.6, 1, 0, 0, 0.6, 0.6, 0.8, 1, 1, 1, 1, 0.6, 0.6, 0.6, 1, 0, 0,
+          1, 0.6, 0, 0, 0.4, 0, 0.6, 0.6, 0, 0.4, 0.6, 0, 0, 0.4
+        ],
+        "recall_at_k": [
+          1.5, 1.5, 2.5, 0, 0, 3, 3, 2, 2.5, 2.5, 2.5, 2.5, 1.5, 1.5, 1.5, 2.5,
+          0, 0, 2.5, 1.5, 0, 0, 1, 0, 3, 3, 0, 2, 3, 0, 0, 1
+        ],
+        "f1_at_k": [
+          0.857142857142857, 0.857142857142857, 1.4285714285714286, 0, 0,
+          0.9999999999999999, 0.9999999999999999, 1.142857142857143,
+          1.4285714285714286, 1.4285714285714286, 1.4285714285714286,
+          1.4285714285714286, 0.857142857142857, 0.857142857142857,
+          0.857142857142857, 1.4285714285714286, 0, 0, 1.4285714285714286,
+          0.857142857142857, 0, 0, 0.5714285714285715, 0, 0.9999999999999999,
+          0.9999999999999999, 0, 0.6666666666666667, 0.9999999999999999, 0, 0,
+          0.5714285714285715
+        ],
+        "ndcg_at_k": [
+          1.3065735963827294, 1.3065735963827294, 1.8078394317246163, 0, 0,
+          2.1309297535714578, 2.1309297535714578, 1.5706417189553201,
+          1.8078394317246163, 1.8078394317246163, 1.8078394317246163,
+          1.8078394317246163, 1.3065735963827294, 1.3065735963827294,
+          1.3065735963827294, 1.8078394317246163, 0, 0, 1.8078394317246163,
+          1.3065735963827294, 0, 0, 0.5012658353418871, 0, 2.1309297535714578,
+          1.4484591188793923, 0, 0.9306765580733931, 2.1309297535714578, 0, 0,
+          0.5012658353418871
+        ],
+        "mrr": [
+          1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0,
+          0.25, 0, 1, 0.5, 0, 0.3333333333333333, 1, 0, 0, 0.25
+        ],
+        "response_times": [
+          56.94060000000002, 65.49399999999997, 67.29160000000002,
+          52.33609999999999, 62.21939999999995, 51.30119999999988, 56.7174,
+          46.78610000000003, 60.86410000000001, 52.6567, 59.80420000000004,
+          54.14440000000013, 55.8458999999998, 57.20129999999972,
+          53.858600000000024, 45.98919999999998, 59.514700000000175,
+          48.80060000000003, 51.52510000000029, 56.68870000000015,
+          62.41300000000001, 47.19010000000026, 55.670300000000225,
+          52.15869999999995, 57.457000000000335, 52.9387999999999,
+          50.055800000000545, 54.02049999999963, 48.39570000000003,
+          60.060599999999795, 53.90189999999984, 53.152100000000246
+        ]
+      }
+    }
+  },
+  "summary": {
+    "hybrid": {
+      "avg_precision_at_k": 0.487,
+      "avg_recall_at_k": 1.484,
+      "avg_f1_at_k": 0.722,
+      "avg_ndcg_at_k": 1.058,
+      "avg_mrr": 0.604,
+      "avg_response_time_ms": 74.45
+    },
+    "keyword": {
+      "avg_precision_at_k": 0.019,
+      "avg_recall_at_k": 0.047,
+      "avg_f1_at_k": 0.027,
+      "avg_ndcg_at_k": 0.041,
+      "avg_mrr": 0.031,
+      "avg_response_time_ms": 15.7
+    },
+    "vector": {
+      "avg_precision_at_k": 0.487,
+      "avg_recall_at_k": 1.484,
+      "avg_f1_at_k": 0.722,
+      "avg_ndcg_at_k": 1.062,
+      "avg_mrr": 0.604,
+      "avg_response_time_ms": 55.11
+    }
+  }
+}
