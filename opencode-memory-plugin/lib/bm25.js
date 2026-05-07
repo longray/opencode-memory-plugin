@@ -12,18 +12,17 @@
 /**
  * BM25 parameters
  */
-const BM25_K1 = 1.2; // Term frequency saturation parameter
-const BM25_B = 0.75; // Document length normalization parameter
+const BM25_K1 = 1.2;
+const BM25_B = 0.75;
 
-/**
- * BM25 Index for a collection of documents
- */
 export class BM25Index {
-  constructor() {
-    this.documents = new Map(); // docId -> { content, tokens, length }
+  constructor(options = {}) {
+    this.k1 = options.k1 ?? BM25_K1;
+    this.b = options.b ?? BM25_B;
+    this.documents = new Map();
     this.docCount = 0;
     this.avgDocLength = 0;
-    this.termDocFreq = new Map(); // term -> number of docs containing term
+    this.termDocFreq = new Map();
     this.totalDocLengths = 0;
   }
 
@@ -34,38 +33,45 @@ export class BM25Index {
    */
   tokenize(text) {
     const lowerText = text.toLowerCase();
-
-    // 第一步：按空格分割（处理英文）
-    const spaceSplit = lowerText.replace(/[^\w\u4e00-\u9fa5\s]/g, ' ').split(/\s+/);
-
     const tokens = [];
 
-    for (const part of spaceSplit) {
-      if (!part || part.trim() === '') continue;
+    const englishParts = lowerText.match(/[a-z0-9]+/g) || [];
+    tokens.push(...englishParts.filter(w => w.length > 1));
 
-      // 检查是否包含中文
-      const hasChinese = /[\u4e00-\u9fa5]/.test(part);
+    const chineseText = lowerText.replace(/[^\u4e00-\u9fa5]/g, '');
 
-      if (hasChinese) {
-        // 中文部分：按字符切分，保留2字以上词组和单个字符
-        // 先提取2字以上连续词组
-        const chineseWords = part.match(/[\u4e00-\u9fa5]{2,}/g) || [];
-        // 提取单个中文字符
-        const singleChars = part.match(/[\u4e00-\u9fa5]/g) || [];
+    const techTerms = [
+      '错误处理',
+      '异步编程',
+      '并发控制',
+      '响应式',
+      '组件化',
+      '背压',
+      '双工',
+      '管道',
+      '生命周期',
+      '状态管理',
+      '分支管理',
+      '错误传播',
+      '流式处理',
+      '代码分析',
+    ];
 
-        tokens.push(...chineseWords);
-        tokens.push(...singleChars);
-
-        // 同时也保留混合的英文部分
-        const englishParts = part.match(/[a-z0-9]+/g) || [];
-        tokens.push(...englishParts.filter(w => w.length > 1));
-      } else {
-        // 纯英文部分：直接作为token，过滤长度为1的
-        if (part.length > 1) {
-          tokens.push(part);
-        }
+    let remaining = chineseText;
+    for (const term of techTerms.sort((a, b) => b.length - a.length)) {
+      const regex = new RegExp(term, 'g');
+      const matches = remaining.match(regex);
+      if (matches) {
+        tokens.push(...matches);
+        remaining = remaining.replace(regex, '');
       }
     }
+
+    const bigrams = [];
+    for (let i = 0; i < remaining.length - 1; i++) {
+      bigrams.push(remaining.substring(i, i + 2));
+    }
+    tokens.push(...bigrams);
 
     return tokens;
   }
@@ -168,8 +174,8 @@ export class BM25Index {
    */
   calculateBM25Score(doc, queryTerms) {
     let score = 0;
-    const k1 = BM25_K1;
-    const b = BM25_B;
+    const k1 = this.k1;
+    const b = this.b;
     const docLength = doc.length;
     const avgdl = this.avgDocLength || 1;
 
@@ -179,7 +185,6 @@ export class BM25Index {
 
       const idf = this.calculateIDF(term);
 
-      // BM25 formula
       const numerator = tf * (k1 + 1);
       const denominator = tf + k1 * (1 - b + b * (docLength / avgdl));
 

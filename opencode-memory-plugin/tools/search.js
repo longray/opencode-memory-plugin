@@ -12,15 +12,20 @@ import { MEMORY_DIR } from '../lib/constants.js';
  * @param {string} scope - 搜索范围: all, atom
  * @returns {number} threshold 值
  */
-function getDefaultThreshold(mode, _scope) {
+function getDefaultThreshold(mode, scope) {
   const baseThreshold = {
-    hybrid: 0.01,
+    hybrid: 0.005,
     vector: 0.3,
-    keyword: 0.1,
-    bm25: 0.1,
+    keyword: 0.01,
+    bm25: 0.01,
   };
-  const threshold = baseThreshold[mode] ?? 0.01;
-  // Atom scope 不需要额外降低，因为已经按模式设置了
+
+  let threshold = baseThreshold[mode] ?? 0.005;
+
+  if (scope === 'atom') {
+    threshold = threshold * 0.5;
+  }
+
   return threshold;
 }
 
@@ -31,13 +36,15 @@ function getDefaultThreshold(mode, _scope) {
  * @returns {string} 改写后的查询
  */
 function rewriteQuery(query, mode) {
-  // vector 模式不改写（依赖语义 embedding）
   if (mode === 'vector') return query;
 
-  const words = query.split(/\s+/).filter(w => w.length > 0);
-  if (words.length >= 3) return query; // 长查询不改写
+  if (mode === 'keyword') {
+    return query;
+  }
 
-  // 技术关键词扩展映射
+  const words = query.split(/\s+/).filter(w => w.length > 0);
+  if (words.length >= 3) return query;
+
   const expansions = {
     promise: ['Promise', 'async', 'await', 'then', 'catch'],
     async: ['async', 'await', 'Promise', '异步'],
@@ -47,14 +54,16 @@ function rewriteQuery(query, mode) {
     git: ['Git', 'GitFlow', 'GitHub Flow', '分支', 'merge'],
     error: ['error', '错误处理', 'catch', 'try/catch'],
     ref: ['ref', 'reactive', 'computed', 'watch'],
+    错误: ['错误处理', 'catch', 'try/catch', '异常'],
+    异步: ['异步编程', 'async', 'await', 'Promise'],
+    并发: ['并发控制', 'Promise.all', 'parallel', 'concurrency'],
+    组件: ['组件化', 'Composition API', 'setup', 'reactive'],
   };
 
-  // 提取第一个词进行扩展
   const firstWord = words[0].toLowerCase();
-  const expanded = expansions[firstWord];
+  const expanded = expansions[firstWord] || expansions[words[0]];
 
   if (expanded) {
-    // 合并原始词和扩展词，去重
     const allTerms = [...new Set([...words, ...expanded])];
     return allTerms.join(' ');
   }
