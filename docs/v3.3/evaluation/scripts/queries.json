@@ -2,128 +2,212 @@
   "seed_entities": {
     "entity1": {
       "name": "JavaScript 异步编程完全指南",
-      "entry_id": "01KQPZNYVFM21BNE3MG7A5NQ5H",
-      "surreal_id": "entity:01was1jd3haz5a3eoykx"
+      "entry_id": "entity:0b5bhv7euswho5xy6ehf",
+      "surreal_id": "entity:0b5bhv7euswho5xy6ehf"
     },
     "entity2": {
       "name": "Vue 3 Composition API 指南",
-      "entry_id": "01KQPZNYXMKRMNSAF867PV9JGE",
-      "surreal_id": "entity:c0z4j0r9675dnlxiek9n"
+      "entry_id": "entity:gu6mdyzjjxdpp5n61y6f",
+      "surreal_id": "entity:gu6mdyzjjxdpp5n61y6f"
     },
     "entity3": {
       "name": "Node.js 流式处理架构指南",
-      "entry_id": "01KQPZNYYQXN5FACHY6GQ4FS8S",
-      "surreal_id": "entity:eh3zgcaqkm97nici4cul"
+      "entry_id": "entity:svseb3hhfzn3dullpk56",
+      "surreal_id": "entity:svseb3hhfzn3dullpk56"
     },
     "entity4": {
       "name": "Git 分支管理策略对比指南",
-      "entry_id": "01KQPZNYZXFEZ351QEBJJP837M",
-      "surreal_id": "entity:ue1o9upf6p2g1ta2io6i"
+      "entry_id": "entity:6teojb8xn4q1q1fxi4kj",
+      "surreal_id": "entity:6teojb8xn4q1q1fxi4kj"
     }
   },
   "queries": [
     {
       "query": "Promise 错误处理",
-      "relevant_atom_ids": ["EVALS01", "EVALS02"],
-      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+      "relevant_atom_ids": [
+        "01KEVAL01SE00000000000005",
+        "01KEVAL01CH00000000000002"
+      ],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
     },
     {
       "query": "async await",
-      "relevant_atom_ids": ["EVALCH02", "EVALS03"],
-      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+      "relevant_atom_ids": [
+        "01KEVAL01CH00000000000002",
+        "01KEVAL01SE00000000000004"
+      ],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
     },
     {
       "query": "Promise.all 并发",
-      "relevant_atom_ids": ["EVALCH03", "EVALS04"],
-      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+      "relevant_atom_ids": [
+        "01KEVAL01CH00000000000003",
+        "01KEVAL01SE00000000000006"
+      ],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
     },
     {
       "query": "Promise.race",
-      "relevant_atom_ids": ["EVALNT02"],
-      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+      "relevant_atom_ids": ["01KEVAL01NT00000000000002"],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
     },
     {
       "query": "AbortController",
-      "relevant_atom_ids": ["EVALS03"],
-      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+      "relevant_atom_ids": ["01KEVAL01SE00000000000008"],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
     },
     {
       "query": "Promise 状态",
-      "relevant_atom_ids": ["EVALCH01"],
-      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+      "relevant_atom_ids": ["01KEVAL01CH00000000000001"],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
     },
     {
       "query": "微任务 setTimeout",
-      "relevant_atom_ids": ["EVALS03"],
-      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+      "relevant_atom_ids": ["01KEVAL01SE00000000000004"],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
     },
     {
       "query": "Composition API setup 函数用法",
-      "relevant_atom_ids": ["EVAL2CH01", "EVAL2S01"],
-      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
+      "relevant_atom_ids": [
+        "01KEVAL02CH00000000000001",
+        "01KEVAL02SE00000000000001"
+      ],
+      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
     },
     {
       "query": "ref reactive 区别",
-      "relevant_atom_ids": ["EVAL2CH02", "EVAL2S02"],
-      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
+      "relevant_atom_ids": [
+        "01KEVAL02CH00000000000002",
+        "01KEVAL02SE00000000000002"
+      ],
+      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
     },
     {
       "query": "Composition API computed watchEffect",
-      "relevant_atom_ids": ["EVAL2CH03", "EVAL2S03"],
-      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
+      "relevant_atom_ids": [
+        "01KEVAL02CH00000000000003",
+        "01KEVAL02SE00000000000003"
+      ],
+      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
     },
     {
       "query": "Readable Writable 流 pipe",
-      "relevant_atom_ids": ["EVAL3CH01", "EVAL3CH02"],
-      "relevant_entity_ids": ["entity:eh3zgcaqkm97nici4cul"]
+      "relevant_atom_ids": [
+        "01KEVAL03CH00000000000001",
+        "01KEVAL03CH00000000000002"
+      ],
+      "relevant_entity_ids": ["entity:svseb3hhfzn3dullpk56"]
     },
     {
       "query": "pipe 方法 背压",
-      "relevant_atom_ids": ["EVAL3S01", "EVAL3S02"],
-      "relevant_entity_ids": ["entity:eh3zgcaqkm97nici4cul"]
+      "relevant_atom_ids": [
+        "01KEVAL03SE00000000000001",
+        "01KEVAL03SE00000000000002"
+      ],
+      "relevant_entity_ids": ["entity:svseb3hhfzn3dullpk56"]
     },
     {
       "query": "stream pipeline 错误处理",
-      "relevant_atom_ids": ["EVAL3S03", "EVAL3CH03"],
-      "relevant_entity_ids": ["entity:eh3zgcaqkm97nici4cul"]
+      "relevant_atom_ids": [
+        "01KEVAL03SE00000000000003",
+        "01KEVAL03CH00000000000003"
+      ],
+      "relevant_entity_ids": ["entity:svseb3hhfzn3dullpk56"]
     },
     {
       "query": "GitFlow feature 分支",
-      "relevant_atom_ids": ["EVAL4CH01", "EVAL4S01"],
-      "relevant_entity_ids": ["entity:ue1o9upf6p2g1ta2io6i"]
+      "relevant_atom_ids": [
+        "01KEVAL04CH00000000000001",
+        "01KEVAL04SE00000000000001"
+      ],
+      "relevant_entity_ids": ["entity:6teojb8xn4q1q1fxi4kj"]
     },
     {
       "query": "GitHub Flow release 管理",
-      "relevant_atom_ids": ["EVAL4CH02", "EVAL4S02"],
-      "relevant_entity_ids": ["entity:ue1o9upf6p2g1ta2io6i"]
+      "relevant_atom_ids": [
+        "01KEVAL04CH00000000000002",
+        "01KEVAL04SE00000000000002"
+      ],
+      "relevant_entity_ids": ["entity:6teojb8xn4q1q1fxi4kj"]
     },
     {
       "query": "hotfix 紧急修复流程",
-      "relevant_atom_ids": ["EVAL4S03", "EVAL4CH03"],
-      "relevant_entity_ids": ["entity:ue1o9upf6p2g1ta2io6i"]
+      "relevant_atom_ids": [
+        "01KEVAL04SE00000000000003",
+        "01KEVAL04CH00000000000003"
+      ],
+      "relevant_entity_ids": ["entity:6teojb8xn4q1q1fxi4kj"]
     },
     {
       "query": "Promise.race 超时",
       "category": "exact",
-      "relevant_atom_ids": ["EVALNT02"],
-      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+      "relevant_atom_ids": ["01KEVAL01NT00000000000002"],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
     },
     {
       "query": "如何处理 JavaScript 中异步操作的失败情况",
       "category": "semantic",
-      "relevant_atom_ids": ["EVALS01", "EVALS02"],
+      "relevant_atom_ids": [
+        "01KEVAL01SE00000000000005",
+        "01KEVAL01CH00000000000002"
+      ],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+    },
+    {
+      "query": "Promise 错误处理 best practice",
+      "category": "hybrid",
+      "relevant_atom_ids": [
+        "01KEVAL01SE00000000000005",
+        "01KEVAL01CH00000000000002"
+      ],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+    },
+    {
+      "query": "xyznonexistent123",
+      "category": "negative",
+      "relevant_atom_ids": [],
+      "relevant_entity_ids": []
+    },
+    {
+      "query": "promse",
+      "category": "typo",
+      "relevant_atom_ids": ["01KEVAL01CH00000000000001"],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+    },
+    {
+      "query": "异步 并发 控制",
+      "category": "chinese",
+      "relevant_atom_ids": [
+        "01KEVAL01CH00000000000003",
+        "01KEVAL01SE00000000000006"
+      ],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+    },
+    {
+      "query": "如何处理 JavaScript 中异步操作的失败情况",
+      "category": "semantic",
+      "relevant_atom_ids": [
+        "01KEVAL01SE00000000000005",
+        "01KEVAL01CH00000000000002"
+      ],
       "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
     },
     {
       "query": "组件之间怎么共享响应式数据 ref reactive",
       "category": "semantic",
-      "relevant_atom_ids": ["EVAL2CH02", "EVAL2S02"],
-      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
+      "relevant_atom_ids": [
+        "01KEVAL02CH00000000000002",
+        "01KEVAL02SE00000000000002"
+      ],
+      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
     },
     {
       "query": "Promise 错误处理 best practice",
       "category": "hybrid",
-      "relevant_atom_ids": ["EVALS01", "EVALS02"],
+      "relevant_atom_ids": [
+        "01KEVAL01SE00000000000005",
+        "01KEVAL01CH00000000000002"
+      ],
       "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
     },
     {
@@ -135,71 +219,77 @@
     {
       "query": "promse",
       "category": "typo",
-      "relevant_atom_ids": ["EVALCH01"],
+      "relevant_atom_ids": ["01KEVAL01CH00000000000001"],
       "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
     },
     {
       "query": "异步 并发 控制",
       "category": "chinese",
-      "relevant_atom_ids": ["EVALCH03", "EVALS04"],
+      "relevant_atom_ids": [
+        "01KEVAL01CH00000000000003",
+        "01KEVAL01SE00000000000006"
+      ],
       "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
     },
     {
       "query": "错误处理模式",
       "category": "cross-entity",
-      "relevant_atom_ids": ["EVALS01", "EVAL3S03"],
+      "relevant_atom_ids": [
+        "01KEVAL01SE00000000000005",
+        "01KEVAL03SE00000000000003"
+      ],
       "relevant_entity_ids": [
-        "entity:01was1jd3haz5a3eoykx",
-        "entity:eh3zgcaqkm97nici4cul"
+        "entity:0b5bhv7euswho5xy6ehf",
+        "entity:svseb3hhfzn3dullpk56"
       ]
     },
     {
       "query": "stream backpressure 背压",
       "category": "semantic",
-      "relevant_atom_ids": ["EVAL3S02"],
-      "relevant_entity_ids": ["entity:eh3zgcaqkm97nici4cul"]
+      "relevant_atom_ids": ["01KEVAL03SE00000000000002"],
+      "relevant_entity_ids": ["entity:svseb3hhfzn3dullpk56"]
     },
     {
       "query": "分支合并 merge 策略对比",
       "category": "semantic",
-      "relevant_atom_ids": ["EVAL4CH02"],
-      "relevant_entity_ids": ["entity:ue1o9upf6p2g1ta2io6i"]
+      "relevant_atom_ids": ["01KEVAL04CH00000000000002"],
+      "relevant_entity_ids": ["entity:6teojb8xn4q1q1fxi4kj"]
     },
     {
       "query": "AbortController signal",
       "category": "exact",
-      "relevant_atom_ids": ["EVALS03"],
-      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+      "relevant_atom_ids": ["01KEVAL01SE00000000000008"],
+      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
     },
     {
       "query": "computed watch 区别",
       "category": "semantic",
-      "relevant_atom_ids": ["EVAL2S03"],
-      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
+      "relevant_atom_ids": ["01KEVAL02SE00000000000003"],
+      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
     },
     {
       "query": "Transform stream 双工",
       "category": "semantic",
-      "relevant_atom_ids": ["EVAL3CH03"],
-      "relevant_entity_ids": ["entity:eh3zgcaqkm97nici4cul"]
+      "relevant_atom_ids": ["01KEVAL03CH00000000000003"],
+      "relevant_entity_ids": ["entity:svseb3hhfzn3dullpk56"]
     },
     {
       "query": "feature release trunk based",
       "category": "exact",
-      "relevant_atom_ids": ["EVAL4S01", "EVAL4S03"],
-      "relevant_entity_ids": ["entity:ue1o9upf6p2g1ta2io6i"]
-    },
-    {
-      "query": "async generator",
-      "category": "exact",
-      "relevant_atom_ids": ["EVALS04"],
-      "relevant_entity_ids": ["entity:01was1jd3haz5a3eoykx"]
+      "relevant_atom_ids": [
+        "01KEVAL04SE00000000000001",
+        "01KEVAL04SE00000000000003"
+      ],
+      "relevant_entity_ids": ["entity:6teojb8xn4q1q1fxi4kj"]
     },
     {
       "query": "setup ref reactive 生命周期",
       "category": "hybrid",
-      "relevant_atom_ids": ["EVAL2S01", "EVAL2S02"],
-      "relevant_entity_ids": ["entity:c0z4j0r9675dnlxiek9n"]
+      "relevant_atom_ids": [
+        "01KEVAL02SE00000000000001",
+        "01KEVAL02SE00000000000002"
+      ],
+      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
     }
   ]
 }

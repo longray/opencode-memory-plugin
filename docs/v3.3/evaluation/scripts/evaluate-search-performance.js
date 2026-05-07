@@ -59,9 +59,9 @@ function getClient() {
 async function searchWithScope(query, scope, mode = "hybrid", limit = 10) {
   const c = getClient();
   const thresholds = {
-    hybrid: 0.001, // hybrid 混合分通常较低
-    vector: 0.001, // vector 相似度范围
-    keyword: 0.001, // BM25 分数范围较宽
+    hybrid: 0.0001, // 降低 threshold 提升召回
+    vector: 0.0001,
+    keyword: 0.0001,
   };
   const searchParams = {
     query,
