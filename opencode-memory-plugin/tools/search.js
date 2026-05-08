@@ -38,6 +38,16 @@ function getDefaultThreshold(mode, scope) {
 function rewriteQuery(query, mode) {
   if (mode === 'vector') return query;
 
+  const chineseText = query.replace(/[^\u4e00-\u9fa5]/g, '');
+  if (chineseText.length > 0) {
+    const segmentedChinese = chineseText.split('').join(' ');
+    const englishParts = query.match(/[a-zA-Z0-9._]+/g) || [];
+    if (englishParts.length > 0) {
+      return [...englishParts, segmentedChinese].join(' ');
+    }
+    return segmentedChinese;
+  }
+
   if (mode === 'keyword') {
     return query;
   }
