@@ -2,23 +2,23 @@
   "seed_entities": {
     "entity1": {
       "name": "JavaScript 异步编程完全指南",
-      "entry_id": "entity:0b5bhv7euswho5xy6ehf",
-      "surreal_id": "entity:0b5bhv7euswho5xy6ehf"
+      "entry_id": "entity:4zrx5tja5gm3obtx845z",
+      "surreal_id": "entity:4zrx5tja5gm3obtx845z"
     },
     "entity2": {
       "name": "Vue 3 Composition API 指南",
-      "entry_id": "entity:gu6mdyzjjxdpp5n61y6f",
-      "surreal_id": "entity:gu6mdyzjjxdpp5n61y6f"
+      "entry_id": "entity:as6p0j6m1p4vpw521u7l",
+      "surreal_id": "entity:as6p0j6m1p4vpw521u7l"
     },
     "entity3": {
       "name": "Node.js 流式处理架构指南",
-      "entry_id": "entity:svseb3hhfzn3dullpk56",
-      "surreal_id": "entity:svseb3hhfzn3dullpk56"
+      "entry_id": "entity:a8wtl3gus0s01n6a4v66",
+      "surreal_id": "entity:a8wtl3gus0s01n6a4v66"
     },
     "entity4": {
       "name": "Git 分支管理策略对比指南",
-      "entry_id": "entity:6teojb8xn4q1q1fxi4kj",
-      "surreal_id": "entity:6teojb8xn4q1q1fxi4kj"
+      "entry_id": "entity:h8wsc76dijy3kojtwvqd",
+      "surreal_id": "entity:h8wsc76dijy3kojtwvqd"
     }
   },
   "queries": [
@@ -28,7 +28,7 @@
         "01KEVAL01SE00000000000005",
         "01KEVAL01CH00000000000002"
       ],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "async await",
@@ -36,7 +36,7 @@
         "01KEVAL01CH00000000000002",
         "01KEVAL01SE00000000000004"
       ],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "Promise.all 并发",
@@ -44,27 +44,27 @@
         "01KEVAL01CH00000000000003",
         "01KEVAL01SE00000000000006"
       ],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "Promise.race",
       "relevant_atom_ids": ["01KEVAL01NT00000000000002"],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "AbortController",
       "relevant_atom_ids": ["01KEVAL01SE00000000000008"],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "Promise 状态",
       "relevant_atom_ids": ["01KEVAL01CH00000000000001"],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "微任务 setTimeout",
       "relevant_atom_ids": ["01KEVAL01SE00000000000004"],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "Composition API setup 函数用法",
@@ -72,7 +72,7 @@
         "01KEVAL02CH00000000000001",
         "01KEVAL02SE00000000000001"
       ],
-      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
+      "relevant_entity_ids": ["entity:nbyw7yjiw7kmsdoi2ll4"]
     },
     {
       "query": "ref reactive 区别",
@@ -80,7 +80,7 @@
         "01KEVAL02CH00000000000002",
         "01KEVAL02SE00000000000002"
       ],
-      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
+      "relevant_entity_ids": ["entity:nbyw7yjiw7kmsdoi2ll4"]
     },
     {
       "query": "Composition API computed watchEffect",
@@ -88,7 +88,7 @@
         "01KEVAL02CH00000000000003",
         "01KEVAL02SE00000000000003"
       ],
-      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
+      "relevant_entity_ids": ["entity:nbyw7yjiw7kmsdoi2ll4"]
     },
     {
       "query": "Readable Writable 流 pipe",
@@ -96,7 +96,7 @@
         "01KEVAL03CH00000000000001",
         "01KEVAL03CH00000000000002"
       ],
-      "relevant_entity_ids": ["entity:svseb3hhfzn3dullpk56"]
+      "relevant_entity_ids": ["entity:bhc3m777x7w9i40sfjd3"]
     },
     {
       "query": "pipe 方法 背压",
@@ -104,7 +104,7 @@
         "01KEVAL03SE00000000000001",
         "01KEVAL03SE00000000000002"
       ],
-      "relevant_entity_ids": ["entity:svseb3hhfzn3dullpk56"]
+      "relevant_entity_ids": ["entity:bhc3m777x7w9i40sfjd3"]
     },
     {
       "query": "stream pipeline 错误处理",
@@ -112,7 +112,7 @@
         "01KEVAL03SE00000000000003",
         "01KEVAL03CH00000000000003"
       ],
-      "relevant_entity_ids": ["entity:svseb3hhfzn3dullpk56"]
+      "relevant_entity_ids": ["entity:bhc3m777x7w9i40sfjd3"]
     },
     {
       "query": "GitFlow feature 分支",
@@ -120,7 +120,7 @@
         "01KEVAL04CH00000000000001",
         "01KEVAL04SE00000000000001"
       ],
-      "relevant_entity_ids": ["entity:6teojb8xn4q1q1fxi4kj"]
+      "relevant_entity_ids": ["entity:it1snu480rr4yv7txtck"]
     },
     {
       "query": "GitHub Flow release 管理",
@@ -128,7 +128,7 @@
         "01KEVAL04CH00000000000002",
         "01KEVAL04SE00000000000002"
       ],
-      "relevant_entity_ids": ["entity:6teojb8xn4q1q1fxi4kj"]
+      "relevant_entity_ids": ["entity:it1snu480rr4yv7txtck"]
     },
     {
       "query": "hotfix 紧急修复流程",
@@ -136,13 +136,13 @@
         "01KEVAL04SE00000000000003",
         "01KEVAL04CH00000000000003"
       ],
-      "relevant_entity_ids": ["entity:6teojb8xn4q1q1fxi4kj"]
+      "relevant_entity_ids": ["entity:it1snu480rr4yv7txtck"]
     },
     {
       "query": "Promise.race 超时",
       "category": "exact",
       "relevant_atom_ids": ["01KEVAL01NT00000000000002"],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "如何处理 JavaScript 中异步操作的失败情况",
@@ -151,7 +151,7 @@
         "01KEVAL01SE00000000000005",
         "01KEVAL01CH00000000000002"
       ],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "Promise 错误处理 best practice",
@@ -160,7 +160,7 @@
         "01KEVAL01SE00000000000005",
         "01KEVAL01CH00000000000002"
       ],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "xyznonexistent123",
@@ -172,7 +172,7 @@
       "query": "promse",
       "category": "typo",
       "relevant_atom_ids": ["01KEVAL01CH00000000000001"],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "异步 并发 控制",
@@ -181,7 +181,7 @@
         "01KEVAL01CH00000000000003",
         "01KEVAL01SE00000000000006"
       ],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "如何处理 JavaScript 中异步操作的失败情况",
@@ -199,7 +199,7 @@
         "01KEVAL02CH00000000000002",
         "01KEVAL02SE00000000000002"
       ],
-      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
+      "relevant_entity_ids": ["entity:nbyw7yjiw7kmsdoi2ll4"]
     },
     {
       "query": "Promise 错误处理 best practice",
@@ -239,39 +239,39 @@
         "01KEVAL03SE00000000000003"
       ],
       "relevant_entity_ids": [
-        "entity:0b5bhv7euswho5xy6ehf",
-        "entity:svseb3hhfzn3dullpk56"
+        "entity:8poq663ffo1lxtw2vhv0",
+        "entity:bhc3m777x7w9i40sfjd3"
       ]
     },
     {
       "query": "stream backpressure 背压",
       "category": "semantic",
       "relevant_atom_ids": ["01KEVAL03SE00000000000002"],
-      "relevant_entity_ids": ["entity:svseb3hhfzn3dullpk56"]
+      "relevant_entity_ids": ["entity:bhc3m777x7w9i40sfjd3"]
     },
     {
       "query": "分支合并 merge 策略对比",
       "category": "semantic",
       "relevant_atom_ids": ["01KEVAL04CH00000000000002"],
-      "relevant_entity_ids": ["entity:6teojb8xn4q1q1fxi4kj"]
+      "relevant_entity_ids": ["entity:it1snu480rr4yv7txtck"]
     },
     {
       "query": "AbortController signal",
       "category": "exact",
       "relevant_atom_ids": ["01KEVAL01SE00000000000008"],
-      "relevant_entity_ids": ["entity:0b5bhv7euswho5xy6ehf"]
+      "relevant_entity_ids": ["entity:8poq663ffo1lxtw2vhv0"]
     },
     {
       "query": "computed watch 区别",
       "category": "semantic",
       "relevant_atom_ids": ["01KEVAL02SE00000000000003"],
-      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
+      "relevant_entity_ids": ["entity:nbyw7yjiw7kmsdoi2ll4"]
     },
     {
       "query": "Transform stream 双工",
       "category": "semantic",
       "relevant_atom_ids": ["01KEVAL03CH00000000000003"],
-      "relevant_entity_ids": ["entity:svseb3hhfzn3dullpk56"]
+      "relevant_entity_ids": ["entity:bhc3m777x7w9i40sfjd3"]
     },
     {
       "query": "feature release trunk based",
@@ -280,7 +280,7 @@
         "01KEVAL04SE00000000000001",
         "01KEVAL04SE00000000000003"
       ],
-      "relevant_entity_ids": ["entity:6teojb8xn4q1q1fxi4kj"]
+      "relevant_entity_ids": ["entity:it1snu480rr4yv7txtck"]
     },
     {
       "query": "setup ref reactive 生命周期",
@@ -289,7 +289,7 @@
         "01KEVAL02SE00000000000001",
         "01KEVAL02SE00000000000002"
       ],
-      "relevant_entity_ids": ["entity:gu6mdyzjjxdpp5n61y6f"]
+      "relevant_entity_ids": ["entity:nbyw7yjiw7kmsdoi2ll4"]
     }
   ]
 }

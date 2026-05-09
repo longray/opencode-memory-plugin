@@ -179,9 +179,7 @@ describe('tools/core.js — atom tools', () => {
     });
 
     it('should call updateEntity with correct params for atoms_batch', async () => {
-      const batch = [
-        { action: 'add', local_id: '01NEW', type: 'section', name: 'New Section' },
-      ];
+      const batch = [{ action: 'add', local_id: '01NEW', type: 'section', name: 'New Section' }];
       mockUpdateEntity.mockResolvedValue({
         success: true,
         entity_id: '01TEST456',
@@ -304,7 +302,7 @@ describe('tools/core.js — atom tools', () => {
         ],
       });
 
-      const result = await entity_atoms.execute({
+      await entity_atoms.execute({
         entry_id: '01EATOMS',
         include_content: true,
       });
@@ -323,9 +321,7 @@ describe('tools/core.js — atom tools', () => {
           name: 'Chapter 1',
           type: 'chapter',
           content: 'Content here',
-          children: [
-            { local_id: '01SEC001', name: 'Section 1.1', type: 'section', children: [] },
-          ],
+          children: [{ local_id: '01SEC001', name: 'Section 1.1', type: 'section', children: [] }],
         },
       ];
       mockGetEntityAtoms.mockResolvedValue({
@@ -409,13 +405,34 @@ describe('tools/core.js — atom tools', () => {
         budget_utilization: 40,
         strategy: 'relevance',
         selected_atoms: [
-          { local_id: '01A', name: 'Atom A', type: 'chapter', heading_level: 1, relevance_score: 0.9, content: 'A content' },
-          { local_id: '01B', name: 'Atom B', type: 'section', heading_level: 2, relevance_score: 0.7, content: 'B content' },
-          { local_id: '01C', name: 'Atom C', type: 'note', heading_level: 3, relevance_score: 0.5, content: 'C content' },
+          {
+            local_id: '01A',
+            name: 'Atom A',
+            type: 'chapter',
+            heading_level: 1,
+            relevance_score: 0.9,
+            content: 'A content',
+          },
+          {
+            local_id: '01B',
+            name: 'Atom B',
+            type: 'section',
+            heading_level: 2,
+            relevance_score: 0.7,
+            content: 'B content',
+          },
+          {
+            local_id: '01C',
+            name: 'Atom C',
+            type: 'note',
+            heading_level: 3,
+            relevance_score: 0.5,
+            content: 'C content',
+          },
         ],
       });
 
-      const result = await load_context_budget.execute({
+      await load_context_budget.execute({
         entry_id: '01BUDGET',
         query: 'reactive state management',
         max_tokens: 2000,
@@ -441,8 +458,22 @@ describe('tools/core.js — atom tools', () => {
         budget_utilization: 50,
         strategy: 'hierarchy',
         selected_atoms: [
-          { local_id: '01A', name: 'Chapter One', type: 'chapter', heading_level: 1, relevance_score: 0.95, content: 'Chapter content here' },
-          { local_id: '01B', name: 'Section 1.1', type: 'section', heading_level: 2, relevance_score: 0.8, content: 'Section content here' },
+          {
+            local_id: '01A',
+            name: 'Chapter One',
+            type: 'chapter',
+            heading_level: 1,
+            relevance_score: 0.95,
+            content: 'Chapter content here',
+          },
+          {
+            local_id: '01B',
+            name: 'Section 1.1',
+            type: 'section',
+            heading_level: 2,
+            relevance_score: 0.8,
+            content: 'Section content here',
+          },
         ],
       });
 
@@ -469,7 +500,14 @@ describe('tools/core.js — atom tools', () => {
         budget_utilization: 0,
         strategy: 'relevance',
         selected_atoms: [
-          { local_id: '01NOCT', name: 'No Content Atom', type: 'chapter', heading_level: 1, relevance_score: 0.5, content: '' },
+          {
+            local_id: '01NOCT',
+            name: 'No Content Atom',
+            type: 'chapter',
+            heading_level: 1,
+            relevance_score: 0.5,
+            content: '',
+          },
         ],
       });
 
@@ -530,7 +568,7 @@ describe('tools/core.js — atom tools', () => {
         markdown: '# Chapter 1\n\n## Section 1.1',
       });
 
-      const result = await load_context_level.execute({
+      await load_context_level.execute({
         entry_id: '01LVL',
         max_level: 2,
         include_breadcrumbs: true,
@@ -550,7 +588,8 @@ describe('tools/core.js — atom tools', () => {
         max_level: 1,
         filtered_count: 2,
         total_atoms: 8,
-        markdown: '# Vue3 Composition API\nVue3 modern approach.\n\n# Pinia State Management\nPinia overview.',
+        markdown:
+          '# Vue3 Composition API\nVue3 modern approach.\n\n# Pinia State Management\nPinia overview.',
       });
 
       const result = await load_context_level.execute({

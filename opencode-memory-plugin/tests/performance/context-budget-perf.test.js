@@ -48,7 +48,7 @@ function generateLargeAtomTree(count) {
 describe('Large Atom Tree Performance', () => {
   let tempDir;
   let originalMemoryDir;
-  let writeMemory, loadContextByBudget, estimateTokens;
+  let writeMemory, loadContextByBudget;
 
   beforeAll(async () => {
     tempDir = setupTestTempDir('context-budget-perf-');
@@ -60,7 +60,6 @@ describe('Large Atom Tree Performance', () => {
       const core = await import('../lib/memory-core.js');
       writeMemory = core.writeMemory;
       loadContextByBudget = core.loadContextByBudget;
-      estimateTokens = core.estimateTokens;
     });
   });
 

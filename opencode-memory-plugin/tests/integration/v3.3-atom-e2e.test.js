@@ -5,8 +5,6 @@
 
 import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
 import fs from 'fs';
-import path from 'path';
-import os from 'os';
 import { setupTestTempDir } from '../helpers/mock-constants.js';
 
 describe('v3.3 Atom Architecture E2E', () => {

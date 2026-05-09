@@ -47,7 +47,7 @@ let client = null;
 function getClient() {
   if (!client) {
     const config = getConfig();
-    // Override tenant_id to match backend test data
+    // Use default tenant which has Atom data
     client = getWrapperClient({
       ...config,
       backend: { ...config.backend, tenant_id: "default" },

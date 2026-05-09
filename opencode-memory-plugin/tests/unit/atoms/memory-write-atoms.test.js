@@ -5,7 +5,6 @@
 
 import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
 import fs from 'fs';
-import path from 'path';
 import { setupTestTempDir } from '../../helpers/mock-constants.js';
 
 describe('writeMemory with atoms', () => {
