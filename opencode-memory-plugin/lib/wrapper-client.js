@@ -962,6 +962,93 @@ export class WrapperClient {
   }
 
   /**
+   * 批量创建 Atoms
+   * @param {Array<Object>} atoms - Atom 数组
+   * @returns {Promise<{success: Array, failed: Array, total: number, success_count: number, failed_count: number}>}
+   */
+  async batchCreateAtoms(atoms) {
+    logInfo('ATOM', `batchCreateAtoms called with ${atoms.length} items`);
+
+    const requestBody = {
+      atoms: atoms.map(a => ({
+        type: a.type,
+        content: a.content,
+        tenant_id: a.tenant_id || this.tenantId,
+        name: a.name,
+        signature: a.signature,
+        params: a.params,
+        return_type: a.return_type,
+        is_exported: a.is_exported,
+        is_async: a.is_async,
+        complexity: a.complexity,
+        max_nesting_depth: a.max_nesting_depth,
+        docstring: typeof a.docstring === 'string' ? { text: a.docstring } : a.docstring,
+        start_line: a.start_line,
+        end_line: a.end_line,
+        status: a.status,
+        metadata: a.metadata,
+        project: a.project,
+      })),
+    };
+
+    const result = await withRetry(
+      () => this.http.post('/api/v1/atoms/batch', requestBody),
+      this.maxRetries
+    );
+
+    logInfo('ATOM', 'batchCreateAtoms success', {
+      success_count: result.success_count ?? result.success?.length ?? 0,
+      failed_count: result.failed_count ?? result.failed?.length ?? 0,
+    });
+    return result;
+  }
+
+  /**
+   * 批量创建 Entities
+   * @param {Array<Object>} entities - Entity 数组
+   * @returns {Promise<{success: Array, failed: Array, total: number, success_count: number, failed_count: number}>}
+   */
+  async batchCreateEntities(entities) {
+    logInfo('ENTITY', `batchCreateEntities called with ${entities.length} items`);
+
+    const requestBody = {
+      entities: entities.map(e => ({
+        type: e.type,
+        abstract: e.abstract,
+        tenant_id: e.tenant_id || this.tenantId,
+        overview: typeof e.overview === 'string' ? { text: e.overview } : e.overview,
+        atoms: e.atoms,
+        tags: e.tags,
+        project: e.project,
+        created_by: e.created_by,
+        title: e.title,
+        aliases: e.aliases,
+        priority: e.priority,
+        status: e.status,
+        scene: e.scene,
+        estimated_hours: e.estimated_hours,
+        actual_hours: e.actual_hours,
+        file_path: e.file_path,
+        language: e.language,
+        quality_score:
+          typeof e.quality_score === 'number' ? { score: e.quality_score } : e.quality_score,
+        complexity_metrics: e.complexity_metrics,
+      })),
+    };
+
+    const result = await withRetry(
+      () => this.http.post('/api/v1/entities/batch', requestBody),
+      this.maxRetries
+    );
+
+    logInfo('ENTITY', 'batchCreateEntities success', {
+      success_count: result.success_count ?? result.success?.length ?? 0,
+      failed_count: result.failed_count ?? result.failed?.length ?? 0,
+    });
+    return result;
+  }
+
+  /**
    * 查询 References
    * @param {Object} filters - 过滤条件
    * @param {string} [filters.from_id] - 源 ID

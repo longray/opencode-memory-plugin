@@ -82,6 +82,13 @@ function buildQueue() {
   queue._clientTenant = 'test-tenant';
   queue._client = {
     createAtom: jest.fn().mockResolvedValue({ id: 'atom:foo', type: 'function', name: 'foo' }),
+    batchCreateAtoms: jest.fn().mockResolvedValue({
+      success: [{ id: 'atom:foo', type: 'function', name: 'foo' }],
+      failed: [],
+      total: 1,
+      success_count: 1,
+      failed_count: 0,
+    }),
     createEntity: jest.fn().mockResolvedValue({ id: 'entity:test', type: 'code' }),
     createReferences: jest.fn().mockResolvedValue({ references: [{ id: 'ref:1', type: 'calls' }] }),
     deleteAtom: jest.fn().mockResolvedValue({ success: true }),
@@ -138,7 +145,7 @@ describe('Auto-Sync Pipeline: AnalysisQueue', () => {
       await drainTimersAndPromises();
 
       expect(analyzeSpy).toHaveBeenCalledWith(fileA, MOCK_CONTENT);
-      expect(queue._client.createAtom).toHaveBeenCalled();
+      expect(queue._client.batchCreateAtoms).toHaveBeenCalled();
       expect(queue._client.createEntity).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'code',
@@ -246,7 +253,7 @@ describe('Auto-Sync Pipeline: AnalysisQueue', () => {
       await drainTimersAndPromises();
 
       expect(analyzeSpy).toHaveBeenCalledTimes(1);
-      expect(queue._client.createAtom).toHaveBeenCalled();
+      expect(queue._client.batchCreateAtoms).toHaveBeenCalled();
       expect(queue._client.createEntity).toHaveBeenCalled();
     });
   });
@@ -268,7 +275,13 @@ describe('Auto-Sync Pipeline: AnalysisQueue', () => {
     });
 
     it('ER-2: all createAtom fail → entity not created, no crash', async () => {
-      queue._client.createAtom.mockRejectedValue(new Error('network error'));
+      queue._client.batchCreateAtoms.mockResolvedValue({
+        success: [],
+        failed: [{ index: 0, error: 'network error' }],
+        total: 1,
+        success_count: 0,
+        failed_count: 1,
+      });
 
       queue.add(fileA, testDir);
       await drainTimersAndPromises();
@@ -277,12 +290,18 @@ describe('Auto-Sync Pipeline: AnalysisQueue', () => {
     });
 
     it('ER-3: createAtom intermittent failure → entity not created, no crash', async () => {
-      queue._client.createAtom.mockRejectedValueOnce(new Error('timeout'));
+      queue._client.batchCreateAtoms.mockResolvedValue({
+        success: [],
+        failed: [{ index: 0, error: 'timeout' }],
+        total: 1,
+        success_count: 0,
+        failed_count: 1,
+      });
 
       queue.add(fileA, testDir);
       await drainTimersAndPromises();
 
-      expect(queue._client.createAtom).toHaveBeenCalledTimes(1);
+      expect(queue._client.batchCreateAtoms).toHaveBeenCalledTimes(1);
       expect(queue._client.createEntity).not.toHaveBeenCalled();
     });
   });

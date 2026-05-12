@@ -519,8 +519,8 @@ export class AnalysisQueue {
   // ===== BL-CA-41: Atom/Entity/Reference API Implementation (standalone) =====
 
   async _createAtomsEntityReferences(relativePath, analysisResult, projectId, language, _content) {
-    const functionPromises = (analysisResult.functions || []).map(func =>
-      this.client.createAtom({
+    const atomPayloads = [
+      ...(analysisResult.functions || []).map(func => ({
         type: 'function',
         name: func.name,
         content:
@@ -537,11 +537,8 @@ export class AnalysisQueue {
         end_line: func.end_line,
         project: projectId,
         tenant_id: this.client.tenantId,
-      })
-    );
-
-    const classPromises = (analysisResult.classes || []).map(cls =>
-      this.client.createAtom({
+      })),
+      ...(analysisResult.classes || []).map(cls => ({
         type: 'class',
         name: cls.name,
         content: `class ${cls.name}`,
@@ -549,35 +546,41 @@ export class AnalysisQueue {
         end_line: cls.end_line,
         project: projectId,
         tenant_id: this.client.tenantId,
-      })
-    );
-
-    const importPromises = (analysisResult.imports || []).map(imp =>
-      this.client.createAtom({
+      })),
+      ...(analysisResult.imports || []).map(imp => ({
         type: 'import',
         name: imp.source,
         content: `import ${imp.source}`,
         start_line: imp.line,
         project: projectId,
         tenant_id: this.client.tenantId,
-      })
-    );
+      })),
+    ];
 
-    const allPromises = [...functionPromises, ...classPromises, ...importPromises];
-    const allResults = await Promise.allSettled(allPromises);
-
-    const createdAtoms = [];
-    const atomIds = [];
-    let failedCount = 0;
-
-    for (const result of allResults) {
-      if (result.status === 'fulfilled' && result.value?.id) {
-        createdAtoms.push(result.value);
-        atomIds.push(result.value.id);
-      } else {
-        failedCount++;
+    let createdAtoms = [];
+    if (atomPayloads.length > 0) {
+      try {
+        const result = await this.client.batchCreateAtoms(atomPayloads);
+        createdAtoms = result?.success || [];
+      } catch (error) {
+        if (error?.statusCode === 404) {
+          logWarn(
+            'CodeAnalysis',
+            `[CodeAnalysis] batchCreateAtoms not available, falling back to per-item creation`
+          );
+          const allPromises = atomPayloads.map(p => this.client.createAtom(p));
+          const allResults = await Promise.allSettled(allPromises);
+          for (const r of allResults) {
+            if (r.status === 'fulfilled' && r.value?.id) createdAtoms.push(r.value);
+          }
+        } else {
+          throw error;
+        }
       }
     }
+
+    const atomIds = createdAtoms.map(a => a.id);
+    const failedCount = atomPayloads.length - createdAtoms.length;
 
     if (failedCount > 0) {
       logWarn(
@@ -1166,9 +1169,10 @@ export class AnalysisQueue {
       '[CodeAnalysis] uploadProject: ' + files.length + ' files in ' + projectRoot
     );
 
-    const globalNameToAtomId = new Map();
-    const relPathToEntityId = new Map();
-    const allResults = [];
+    const BATCH_SIZE = 100;
+    const allAtomPayloads = [];
+    const allEntityPayloads = [];
+    const fileAnalysisResults = [];
 
     for (const filePath of files) {
       try {
@@ -1184,10 +1188,10 @@ export class AnalysisQueue {
 
         const result = await codeAnalyzer.analyze(filePath, source);
         const relPath = path.relative(projectRoot, filePath).replace(/\\/g, '/');
-        const atomIds = [];
 
-        for (const func of result.functions || []) {
-          const atom = await this.client.createAtom({
+        const atomStartIndex = allAtomPayloads.length;
+        const atomsForFile = [
+          ...(result.functions || []).map(func => ({
             type: 'function',
             name: func.name,
             content: `${func.name}(${(func.params || []).map(p => p.name || p).join(', ')})`,
@@ -1199,13 +1203,8 @@ export class AnalysisQueue {
             end_line: func.end_line,
             project: projectId,
             tenant_id: tenantId,
-          });
-          atomIds.push(atom.id);
-          globalNameToAtomId.set(func.name, atom.id);
-        }
-
-        for (const cls of result.classes || []) {
-          const atom = await this.client.createAtom({
+          })),
+          ...(result.classes || []).map(cls => ({
             type: 'class',
             name: cls.name,
             content: 'class ' + cls.name,
@@ -1213,13 +1212,15 @@ export class AnalysisQueue {
             end_line: cls.end_line,
             project: projectId,
             tenant_id: tenantId,
-          });
-          atomIds.push(atom.id);
-          globalNameToAtomId.set(cls.name, atom.id);
+          })),
+        ];
+
+        for (const atom of atomsForFile) {
+          allAtomPayloads.push(atom);
         }
 
-        if (atomIds.length > 0) {
-          const entity = await this.client.createEntity({
+        if (atomsForFile.length > 0) {
+          const entityPayload = {
             type: 'code',
             abstract:
               relPath +
@@ -1229,16 +1230,21 @@ export class AnalysisQueue {
               (result.classes || []).length +
               ' cls',
             file_path: relPath,
-            atoms: atomIds,
+            atoms: [],
             language: result.language,
             project: projectId,
             tenant_id: tenantId,
+          };
+          allEntityPayloads.push({
+            ...entityPayload,
+            _relPath: relPath,
+            _atomStartIndex: atomStartIndex,
+            _atomCount: atomsForFile.length,
           });
-          relPathToEntityId.set(relPath, entity.id);
         }
 
-        allResults.push({ relPath, result });
-        logInfo('CodeAnalysis', '  OK: ' + relPath + ' -> ' + atomIds.length + ' atoms');
+        fileAnalysisResults.push({ relPath, result });
+        logInfo('CodeAnalysis', '  OK: ' + relPath + ' -> ' + atomsForFile.length + ' atoms');
       } catch (e) {
         logError(
           'CodeAnalysis',
@@ -1248,10 +1254,71 @@ export class AnalysisQueue {
       }
     }
 
+    const globalNameToAtomId = new Map();
+    const relPathToEntityId = new Map();
+
+    if (allAtomPayloads.length > 0) {
+      logInfo('CodeAnalysis', `[CodeAnalysis] Batch creating ${allAtomPayloads.length} atoms...`);
+      const allCreatedAtoms = [];
+
+      for (let i = 0; i < allAtomPayloads.length; i += BATCH_SIZE) {
+        const chunk = allAtomPayloads.slice(i, i + BATCH_SIZE);
+        try {
+          const result = await this.client.batchCreateAtoms(chunk);
+          const successAtoms = result?.success || [];
+          for (const atom of successAtoms) {
+            allCreatedAtoms.push(atom);
+            globalNameToAtomId.set(atom.name, atom.id);
+          }
+        } catch (error) {
+          if (error?.statusCode === 404) {
+            logWarn(
+              'CodeAnalysis',
+              `[CodeAnalysis] batchCreateAtoms not available, falling back to per-item creation`
+            );
+            for (const payload of chunk) {
+              try {
+                const atom = await this.client.createAtom(payload);
+                allCreatedAtoms.push(atom);
+                globalNameToAtomId.set(atom.name, atom.id);
+              } catch (_e) {
+                logError('CodeAnalysis', `  FAIL atom ${payload.name}: ${_e.message}`);
+              }
+            }
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      logInfo(
+        'CodeAnalysis',
+        `[CodeAnalysis] Created ${allCreatedAtoms.length}/${allAtomPayloads.length} atoms`
+      );
+
+      for (const entityInfo of allEntityPayloads) {
+        const atomIds = allCreatedAtoms
+          .slice(entityInfo._atomStartIndex, entityInfo._atomStartIndex + entityInfo._atomCount)
+          .map(a => a.id);
+
+        if (atomIds.length > 0) {
+          try {
+            const entity = await this.client.createEntity({
+              ...entityInfo,
+              atoms: atomIds,
+            });
+            relPathToEntityId.set(entityInfo._relPath, entity.id);
+          } catch (e) {
+            logError('CodeAnalysis', `  FAIL entity ${entityInfo._relPath}: ${e.message}`);
+          }
+        }
+      }
+    }
+
     let refCount = 0;
     const batchRefs = [];
 
-    for (const { relPath, result } of allResults) {
+    for (const { relPath, result } of fileAnalysisResults) {
       const fromId = relPathToEntityId.get(relPath);
       if (!fromId) continue;
 
@@ -1307,9 +1374,7 @@ export class AnalysisQueue {
       }
     }
 
-    // Batch create calls/extends/implements references
     if (batchRefs.length > 0) {
-      const BATCH_SIZE = 100;
       for (let i = 0; i < batchRefs.length; i += BATCH_SIZE) {
         const chunk = batchRefs.slice(i, i + BATCH_SIZE);
         try {
@@ -1324,7 +1389,6 @@ export class AnalysisQueue {
       }
     }
 
-    // Create depends_on relations from import analysis
     const globalSymbolTable = {
       pathToEntityId: relPathToEntityId,
       functions: new Map(),
@@ -1333,7 +1397,7 @@ export class AnalysisQueue {
       defaultExport: null,
     };
 
-    for (const { relPath, result } of allResults) {
+    for (const { relPath, result } of fileAnalysisResults) {
       const fromEntityId = relPathToEntityId.get(relPath);
       if (!fromEntityId) continue;
 
@@ -1354,10 +1418,8 @@ export class AnalysisQueue {
       }
     }
 
-    // Batch create depends_on references
     const dependsOnRefs = batchRefs.filter(r => r.type === 'depends_on');
     if (dependsOnRefs.length > 0) {
-      const BATCH_SIZE = 100;
       for (let i = 0; i < dependsOnRefs.length; i += BATCH_SIZE) {
         const chunk = dependsOnRefs.slice(i, i + BATCH_SIZE);
         try {
@@ -1375,11 +1437,11 @@ export class AnalysisQueue {
     const duration = performance.now() - startTime;
     logInfo(
       'CodeAnalysis',
-      `uploadProject complete: ${allResults.length} files, ${globalNameToAtomId.size} atoms, ${refCount} references in ${duration.toFixed(2)}ms`
+      `uploadProject complete: ${fileAnalysisResults.length} files, ${globalNameToAtomId.size} atoms, ${refCount} references in ${duration.toFixed(2)}ms`
     );
 
     return {
-      files: allResults.length,
+      files: fileAnalysisResults.length,
       atoms: globalNameToAtomId.size,
       references: refCount,
       duration,
