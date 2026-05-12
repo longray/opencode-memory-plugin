@@ -64,6 +64,7 @@ Use `memory_timeline(days=7, level=1)` and `memory_topics` to find recent fragme
 For each cluster of related memories, decide the consolidation mode:
 
 **Use Atom Tree when** (any of the following):
+
 - Cluster has 3+ related entries
 - Combined content exceeds 1000 characters
 - Entries have clear topic hierarchy (main topic → sub-topics → details)
@@ -71,6 +72,7 @@ For each cluster of related memories, decide the consolidation mode:
 - Content involves code patterns, architecture decisions, or multi-step solutions
 
 **Use Flat Consolidation when**:
+
 - Cluster has only 1-2 related entries
 - Combined content is under 500 characters
 - Topic is simple and self-contained
@@ -97,44 +99,44 @@ Then create the consolidated Entity via `memory_write`:
 
 ```markdown
 memory_write(
-  abstract="Docker 开发环境配置最佳实践",
-  overview="汇总了 7 天内 5 条碎片记忆，涵盖 Dockerfile 优化、多阶段构建、volume 挂载等主题",
-  content="完整综合内容...",
-  type="long-term",
-  tags=["docker", "dev-environment", "consolidated"],
-  atoms=[
-    {
-      "local_id": "01KQEDZ3S3WM4E8CKESJ6WWKPH",
-      "type": "chapter",
-      "name": "Dockerfile 优化",
-      "content": "关键要点...",
-      "order": "a0",
-      "heading_level": 1,
-      "parent_id": null,
-      "children": [
-        {
-          "local_id": "01KQEDZ3S3WM4E8CKESJ6WWKPI",
-          "type": "section",
-          "name": "多阶段构建",
-          "content": "使用 builder pattern 减少镜像体积，详见 [[01KQEDZ3S3WM4E8CKESJ6WWKPK]]",
-          "order": "a0",
-          "heading_level": 2,
-          "parent_id": "01KQEDZ3S3WM4E8CKESJ6WWKPH",
-          "children": []
-        }
-      ]
-    },
-    {
-      "local_id": "01KQEDZ3S3WM4E8CKESJ6WWKPR",
-      "type": "chapter",
-      "name": "Volume 挂载策略",
-      "content": "开发环境 volume 配置要点...",
-      "order": "a1",
-      "heading_level": 1,
-      "parent_id": null,
-      "children": []
-    }
-  ]
+abstract="Docker 开发环境配置最佳实践",
+overview="汇总了 7 天内 5 条碎片记忆，涵盖 Dockerfile 优化、多阶段构建、volume 挂载等主题",
+content="完整综合内容...",
+type="long-term",
+tags=["docker", "dev-environment", "consolidated"],
+atoms=[
+{
+"local_id": "01KQEDZ3S3WM4E8CKESJ6WWKPH",
+"type": "chapter",
+"name": "Dockerfile 优化",
+"content": "关键要点...",
+"order": "a0",
+"heading_level": 1,
+"parent_id": null,
+"children": [
+{
+"local_id": "01KQEDZ3S3WM4E8CKESJ6WWKPI",
+"type": "section",
+"name": "多阶段构建",
+"content": "使用 builder pattern 减少镜像体积，详见 [[01KQEDZ3S3WM4E8CKESJ6WWKPK]]",
+"order": "a0",
+"heading_level": 2,
+"parent_id": "01KQEDZ3S3WM4E8CKESJ6WWKPH",
+"children": []
+}
+]
+},
+{
+"local_id": "01KQEDZ3S3WM4E8CKESJ6WWKPR",
+"type": "chapter",
+"name": "Volume 挂载策略",
+"content": "开发环境 volume 配置要点...",
+"order": "a1",
+"heading_level": 1,
+"parent_id": null,
+"children": []
+}
+]
 )
 ```
 
@@ -148,11 +150,11 @@ For simple clusters, create a single consolidated node using the L0/L1/L2 struct
 
 ```markdown
 memory_write(
-  abstract="用户偏好：所有新项目使用 TypeScript strict 模式",
-  overview="汇总了 3 次会话中的类型偏好，包括禁止 any、显式参数类型等规则",
-  content="完整综合内容...",
-  type="long-term",
-  tags=["typescript", "code-style", "consolidated"]
+abstract="用户偏好：所有新项目使用 TypeScript strict 模式",
+overview="汇总了 3 次会话中的类型偏好，包括禁止 any、显式参数类型等规则",
+content="完整综合内容...",
+type="long-term",
+tags=["typescript", "code-style", "consolidated"]
 )
 ```
 
@@ -181,14 +183,15 @@ Update each source memory to prevent duplicate consolidation. Use `entity_update
 
 ```markdown
 entity_update(
-  entry_id="[SOURCE_FRAGMENT_ID]",
-  entity_updates={
-    "meta": [{"consolidated": true, "consolidated_into": "[CONSOLIDATED_ENTITY_ID]", "consolidated_at": "2026-04-29T12:00:00Z"}]
-  }
+entry_id="[SOURCE_FRAGMENT_ID]",
+entity_updates={
+"meta": [{"consolidated": true, "consolidated_into": "[CONSOLIDATED_ENTITY_ID]", "consolidated_at": "2026-04-29T12:00:00Z"}]
+}
 )
 ```
 
 This ensures:
+
 - Source memories are never re-consolidated in future runs.
 - The provenance trail is preserved (each source points to its consolidated Entity).
 - Future Librarian runs can skip already-consolidated entries via `memory_search` filtering.

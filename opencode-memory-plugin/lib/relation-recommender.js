@@ -214,6 +214,8 @@ export async function recommendRelationsByType(options = {}) {
         `Processing type '${type}' with ${typeEntities.length} entities`
       );
 
+      const batchRefs = [];
+
       for (let i = 0; i < typeEntities.length; i++) {
         const entity = typeEntities[i];
         if (!entity.id) continue;
@@ -247,21 +249,32 @@ export async function recommendRelationsByType(options = {}) {
           });
 
           if (!dryRun) {
-            try {
-              await client.createRelation({
-                from_id: entity.id,
-                to_id: other.id,
-                type: 'related',
-                weight: 0.76,
-                description: `Auto-generated: same type (${type})`,
-              });
-              createdCount++;
-            } catch (error) {
-              logWarn('relation-recommender', `Failed to create type relation: ${error.message}`);
-            }
+            batchRefs.push({
+              from_id: entity.id,
+              to_id: other.id,
+              type: 'related',
+              weight: 0.76,
+              description: `Auto-generated: same type (${type})`,
+            });
           }
 
           count++;
+        }
+      }
+
+      if (!dryRun && batchRefs.length > 0) {
+        const BATCH_SIZE = 100;
+        for (let i = 0; i < batchRefs.length; i += BATCH_SIZE) {
+          const batch = batchRefs.slice(i, i + BATCH_SIZE);
+          try {
+            const result = await client.createReferences(batch);
+            createdCount += result.created || 0;
+          } catch (error) {
+            logWarn(
+              'relation-recommender',
+              `Failed to batch create type relations: ${error.message}`
+            );
+          }
         }
       }
     }

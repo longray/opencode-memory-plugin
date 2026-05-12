@@ -1033,6 +1033,8 @@ export class CodeAnalyzer {
         class_count: 0,
         max_function_complexity: 0,
         average_function_complexity: 0,
+        average_nesting_depth: 0,
+        max_nesting_depth: 0,
       },
       dependencies: {
         internal: [],

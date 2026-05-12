@@ -11,7 +11,6 @@ import path from 'path';
 import { readFile } from 'fs/promises';
 import { extname, relative, basename } from 'path';
 import { createHash } from 'crypto';
-import { analyzeWithQuery } from './tree-sitter-parser.js';
 import { logInfo, logError, logWarn } from './logger.js';
 import {
   QUEUE_TIMEOUT_MS as DEFAULT_QUEUE_TIMEOUT_MS,
@@ -837,51 +836,30 @@ export class AnalysisQueue {
     }
   }
 
-  async analyzeWithAtomEntity(filePath, content, projectRoot) {
-    const startTime = performance.now();
-    const relativePath = relative(projectRoot, filePath);
-    const projectId = await resolveProjectId({ projectRoot });
-    const language = this.detectLanguage(filePath);
-
-    logInfo('CodeAnalysis', `[CodeAnalysis] Analyzing with Atom/Entity API: ${relativePath}`);
-
-    try {
-      const analysisResult = await analyzeWithQuery(filePath, content, language);
-      const result = await this._createAtomsEntityReferences(
-        relativePath,
-        analysisResult,
-        projectId,
-        language,
-        content
-      );
-
-      const duration = performance.now() - startTime;
-      logInfo(
-        'CodeAnalysis',
-        `[CodeAnalysis] Analysis complete: ${result.atoms.length} atoms, ${result.references.length} references in ${duration.toFixed(2)}ms`
-      );
-
-      return { ...result, duration };
-    } catch (error) {
-      logError('CodeAnalysis', `[CodeAnalysis] Analysis failed for ${relativePath}:`, error);
-      throw error;
-    }
-  }
-
   /**
    * 回滚已创建的 Atoms
    * @param {Array} atoms - 已创建的 Atom 列表
    */
   async rollbackAtoms(atoms) {
     logInfo('CodeAnalysis', `[CodeAnalysis] Rolling back ${atoms.length} atoms...`);
-    for (const atom of atoms) {
-      try {
-        await this.client.deleteAtom(atom.id);
-        logInfo('CodeAnalysis', `[CodeAnalysis] Rolled back atom: ${atom.id}`);
-      } catch (error) {
-        logError('CodeAnalysis', `[CodeAnalysis] Failed to rollback atom ${atom.id}:`, error);
+    const results = await Promise.allSettled(atoms.map(atom => this.client.deleteAtom(atom.id)));
+    let rolledBack = 0;
+    for (let i = 0; i < results.length; i++) {
+      if (results[i].status === 'fulfilled') {
+        rolledBack++;
+        logInfo('CodeAnalysis', `[CodeAnalysis] Rolled back atom: ${atoms[i].id}`);
+      } else {
+        logError(
+          'CodeAnalysis',
+          `[CodeAnalysis] Failed to rollback atom ${atoms[i].id}:`,
+          results[i].reason
+        );
       }
     }
+    logInfo(
+      'CodeAnalysis',
+      `[CodeAnalysis] Rollback complete: ${rolledBack}/${atoms.length} atoms removed`
+    );
   }
 
   /**
@@ -1344,7 +1322,7 @@ export class AnalysisQueue {
     const projectId = await resolveProjectId({ projectRoot });
     const tenantId = this.client.tenantId;
 
-    const SUPPORTED = new Set(['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.tsx']);
+    const SUPPORTED = new Set(SUPPORTED_EXTENSIONS);
     const SKIP = new Set([
       'node_modules',
       '.git',
@@ -1527,7 +1505,6 @@ export class AnalysisQueue {
             'CodeAnalysis',
             `[CodeAnalysis] Failed to batch create references: ${_error.message}`
           );
-          refCount += chunk.length;
         }
       }
     }
@@ -1576,7 +1553,6 @@ export class AnalysisQueue {
             'CodeAnalysis',
             `[CodeAnalysis] Failed to batch create depends_on references: ${_error.message}`
           );
-          refCount += chunk.length;
         }
       }
     }
