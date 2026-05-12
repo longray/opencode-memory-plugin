@@ -67,6 +67,29 @@ export async function recommendRelationsBySimilarity(options = {}) {
       };
     }
 
+    // 一次性加载所有关系到缓存
+    let allRelationsMap = new Map();
+    try {
+      const allRelationsResult = await client.getRelations({});
+      const allRelations = allRelationsResult.relations || allRelationsResult.data || [];
+      for (const rel of allRelations) {
+        const fromId = rel.from_id || rel.source_id;
+        const toId = rel.to_id || rel.target_id;
+        if (fromId && toId) {
+          if (!allRelationsMap.has(fromId)) {
+            allRelationsMap.set(fromId, new Set());
+          }
+          allRelationsMap.get(fromId).add(toId);
+        }
+      }
+      logInfo(
+        'relation-recommender',
+        `Loaded ${allRelations.length} existing relations into cache`
+      );
+    } catch (error) {
+      logWarn('relation-recommender', `Failed to load relation cache: ${error.message}`);
+    }
+
     // 处理每个实体
     const { maxEntities = 50 } = options;
     for (const entity of entities.slice(0, maxEntities)) {
@@ -90,16 +113,8 @@ export async function recommendRelationsBySimilarity(options = {}) {
 
         if (similarEntities.length === 0) continue;
 
-        // 获取实体已有关系
-        let existingTargets = new Set();
-        try {
-          const existingRelations = await client.getRelations({ memory_id: entity.id });
-          existingTargets = new Set(
-            (existingRelations.relations || []).map(r => r.to_id || r.target_id)
-          );
-        } catch {
-          // 忽略关系查询错误
-        }
+        // 从缓存获取实体已有关系
+        const existingTargets = allRelationsMap.get(entity.id) || new Set();
 
         for (const similar of similarEntities) {
           // 跳过已存在关系的

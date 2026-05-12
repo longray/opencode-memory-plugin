@@ -1,4 +1,4 @@
-import { codeAnalyzer } from './code-analyzer.js';
+import { codeAnalyzer, CodeAnalyzer } from './code-analyzer.js';
 import { getWrapperClient } from './wrapper-client.js';
 import { getPrecomputeClient } from './precompute/client.js';
 import { FingerprintCache } from './precompute/fingerprint-cache.js';
@@ -17,7 +17,9 @@ import {
   QUEUE_POLL_DELAY_MS,
   DEFAULT_DEBOUNCE_MS,
   DEFAULT_BATCH_DELAY_MS,
+  SUPPORTED_EXTENSIONS,
 } from './constants.js';
+import { BUILTIN_MODULES } from './builtin-modules.js';
 
 function getCodeAnalysisConfig() {
   return getConfig().code_analysis || {};
@@ -54,20 +56,6 @@ function isAutoLinkToConversation() {
 function useAtomEntityApi() {
   return getCodeAnalysisConfig().use_atom_entity_api !== false;
 }
-
-const SUPPORTED_EXTENSIONS = [
-  '.js',
-  '.mjs',
-  '.cjs',
-  '.ts',
-  '.mts',
-  '.cts',
-  '.tsx',
-  '.py',
-  '.go',
-  '.rs',
-  '.java',
-];
 
 export class AnalysisQueue {
   constructor() {
@@ -488,7 +476,7 @@ export class AnalysisQueue {
   async uploadAsAtomEntity(item, analysisResult, content) {
     const startTime = performance.now();
     const projectId = await resolveProjectId({ projectRoot: item.projectRoot });
-    const language = analysisResult.language || this.detectLanguage(item.filePath);
+    const language = analysisResult.language || CodeAnalyzer.detectLanguage(item.filePath);
 
     logInfo('CodeAnalysis', `[CodeAnalysis] Uploading via Atom/Entity API: ${item.relativePath}`);
 
@@ -860,29 +848,7 @@ export class AnalysisQueue {
       'CodeAnalysis',
       `[CodeAnalysis] Rollback complete: ${rolledBack}/${atoms.length} atoms removed`
     );
-  }
-
-  /**
-   * 检测文件语言
-   * @param {string} filePath - 文件路径
-   * @returns {string} 语言名称
-   */
-  detectLanguage(filePath) {
-    const ext = extname(filePath).toLowerCase();
-    const languageMap = {
-      '.js': 'javascript',
-      '.mjs': 'javascript',
-      '.cjs': 'javascript',
-      '.ts': 'typescript',
-      '.mts': 'typescript',
-      '.cts': 'typescript',
-      '.tsx': 'typescript',
-      '.py': 'python',
-      '.go': 'go',
-      '.rs': 'rust',
-      '.java': 'java',
-    };
-    return languageMap[ext] || 'unknown';
+    return { total: atoms.length, rolledBack, failed: atoms.length - rolledBack };
   }
 
   buildSymbolTable(filePath, analysisResult, entityId) {
@@ -1066,163 +1032,12 @@ export class AnalysisQueue {
     tenantId,
     existingRefs = new Set()
   ) {
-    const builtinModules = new Set([
-      // Node.js builtins
-      'fs',
-      'path',
-      'http',
-      'https',
-      'os',
-      'util',
-      'crypto',
-      'stream',
-      'events',
-      'url',
-      'querystring',
-      'child_process',
-      'cluster',
-      'dgram',
-      'dns',
-      'domain',
-      'net',
-      'readline',
-      'repl',
-      'tls',
-      'tty',
-      'v8',
-      'vm',
-      'zlib',
-      'assert',
-      'buffer',
-      'console',
-      'constants',
-      'module',
-      'process',
-      'timers',
-      // Python builtins
-      'os',
-      'sys',
-      're',
-      'json',
-      'math',
-      'datetime',
-      'collections',
-      'itertools',
-      'functools',
-      'pathlib',
-      'typing',
-      'abc',
-      'io',
-      'subprocess',
-      'threading',
-      'multiprocessing',
-      'asyncio',
-      'logging',
-      'unittest',
-      'copy',
-      'pickle',
-      'hashlib',
-      'random',
-      'string',
-      'textwrap',
-      'struct',
-      'codecs',
-      'csv',
-      'configparser',
-      'argparse',
-      'warnings',
-      'traceback',
-      'inspect',
-      'importlib',
-      'pkgutil',
-      // Go builtins
-      'fmt',
-      'os',
-      'io',
-      'net',
-      'net/http',
-      'net/url',
-      'encoding/json',
-      'encoding/xml',
-      'strings',
-      'bytes',
-      'strconv',
-      'math',
-      'sort',
-      'sync',
-      'context',
-      'time',
-      'errors',
-      'log',
-      'flag',
-      'path',
-      'path/filepath',
-      'reflect',
-      'regexp',
-      'runtime',
-      'testing',
-      'bufio',
-      'compress/gzip',
-      'crypto',
-      'database/sql',
-      'embed',
-      'html',
-      'html/template',
-      'text/template',
-      'unicode',
-      // Rust stdlib
-      'std',
-      'std::collections',
-      'std::fs',
-      'std::io',
-      'std::path',
-      'std::sync',
-      'std::thread',
-      'std::time',
-      'std::net',
-      'std::process',
-      'std::env',
-      'std::str',
-      'std::string',
-      'std::vec',
-      'std::option',
-      'std::result',
-      'std::fmt',
-      'std::error',
-      'std::panic',
-      'std::mem',
-      'std::ptr',
-      'std::cmp',
-      'std::hash',
-      'std::iter',
-      'std::slice',
-      // Java stdlib
-      'java.lang',
-      'java.util',
-      'java.io',
-      'java.nio',
-      'java.net',
-      'java.math',
-      'java.text',
-      'java.time',
-      'java.security',
-      'java.sql',
-      'javax.sql',
-      'java.awt',
-      'javax.swing',
-      'java.util.concurrent',
-      'java.util.stream',
-      'java.util.function',
-      'java.util.regex',
-      'java.util.logging',
-    ]);
-
     const dependencies = [];
 
     for (const imp of imports) {
       const source = imp.source;
 
-      if (builtinModules.has(source) || source.startsWith('node:')) {
+      if (BUILTIN_MODULES.has(source) || source.startsWith('node:')) {
         continue;
       }
 
@@ -1499,7 +1314,7 @@ export class AnalysisQueue {
         const chunk = batchRefs.slice(i, i + BATCH_SIZE);
         try {
           const result = await this.client.createReferences(chunk);
-          refCount += result?.references?.filter(r => r.status === 'created').length || 0;
+          refCount += result?.created || 0;
         } catch (_error) {
           logWarn(
             'CodeAnalysis',
@@ -1547,7 +1362,7 @@ export class AnalysisQueue {
         const chunk = dependsOnRefs.slice(i, i + BATCH_SIZE);
         try {
           const result = await this.client.createReferences(chunk);
-          refCount += result?.references?.filter(r => r.status === 'created').length || 0;
+          refCount += result?.created || 0;
         } catch (_error) {
           logWarn(
             'CodeAnalysis',

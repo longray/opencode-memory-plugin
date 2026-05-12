@@ -148,6 +148,26 @@ export const WS_RECONNECT_MAX_DELAY_MS = 300_000; // 5 minutes
 /** Reconnect jitter (ms) — random component added to delay to avoid thundering herd */
 export const WS_RECONNECT_JITTER_MS = 1_000;
 
+// ─── Language / Extension Configuration ─────────────────────────────────────────
+
+/** Map of file extension to language name — single source of truth for all modules */
+export const EXTENSION_TO_LANGUAGE = {
+  '.js': 'javascript',
+  '.mjs': 'javascript',
+  '.cjs': 'javascript',
+  '.ts': 'typescript',
+  '.mts': 'typescript',
+  '.cts': 'typescript',
+  '.tsx': 'typescript',
+  '.py': 'python',
+  '.go': 'go',
+  '.rs': 'rust',
+  '.java': 'java',
+};
+
+/** Supported file extensions — derived from EXTENSION_TO_LANGUAGE */
+export const SUPPORTED_EXTENSIONS = Object.keys(EXTENSION_TO_LANGUAGE);
+
 /**
  * Validates that a resolved path stays within the base directory.
  * Prevents path traversal via "../" in user-controlled path segments.

@@ -55,28 +55,52 @@ jest.unstable_mockModule('../lib/memory-id-cache.js', () => ({
   })),
 }));
 
-jest.unstable_mockModule('../lib/code-analyzer.js', () => ({
-  codeAnalyzer: {
-    analyze: jest.fn().mockResolvedValue({
-      language: 'javascript',
-      functions: [
-        {
-          name: 'test',
-          start_line: 1,
-          end_line: 5,
-          params: [],
-          is_exported: false,
-          is_async: false,
-        },
-      ],
-      classes: [],
-      imports: [],
-      calls: [],
-      complexity_metrics: { cyclomatic: 1, max_nesting_depth: 1, lines_of_code: 5 },
-      quality_score: { score: 90, grade: 'A' },
-    }),
-  },
-}));
+jest.unstable_mockModule('../lib/code-analyzer.js', () => {
+  const EXTENSION_TO_LANGUAGE = {
+    '.js': 'javascript',
+    '.mjs': 'javascript',
+    '.cjs': 'javascript',
+    '.ts': 'typescript',
+    '.mts': 'typescript',
+    '.cts': 'typescript',
+    '.tsx': 'typescript',
+    '.py': 'python',
+    '.go': 'go',
+    '.rs': 'rust',
+    '.java': 'java',
+  };
+  function getExt(filePath) {
+    const idx = filePath.lastIndexOf('.');
+    return idx > 0 ? filePath.slice(idx).toLowerCase() : '';
+  }
+  return {
+    codeAnalyzer: {
+      analyze: jest.fn().mockResolvedValue({
+        language: 'javascript',
+        functions: [
+          {
+            name: 'test',
+            start_line: 1,
+            end_line: 5,
+            params: [],
+            is_exported: false,
+            is_async: false,
+          },
+        ],
+        classes: [],
+        imports: [],
+        calls: [],
+        complexity_metrics: { cyclomatic: 1, max_nesting_depth: 1, lines_of_code: 5 },
+        quality_score: { score: 90, grade: 'A' },
+      }),
+    },
+    CodeAnalyzer: {
+      detectLanguage: jest.fn().mockImplementation(filePath => {
+        return EXTENSION_TO_LANGUAGE[getExt(filePath)] || 'unknown';
+      }),
+    },
+  };
+});
 
 jest.unstable_mockModule('../lib/privacy-filter.js', () => ({
   shouldSkipFile: jest.fn().mockReturnValue({ skip: false }),
@@ -117,7 +141,7 @@ jest.unstable_mockModule('fs/promises', () => ({
 
 const { AnalysisQueue } = await import('../../../lib/code-analysis-service.js');
 const { shouldSkipFile } = await import('../../../lib/privacy-filter.js');
-const { codeAnalyzer } = await import('../../../lib/code-analyzer.js');
+const { codeAnalyzer, CodeAnalyzer } = await import('../../../lib/code-analyzer.js');
 const { readFile: readFileMock } = await import('fs/promises');
 const { getConfig: getConfigMock } = await import('../../../lib/storage.js');
 const { getWrapperClient: getWrapperClientMock } = await import('../../../lib/wrapper-client.js');
@@ -125,36 +149,30 @@ const { getWrapperClient: getWrapperClientMock } = await import('../../../lib/wr
 // ===== detectLanguage =====
 
 describe('detectLanguage', () => {
-  let queue;
-
-  beforeEach(() => {
-    queue = new AnalysisQueue();
-  });
-
   it('.js → javascript', () => {
-    expect(queue.detectLanguage('src/foo.js')).toBe('javascript');
+    expect(CodeAnalyzer.detectLanguage('src/foo.js')).toBe('javascript');
   });
 
   it('.mjs / .cjs → javascript (同族)', () => {
-    expect(queue.detectLanguage('src/foo.mjs')).toBe('javascript');
-    expect(queue.detectLanguage('src/foo.cjs')).toBe('javascript');
+    expect(CodeAnalyzer.detectLanguage('src/foo.mjs')).toBe('javascript');
+    expect(CodeAnalyzer.detectLanguage('src/foo.cjs')).toBe('javascript');
   });
 
   it('.ts / .tsx → typescript', () => {
-    expect(queue.detectLanguage('src/foo.ts')).toBe('typescript');
-    expect(queue.detectLanguage('src/foo.tsx')).toBe('typescript');
+    expect(CodeAnalyzer.detectLanguage('src/foo.ts')).toBe('typescript');
+    expect(CodeAnalyzer.detectLanguage('src/foo.tsx')).toBe('typescript');
   });
 
   it('.py / .go / .rs / .java → 各自语言', () => {
-    expect(queue.detectLanguage('src/foo.py')).toBe('python');
-    expect(queue.detectLanguage('src/foo.go')).toBe('go');
-    expect(queue.detectLanguage('src/foo.rs')).toBe('rust');
-    expect(queue.detectLanguage('src/Foo.java')).toBe('java');
+    expect(CodeAnalyzer.detectLanguage('src/foo.py')).toBe('python');
+    expect(CodeAnalyzer.detectLanguage('src/foo.go')).toBe('go');
+    expect(CodeAnalyzer.detectLanguage('src/foo.rs')).toBe('rust');
+    expect(CodeAnalyzer.detectLanguage('src/Foo.java')).toBe('java');
   });
 
   it('未知扩展名 → unknown', () => {
-    expect(queue.detectLanguage('src/foo.xyz')).toBe('unknown');
-    expect(queue.detectLanguage('src/Makefile')).toBe('unknown');
+    expect(CodeAnalyzer.detectLanguage('src/foo.xyz')).toBe('unknown');
+    expect(CodeAnalyzer.detectLanguage('src/Makefile')).toBe('unknown');
   });
 });
 

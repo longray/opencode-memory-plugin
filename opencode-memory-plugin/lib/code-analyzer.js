@@ -7,6 +7,7 @@ import {
   QUEUE_TIMEOUT_MS as DEFAULT_QUEUE_TIMEOUT_MS,
   DEFAULT_DEBOUNCE_MS,
   DEFAULT_FILE_TIMEOUT_MS,
+  EXTENSION_TO_LANGUAGE,
 } from './constants.js';
 import { logInfo, logError, logWarn } from './logger.js';
 
@@ -59,20 +60,6 @@ export const DEFAULT_CONFIG = (() => {
     batchMaxSize: _cfg.batch_max_size || 10,
   };
 })();
-
-const EXTENSION_TO_LANGUAGE = {
-  '.js': 'javascript',
-  '.mjs': 'javascript',
-  '.cjs': 'javascript',
-  '.ts': 'typescript',
-  '.mts': 'typescript',
-  '.cts': 'typescript',
-  '.tsx': 'typescript',
-  '.py': 'python',
-  '.go': 'go',
-  '.rs': 'rust',
-  '.java': 'java',
-};
 
 /**
  * 内置调用列表（用于过滤常见内置函数调用）
@@ -154,7 +141,7 @@ export class CodeAnalyzer {
         ]);
       }
 
-      const language = this.detectLanguage(filePath);
+      const language = CodeAnalyzer.detectLanguage(filePath);
       const result = await this.analyzeWithStrategy(filePath, sourceCode, language, warnings);
 
       const _duration = performance.now() - startTime;
@@ -1014,7 +1001,7 @@ export class CodeAnalyzer {
   }
 
   createFallbackResult(filePath, sourceCode, lines, warnings) {
-    const language = this.detectLanguage(filePath);
+    const language = CodeAnalyzer.detectLanguage(filePath);
 
     return {
       language,
@@ -1033,8 +1020,8 @@ export class CodeAnalyzer {
         class_count: 0,
         max_function_complexity: 0,
         average_function_complexity: 0,
-        average_nesting_depth: 0,
-        max_nesting_depth: 0,
+        average_nesting_depth: null,
+        max_nesting_depth: null,
       },
       dependencies: {
         internal: [],
@@ -1046,7 +1033,7 @@ export class CodeAnalyzer {
     };
   }
 
-  detectLanguage(filePath) {
+  static detectLanguage(filePath) {
     const ext = extname(filePath).toLowerCase();
     return EXTENSION_TO_LANGUAGE[ext] || 'unknown';
   }
