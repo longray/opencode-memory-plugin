@@ -66,11 +66,22 @@ export async function gatherQualityMetrics(options = {}) {
   };
 
   try {
-    const status = await client.getStatus();
-    result.entity_count = status.memory_count || 0;
-    result.relationship_count = status.relation_count || 0;
+    try {
+      const entityResult = await client.listEntities({ limit: 1 });
+      result.entity_count = entityResult.total || 0;
+    } catch (error) {
+      logWarn('quality-dashboard', `Failed to get entity count: ${error.message}`);
+      const status = await client.getStatus();
+      result.entity_count = status.memory_count || 0;
+    }
 
-    // Entity type distribution
+    try {
+      const status = await client.getStatus();
+      result.relationship_count = status.relation_count || 0;
+    } catch (error) {
+      logWarn('quality-dashboard', `Failed to get relationship count: ${error.message}`);
+    }
+
     try {
       const entities = await client.listEntities({ limit: 100 });
       const typeDist = {};
