@@ -83,11 +83,11 @@ function buildQueue() {
   queue._client = {
     createAtom: jest.fn().mockResolvedValue({ id: 'atom:foo', type: 'function', name: 'foo' }),
     batchCreateAtoms: jest.fn().mockResolvedValue({
-      success: [{ id: 'atom:foo', type: 'function', name: 'foo' }],
-      failed: [],
+      atoms: [{ id: 'atom:foo', type: 'function', name: 'foo', status: 'created', error: null }],
       total: 1,
-      success_count: 1,
-      failed_count: 0,
+      created: 1,
+      skipped: 0,
+      errors: 0,
     }),
     createEntity: jest.fn().mockResolvedValue({ id: 'entity:test', type: 'code' }),
     createReferences: jest.fn().mockResolvedValue({ references: [{ id: 'ref:1', type: 'calls' }] }),
@@ -276,11 +276,13 @@ describe('Auto-Sync Pipeline: AnalysisQueue', () => {
 
     it('ER-2: all createAtom fail → entity not created, no crash', async () => {
       queue._client.batchCreateAtoms.mockResolvedValue({
-        success: [],
-        failed: [{ index: 0, error: 'network error' }],
+        atoms: [
+          { id: null, type: 'function', name: 'foo', status: 'error', error: 'network error' },
+        ],
         total: 1,
-        success_count: 0,
-        failed_count: 1,
+        created: 0,
+        skipped: 0,
+        errors: 1,
       });
 
       queue.add(fileA, testDir);
@@ -291,11 +293,11 @@ describe('Auto-Sync Pipeline: AnalysisQueue', () => {
 
     it('ER-3: createAtom intermittent failure → entity not created, no crash', async () => {
       queue._client.batchCreateAtoms.mockResolvedValue({
-        success: [],
-        failed: [{ index: 0, error: 'timeout' }],
+        atoms: [{ id: null, type: 'function', name: 'foo', status: 'error', error: 'timeout' }],
         total: 1,
-        success_count: 0,
-        failed_count: 1,
+        created: 0,
+        skipped: 0,
+        errors: 1,
       });
 
       queue.add(fileA, testDir);

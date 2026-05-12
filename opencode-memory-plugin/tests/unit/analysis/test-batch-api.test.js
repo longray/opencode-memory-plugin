@@ -24,14 +24,14 @@ describe('WrapperClient Batch APIs', () => {
   describe('batchCreateAtoms', () => {
     test('should send correct request format to /api/v1/atoms/batch', async () => {
       const mockResponse = {
-        success: [
-          { id: 'atom:001', type: 'function', name: 'func1' },
-          { id: 'atom:002', type: 'class', name: 'Class1' },
+        atoms: [
+          { id: 'atom:001', type: 'function', name: 'func1', status: 'created', error: null },
+          { id: 'atom:002', type: 'class', name: 'Class1', status: 'created', error: null },
         ],
-        failed: [],
         total: 2,
-        success_count: 2,
-        failed_count: 0,
+        created: 2,
+        skipped: 0,
+        errors: 0,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -59,11 +59,14 @@ describe('WrapperClient Batch APIs', () => {
 
     test('should handle partial success', async () => {
       const mockResponse = {
-        success: [{ id: 'atom:001', type: 'function' }],
-        failed: [{ index: 1, error: 'Invalid content' }],
+        atoms: [
+          { id: 'atom:001', type: 'function', status: 'created', error: null },
+          { id: null, type: 'function', status: 'error', error: 'Invalid content' },
+        ],
         total: 2,
-        success_count: 1,
-        failed_count: 1,
+        created: 1,
+        skipped: 0,
+        errors: 1,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -79,9 +82,9 @@ describe('WrapperClient Batch APIs', () => {
 
       const result = await client.batchCreateAtoms(atoms);
 
-      expect(result.success_count).toBe(1);
-      expect(result.failed_count).toBe(1);
-      expect(result.failed[0].index).toBe(1);
+      expect(result.created).toBe(1);
+      expect(result.errors).toBe(1);
+      expect(result.atoms[1].error).toBe('Invalid content');
     });
 
     test('should include tenant_id from client default', async () => {
@@ -89,11 +92,11 @@ describe('WrapperClient Batch APIs', () => {
         ok: true,
         status: 200,
         json: async () => ({
-          success: [],
-          failed: [],
+          atoms: [],
           total: 0,
-          success_count: 0,
-          failed_count: 0,
+          created: 0,
+          skipped: 0,
+          errors: 0,
         }),
       });
 
@@ -125,14 +128,14 @@ describe('WrapperClient Batch APIs', () => {
   describe('batchCreateEntities', () => {
     test('should send correct request format to /api/v1/entities/batch', async () => {
       const mockResponse = {
-        success: [
-          { id: 'entity:001', type: 'code', abstract: 'File1' },
-          { id: 'entity:002', type: 'code', abstract: 'File2' },
+        entities: [
+          { id: 'entity:001', type: 'code', abstract: 'File1', status: 'created', error: null },
+          { id: 'entity:002', type: 'code', abstract: 'File2', status: 'created', error: null },
         ],
-        failed: [],
         total: 2,
-        success_count: 2,
-        failed_count: 0,
+        created: 2,
+        skipped: 0,
+        errors: 0,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -160,11 +163,14 @@ describe('WrapperClient Batch APIs', () => {
 
     test('should handle partial success', async () => {
       const mockResponse = {
-        success: [{ id: 'entity:001', type: 'code' }],
-        failed: [{ index: 1, error: 'Missing abstract' }],
+        entities: [
+          { id: 'entity:001', type: 'code', status: 'created', error: null },
+          { id: null, type: 'code', status: 'error', error: 'Missing abstract' },
+        ],
         total: 2,
-        success_count: 1,
-        failed_count: 1,
+        created: 1,
+        skipped: 0,
+        errors: 1,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -177,8 +183,8 @@ describe('WrapperClient Batch APIs', () => {
 
       const result = await client.batchCreateEntities(entities);
 
-      expect(result.success_count).toBe(1);
-      expect(result.failed_count).toBe(1);
+      expect(result.created).toBe(1);
+      expect(result.errors).toBe(1);
     });
 
     test('should include tenant_id from client default', async () => {
@@ -186,11 +192,11 @@ describe('WrapperClient Batch APIs', () => {
         ok: true,
         status: 200,
         json: async () => ({
-          success: [],
-          failed: [],
+          entities: [],
           total: 0,
-          success_count: 0,
-          failed_count: 0,
+          created: 0,
+          skipped: 0,
+          errors: 0,
         }),
       });
 

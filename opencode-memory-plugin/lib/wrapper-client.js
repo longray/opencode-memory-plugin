@@ -964,7 +964,7 @@ export class WrapperClient {
   /**
    * 批量创建 Atoms
    * @param {Array<Object>} atoms - Atom 数组
-   * @returns {Promise<{success: Array, failed: Array, total: number, success_count: number, failed_count: number}>}
+   * @returns {Promise<{atoms: Array, total: number, created: number, skipped: number, errors: number}>}
    */
   async batchCreateAtoms(atoms) {
     logInfo('ATOM', `batchCreateAtoms called with ${atoms.length} items`);
@@ -997,8 +997,9 @@ export class WrapperClient {
     );
 
     logInfo('ATOM', 'batchCreateAtoms success', {
-      success_count: result.success_count ?? result.success?.length ?? 0,
-      failed_count: result.failed_count ?? result.failed?.length ?? 0,
+      created: result.created ?? 0,
+      skipped: result.skipped ?? 0,
+      errors: result.errors ?? 0,
     });
     return result;
   }
@@ -1006,7 +1007,7 @@ export class WrapperClient {
   /**
    * 批量创建 Entities
    * @param {Array<Object>} entities - Entity 数组
-   * @returns {Promise<{success: Array, failed: Array, total: number, success_count: number, failed_count: number}>}
+   * @returns {Promise<{entities: Array, total: number, created: number, skipped: number, errors: number}>}
    */
   async batchCreateEntities(entities) {
     logInfo('ENTITY', `batchCreateEntities called with ${entities.length} items`);
@@ -1042,8 +1043,9 @@ export class WrapperClient {
     );
 
     logInfo('ENTITY', 'batchCreateEntities success', {
-      success_count: result.success_count ?? result.success?.length ?? 0,
-      failed_count: result.failed_count ?? result.failed?.length ?? 0,
+      created: result.created ?? 0,
+      skipped: result.skipped ?? 0,
+      errors: result.errors ?? 0,
     });
     return result;
   }

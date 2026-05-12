@@ -136,11 +136,16 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
   describe('Happy Path', () => {
     test('should create atoms, entity, and references successfully', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.helperFunc, mockAtoms.TestClass, mockAtoms.lodash],
-        failed: [],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 4,
-        failed_count: 0,
+        created: 4,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
       mockCreateReference.mockResolvedValue({
@@ -216,11 +221,22 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
   describe('Atom Creation Failure', () => {
     test('should continue when one atom creation fails, log error', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.TestClass, mockAtoms.lodash],
-        failed: [{ index: 1, error: 'Network timeout' }],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          {
+            id: null,
+            type: 'function',
+            name: 'helperFunc',
+            status: 'error',
+            error: 'Network timeout',
+          },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 3,
-        failed_count: 1,
+        created: 3,
+        skipped: 0,
+        errors: 1,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 
@@ -243,11 +259,22 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
 
     test('should continue when class atom creation fails', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.helperFunc, mockAtoms.lodash],
-        failed: [{ index: 2, error: 'Class creation error' }],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+          {
+            id: null,
+            type: 'class',
+            name: 'TestClass',
+            status: 'error',
+            error: 'Class creation error',
+          },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 3,
-        failed_count: 1,
+        created: 3,
+        skipped: 0,
+        errors: 1,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 
@@ -258,11 +285,22 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
 
     test('should continue when import atom creation fails', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.helperFunc, mockAtoms.TestClass],
-        failed: [{ index: 3, error: 'Import creation error' }],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          {
+            id: null,
+            type: 'import',
+            name: 'lodash',
+            status: 'error',
+            error: 'Import creation error',
+          },
+        ],
         total: 4,
-        success_count: 3,
-        failed_count: 1,
+        created: 3,
+        skipped: 0,
+        errors: 1,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 
@@ -275,11 +313,16 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
   describe('Entity Creation Failure', () => {
     test('should rollback atoms when entity creation fails and throw error', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.helperFunc, mockAtoms.TestClass, mockAtoms.lodash],
-        failed: [],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 4,
-        failed_count: 0,
+        created: 4,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockRejectedValue(new Error('Entity creation failed'));
 
@@ -296,11 +339,22 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
 
     test('should rollback only successfully created atoms when entity fails', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.helperFunc, mockAtoms.TestClass, mockAtoms.lodash],
-        failed: [{ index: 0, error: 'First atom failed' }],
+        atoms: [
+          {
+            id: null,
+            type: 'function',
+            name: 'testFunc',
+            status: 'error',
+            error: 'First atom failed',
+          },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 3,
-        failed_count: 1,
+        created: 3,
+        skipped: 0,
+        errors: 1,
       });
       mockCreateEntity.mockRejectedValue(new Error('Entity creation failed'));
 
@@ -318,11 +372,14 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
   describe('Reference Creation Failure', () => {
     test('should return empty references when batch creation fails', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.helperFunc],
-        failed: [],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+        ],
         total: 2,
-        success_count: 2,
-        failed_count: 0,
+        created: 2,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
       mockCreateReference.mockRejectedValue(new Error('Batch reference creation error'));
@@ -339,11 +396,11 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
 
     test('should skip reference when target atom not found in created atoms', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc],
-        failed: [],
+        atoms: [{ ...mockAtoms.testFunc, status: 'created', error: null }],
         total: 1,
-        success_count: 1,
-        failed_count: 0,
+        created: 1,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
       mockCreateReference.mockResolvedValue({
@@ -358,16 +415,28 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
 
     test('should skip reference when entity is null (no atoms created)', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [],
-        failed: [
-          { index: 0, error: 'All atoms fail' },
-          { index: 1, error: 'All atoms fail' },
-          { index: 2, error: 'All atoms fail' },
-          { index: 3, error: 'All atoms fail' },
+        atoms: [
+          {
+            id: null,
+            type: 'function',
+            name: 'testFunc',
+            status: 'error',
+            error: 'All atoms fail',
+          },
+          {
+            id: null,
+            type: 'function',
+            name: 'helperFunc',
+            status: 'error',
+            error: 'All atoms fail',
+          },
+          { id: null, type: 'class', name: 'TestClass', status: 'error', error: 'All atoms fail' },
+          { id: null, type: 'import', name: 'lodash', status: 'error', error: 'All atoms fail' },
         ],
         total: 4,
-        success_count: 0,
-        failed_count: 4,
+        created: 0,
+        skipped: 0,
+        errors: 4,
       });
 
       const result = await queue.uploadAsAtomEntity(mockItem, mockAnalysisResult, mockContent);
@@ -402,16 +471,16 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
 
     test('should return empty atoms when all atom creations fail', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [],
-        failed: [
-          { index: 0, error: 'All fail' },
-          { index: 1, error: 'All fail' },
-          { index: 2, error: 'All fail' },
-          { index: 3, error: 'All fail' },
+        atoms: [
+          { id: null, type: 'function', name: 'testFunc', status: 'error', error: 'All fail' },
+          { id: null, type: 'function', name: 'helperFunc', status: 'error', error: 'All fail' },
+          { id: null, type: 'class', name: 'TestClass', status: 'error', error: 'All fail' },
+          { id: null, type: 'import', name: 'lodash', status: 'error', error: 'All fail' },
         ],
         total: 4,
-        success_count: 0,
-        failed_count: 4,
+        created: 0,
+        skipped: 0,
+        errors: 4,
       });
 
       const result = await queue.uploadAsAtomEntity(mockItem, mockAnalysisResult, mockContent);
@@ -426,11 +495,14 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
     test('should create entity without references when no calls exist', async () => {
       const noCallsResult = { ...mockAnalysisResult, calls: [] };
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.helperFunc],
-        failed: [],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+        ],
         total: 2,
-        success_count: 2,
-        failed_count: 0,
+        created: 2,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 
@@ -448,11 +520,11 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
     test('should handle calls array being undefined', async () => {
       const undefinedCallsResult = { ...mockAnalysisResult, calls: undefined };
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc],
-        failed: [],
+        atoms: [{ ...mockAtoms.testFunc, status: 'created', error: null }],
         total: 1,
-        success_count: 1,
-        failed_count: 0,
+        created: 1,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 
@@ -468,16 +540,16 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
       mockBatchCreateAtoms.mockImplementation(async () => {
         await new Promise(resolve => setTimeout(resolve, 50));
         return {
-          success: [
-            mockAtoms.testFunc,
-            mockAtoms.helperFunc,
-            mockAtoms.TestClass,
-            mockAtoms.lodash,
+          atoms: [
+            { ...mockAtoms.testFunc, status: 'created', error: null },
+            { ...mockAtoms.helperFunc, status: 'created', error: null },
+            { ...mockAtoms.TestClass, status: 'created', error: null },
+            { ...mockAtoms.lodash, status: 'created', error: null },
           ],
-          failed: [],
           total: 4,
-          success_count: 4,
-          failed_count: 0,
+          created: 4,
+          skipped: 0,
+          errors: 0,
         };
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
@@ -492,11 +564,22 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
 
     test('should not block other atoms when one creation fails', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.helperFunc, mockAtoms.TestClass, mockAtoms.lodash],
-        failed: [{ index: 0, error: 'Atom creation failed' }],
+        atoms: [
+          {
+            id: null,
+            type: 'function',
+            name: 'testFunc',
+            status: 'error',
+            error: 'Atom creation failed',
+          },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 3,
-        failed_count: 1,
+        created: 3,
+        skipped: 0,
+        errors: 1,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 
@@ -517,11 +600,16 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
   describe('Batch Reference Creation (C-3)', () => {
     test('should create all references via single batch API call', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.helperFunc, mockAtoms.TestClass, mockAtoms.lodash],
-        failed: [],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 4,
-        failed_count: 0,
+        created: 4,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 
@@ -561,11 +649,11 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
     test('should not call batch API when no calls exist', async () => {
       const noCallsResult = { ...mockAnalysisResult, calls: [] };
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc],
-        failed: [],
+        atoms: [{ ...mockAtoms.testFunc, status: 'created', error: null }],
         total: 1,
-        success_count: 1,
-        failed_count: 0,
+        created: 1,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 
@@ -577,16 +665,28 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
 
     test('should not call batch API when entity is null', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [],
-        failed: [
-          { index: 0, error: 'All atoms fail' },
-          { index: 1, error: 'All atoms fail' },
-          { index: 2, error: 'All atoms fail' },
-          { index: 3, error: 'All atoms fail' },
+        atoms: [
+          {
+            id: null,
+            type: 'function',
+            name: 'testFunc',
+            status: 'error',
+            error: 'All atoms fail',
+          },
+          {
+            id: null,
+            type: 'function',
+            name: 'helperFunc',
+            status: 'error',
+            error: 'All atoms fail',
+          },
+          { id: null, type: 'class', name: 'TestClass', status: 'error', error: 'All atoms fail' },
+          { id: null, type: 'import', name: 'lodash', status: 'error', error: 'All atoms fail' },
         ],
         total: 4,
-        success_count: 0,
-        failed_count: 4,
+        created: 0,
+        skipped: 0,
+        errors: 4,
       });
 
       const result = await queue.uploadAsAtomEntity(mockItem, mockAnalysisResult, mockContent);
@@ -597,11 +697,22 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
 
     test('should filter out calls whose target atom was not created', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.TestClass, mockAtoms.lodash],
-        failed: [{ index: 1, error: 'helperFunc failed' }],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          {
+            id: null,
+            type: 'function',
+            name: 'helperFunc',
+            status: 'error',
+            error: 'helperFunc failed',
+          },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 3,
-        failed_count: 1,
+        created: 3,
+        skipped: 0,
+        errors: 1,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
       mockCreateReference.mockResolvedValue({
@@ -622,11 +733,16 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
   describe('Fingerprint Cache Update', () => {
     test('should update fingerprint cache after successful upload', async () => {
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.helperFunc, mockAtoms.TestClass, mockAtoms.lodash],
-        failed: [],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 4,
-        failed_count: 0,
+        created: 4,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 
@@ -646,11 +762,16 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
       const { createHash } = await import('crypto');
       const expectedHash = createHash('md5').update(mockContent).digest('hex');
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.helperFunc, mockAtoms.TestClass, mockAtoms.lodash],
-        failed: [],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 4,
-        failed_count: 0,
+        created: 4,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 
@@ -667,11 +788,16 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
     test('should skip fingerprint update when fingerprintCache is null', async () => {
       queue.fingerprintCache = null;
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.helperFunc, mockAtoms.TestClass, mockAtoms.lodash],
-        failed: [],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 4,
-        failed_count: 0,
+        created: 4,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 
@@ -689,11 +815,16 @@ describe('AnalysisQueue.uploadAsAtomEntity()', () => {
         throw new Error('Cache write failed');
       });
       mockBatchCreateAtoms.mockResolvedValue({
-        success: [mockAtoms.testFunc, mockAtoms.helperFunc, mockAtoms.TestClass, mockAtoms.lodash],
-        failed: [],
+        atoms: [
+          { ...mockAtoms.testFunc, status: 'created', error: null },
+          { ...mockAtoms.helperFunc, status: 'created', error: null },
+          { ...mockAtoms.TestClass, status: 'created', error: null },
+          { ...mockAtoms.lodash, status: 'created', error: null },
+        ],
         total: 4,
-        success_count: 4,
-        failed_count: 0,
+        created: 4,
+        skipped: 0,
+        errors: 0,
       });
       mockCreateEntity.mockResolvedValue(mockEntity);
 

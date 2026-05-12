@@ -561,7 +561,7 @@ export class AnalysisQueue {
     if (atomPayloads.length > 0) {
       try {
         const result = await this.client.batchCreateAtoms(atomPayloads);
-        createdAtoms = result?.success || [];
+        createdAtoms = (result?.atoms || []).filter(a => a.status === 'created' && a.id);
       } catch (error) {
         if (error?.statusCode === 404) {
           logWarn(
@@ -1265,8 +1265,8 @@ export class AnalysisQueue {
         const chunk = allAtomPayloads.slice(i, i + BATCH_SIZE);
         try {
           const result = await this.client.batchCreateAtoms(chunk);
-          const successAtoms = result?.success || [];
-          for (const atom of successAtoms) {
+          const createdAtoms = (result?.atoms || []).filter(a => a.status === 'created' && a.id);
+          for (const atom of createdAtoms) {
             allCreatedAtoms.push(atom);
             globalNameToAtomId.set(atom.name, atom.id);
           }
