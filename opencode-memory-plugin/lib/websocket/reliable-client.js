@@ -47,6 +47,7 @@ export class ReliableWebSocketClient {
 
     this.reconnectAttempts = 0;
     this.reconnectTimer = null;
+    this._connectedAt = null;
     this.messageQueue = [];
     this.messageHandlers = new Map();
 
@@ -118,7 +119,6 @@ export class ReliableWebSocketClient {
     this.ws.on('open', () => {
       logInfo('ReliableWebSocket', 'Transport open, waiting for connected message...');
       this.stateManager.transition(WebSocketState.CONNECTING, 'websocket open');
-      this.reconnectAttempts = 0;
     });
 
     this.ws.on('message', data => {
@@ -171,6 +171,8 @@ export class ReliableWebSocketClient {
         this.sessionId = message.session_id;
       }
       logInfo('ReliableWebSocket', `Connected, session: ${this.sessionId}`);
+      this._connectedAt = Date.now();
+      this.reconnectAttempts = 0;
       this.stateManager.transition(WebSocketState.CONNECTED, 'server confirmed');
       this.startHeartbeat();
       this.flushMessageQueue();
@@ -231,6 +233,13 @@ export class ReliableWebSocketClient {
 
   handleDisconnect(code, reason) {
     this.heartbeatManager.stop();
+
+    const MIN_STABLE_MS = 5000;
+    const wasStable = this._connectedAt && Date.now() - this._connectedAt >= MIN_STABLE_MS;
+
+    if (wasStable) {
+      this.reconnectAttempts = 0;
+    }
 
     if (this.stateManager.is(WebSocketState.CONNECTED)) {
       this.stateManager.transition(WebSocketState.RECONNECTING, `disconnected: ${code}`);
