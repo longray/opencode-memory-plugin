@@ -1,6 +1,6 @@
 {
   "name": "@csuwl/opencode-memory-plugin",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "description": "OpenClaw-style memory system with L0/L1/L2 layered storage, ULID naming, and automatic sync",
   "license": "MIT",
   "type": "module",
@@ -65,6 +65,7 @@
     "agents/",
     "scripts/",
     "bin/",
+    "sops/",
     "plugin.js",
     "index.js",
     "README.npm.md"

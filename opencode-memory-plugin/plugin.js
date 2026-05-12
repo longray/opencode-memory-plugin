@@ -1,5 +1,12 @@
 import { tool } from '@opencode-ai/plugin/tool';
-import { memory_write, memory_pin, entity_update, entity_atoms, load_context_budget, load_context_level } from './tools/core.js';
+import {
+  memory_write,
+  memory_pin,
+  entity_update,
+  entity_atoms,
+  load_context_budget,
+  load_context_level,
+} from './tools/core.js';
 import { memory_search, memory_suggest } from './tools/search.js';
 import { memory_relate, memory_graph } from './tools/graph.js';
 import { memory_timeline, memory_topics } from './tools/browse.js';
@@ -17,10 +24,8 @@ import { startFileWatcher } from './lib/file-watcher.js';
 import { getConfig } from './lib/storage.js';
 import { getWebSocketUrl } from './lib/config.js';
 import { ReliableWebSocketClient } from './lib/websocket/reliable-client.js';
-import {
-  WS_HEARTBEAT_INTERVAL_MS,
-  WS_RECONNECT_BASE_DELAY_MS,
-} from './lib/constants.js';
+import { ScheduledHealthCheck } from './lib/scheduled-health-check.js';
+import { WS_HEARTBEAT_INTERVAL_MS, WS_RECONNECT_BASE_DELAY_MS } from './lib/constants.js';
 
 let _wsClient = null;
 
@@ -112,6 +117,14 @@ export const MemoryPlugin = async ctx => {
   } else {
     console.log('[MemoryPlugin] WebSocket disabled');
   }
+
+  // Scheduled health check
+  const healthCheck = new ScheduledHealthCheck(config);
+  healthCheck.start();
+
+  process.on('exit', () => {
+    healthCheck.stop();
+  });
 
   return {
     tool: {

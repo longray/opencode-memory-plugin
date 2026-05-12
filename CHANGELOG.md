@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased]
+
+### Auto Code Relation Extraction
+
+#### Added
+
+- **Auto code relation extraction**: Automatic discovery of `depends_on`, `calls`, and `extends` relationships between code entities
+- **Symbol table**: Cross-file symbol resolution with LRU cache and disk persistence for fast lookups across restarts
+- **Scheduled health check**: Periodic knowledge graph health monitoring with configurable cron schedules and thresholds
+- **Dual-threshold relation recommendation engine**: High-confidence relations auto-created, medium-confidence relations queued for review
+- **Quality dashboard**: Knowledge graph quality metrics including health scores, connectivity density, and orphan node rates
+- **Pending review queue**: Review queue for medium-confidence recommendations with configurable expiry management
+
+#### Fixed
+
+- **LRU eviction memory leak**: Fixed symbol table LRU cache not properly releasing evicted entries
+- **Concurrent write protection**: Fixed race conditions in pending review queue during simultaneous writes
+- **Code analyzer runtime errors**: Fixed undefined variable references and missing field access errors in code analyzer
+
+---
+
 ## [3.3.0] - 2026-04-29
 
 ### v3.3 Atom Architecture - 层级化知识图谱

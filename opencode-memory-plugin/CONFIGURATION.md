@@ -321,6 +321,107 @@ The code analysis feature automatically analyzes code files on save and stores t
 
 **See [`CODE-ANALYSIS.md`](./CODE-ANALYSIS.md) for detailed documentation.**
 
+## Auto Code Relation Extraction
+
+The auto code relation extraction feature automatically discovers and tracks relationships between code entities (functions, classes, modules) across files. It builds a knowledge graph of your codebase by analyzing symbol references, function calls, and inheritance patterns.
+
+### Health Check Configuration
+
+Controls periodic monitoring of knowledge graph health.
+
+```json
+{
+  "health_check": {
+    "enabled": true,
+    "schedule": "*/30 * * * *",
+    "threshold": 80,
+    "density_threshold": 0.02,
+    "orphan_rate_threshold": 0.2,
+    "timeout": 60000
+  }
+}
+```
+
+**Options**:
+
+- `enabled`: Enable or disable scheduled health checks (default: `true`)
+- `schedule`: Cron expression for check frequency (default: `"*/30 * * * *"` — every 30 minutes)
+- `threshold`: Minimum health score to consider graph healthy, 0-100 (default: `80`)
+- `density_threshold`: Minimum edge-to-node ratio to consider graph sufficiently connected (default: `0.02`)
+- `orphan_rate_threshold`: Maximum ratio of orphan nodes before triggering alert (default: `0.20`)
+- `timeout`: Maximum time for a single health check run in milliseconds (default: `60000`)
+
+### Recommendation Engine Configuration
+
+Controls the dual-threshold relation recommendation system.
+
+```json
+{
+  "recommendation": {
+    "auto_create_threshold": 0.85,
+    "review_threshold": 0.75,
+    "auto_create_enabled": false,
+    "max_entities": 50,
+    "queue_expiry_days": 30
+  }
+}
+```
+
+**Options**:
+
+- `auto_create_threshold`: Confidence threshold for automatic relation creation, 0.0-1.0 (default: `0.85`)
+- `review_threshold`: Confidence threshold for adding to review queue, 0.0-1.0 (default: `0.75`)
+- `auto_create_enabled`: Allow automatic creation of high-confidence relations (default: `false`)
+- `max_entities`: Maximum number of entities to process in a single recommendation run (default: `50`)
+- `queue_expiry_days`: Days after which unreviewed recommendations expire (default: `30`)
+
+### Relation Extraction Example
+
+```json
+{
+  "version": "3.0",
+  "code_analysis": {
+    "enabled": true,
+    "auto_trigger": true
+  },
+  "health_check": {
+    "enabled": true,
+    "schedule": "*/30 * * * *",
+    "threshold": 80,
+    "density_threshold": 0.02,
+    "orphan_rate_threshold": 0.2,
+    "timeout": 60000
+  },
+  "recommendation": {
+    "auto_create_threshold": 0.85,
+    "review_threshold": 0.75,
+    "auto_create_enabled": false,
+    "max_entities": 50,
+    "queue_expiry_days": 30
+  }
+}
+```
+
+### How It Works
+
+The relation extraction system operates in three stages:
+
+1. **Symbol Resolution**: The symbol table resolves cross-file references using an LRU cache for performance. Symbols are persisted to disk and survive restarts.
+
+2. **Relation Discovery**: The recommendation engine analyzes resolved symbols to identify `depends_on`, `calls`, and `extends` relationships. High-confidence relations (above `auto_create_threshold`) are created automatically when `auto_create_enabled` is true. Medium-confidence relations (between `review_threshold` and `auto_create_threshold`) are added to the pending review queue.
+
+3. **Health Monitoring**: The scheduled health check periodically evaluates graph quality metrics including connectivity density, orphan node rate, and overall health score. Alerts are raised when metrics fall below configured thresholds.
+
+### New Modules
+
+| Module                      | Description                                                                 |
+| --------------------------- | --------------------------------------------------------------------------- |
+| `symbol-table.js`           | Cross-file symbol resolution with LRU cache and disk persistence            |
+| `scheduled-health-check.js` | Periodic knowledge graph health monitoring with configurable cron schedules |
+| `pending-review-queue.js`   | Review queue for medium-confidence recommendations with expiry management   |
+| `relation-recommender.js`   | Dual-threshold relation recommendation engine (auto-create vs review)       |
+| `quality-dashboard.js`      | Knowledge graph quality metrics and health score dashboard                  |
+
 ## Troubleshooting
 
 ### ModelScope API Issues

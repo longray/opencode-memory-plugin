@@ -460,9 +460,7 @@ describe('H-4: lazy client initialization', () => {
 
     const client2 = queue.client;
     expect(client2.tenantId).toBe('tenant-B');
-    expect(getWrapperClientMock).toHaveBeenCalledWith(
-      expect.objectContaining({ forceNew: true })
-    );
+    expect(getWrapperClientMock).toHaveBeenCalledWith(expect.objectContaining({ forceNew: true }));
   });
 
   it('client getter reuses client when tenant_id is unchanged', () => {
@@ -472,5 +470,400 @@ describe('H-4: lazy client initialization', () => {
 
     expect(client1).toBe(client2);
     expect(getWrapperClientMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ===== Global Symbol Table & Auto Depends-On (Tasks 3.1-4.7) =====
+
+describe('Global Symbol Table Extraction (Tasks 3.1-3.7)', () => {
+  let queue;
+
+  beforeEach(() => {
+    queue = new AnalysisQueue();
+  });
+
+  it('extracts exported functions from AST analysis result', () => {
+    const analysisResult = {
+      language: 'javascript',
+      functions: [
+        { name: 'foo', is_exported: true, start_line: 1, end_line: 5 },
+        { name: 'bar', is_exported: true, start_line: 10, end_line: 15 },
+        { name: 'internal', is_exported: false, start_line: 20, end_line: 25 },
+      ],
+      classes: [],
+      imports: [],
+      exports: [
+        { name: 'foo', type: 'function' },
+        { name: 'bar', type: 'function' },
+      ],
+      calls: [],
+    };
+
+    const symbolTable = queue.buildSymbolTable('src/utils.js', analysisResult, 'entity-utils');
+
+    expect(symbolTable.functions.size).toBe(2);
+    expect(symbolTable.functions.get('foo')).toBe('entity-utils');
+    expect(symbolTable.functions.get('bar')).toBe('entity-utils');
+    expect(symbolTable.functions.has('internal')).toBe(false);
+  });
+
+  it('extracts exported classes from AST analysis result', () => {
+    const analysisResult = {
+      language: 'javascript',
+      functions: [],
+      classes: [
+        { name: 'MyClass', start_line: 1, end_line: 20 },
+        { name: 'Helper', start_line: 25, end_line: 40 },
+      ],
+      imports: [],
+      exports: [{ name: 'MyClass', type: 'class' }],
+      calls: [],
+    };
+
+    const symbolTable = queue.buildSymbolTable('src/models.js', analysisResult, 'entity-models');
+
+    expect(symbolTable.classes.size).toBe(2);
+    expect(symbolTable.classes.get('MyClass')).toBe('entity-models');
+    expect(symbolTable.classes.get('Helper')).toBe('entity-models');
+  });
+
+  it('handles name collisions using file path as namespace', () => {
+    const result1 = {
+      language: 'javascript',
+      functions: [{ name: 'utils', is_exported: true, start_line: 1, end_line: 5 }],
+      classes: [],
+      imports: [],
+      exports: [{ name: 'utils', type: 'function' }],
+      calls: [],
+    };
+
+    const result2 = {
+      language: 'javascript',
+      functions: [{ name: 'utils', is_exported: true, start_line: 1, end_line: 5 }],
+      classes: [],
+      imports: [],
+      exports: [{ name: 'utils', type: 'function' }],
+      calls: [],
+    };
+
+    const table1 = queue.buildSymbolTable('src/utils.js', result1, 'entity-1');
+    const table2 = queue.buildSymbolTable('lib/utils.js', result2, 'entity-2');
+
+    const globalTable = queue.mergeSymbolTables([table1, table2]);
+
+    expect(globalTable.functions.get('utils')).toBeDefined();
+    expect(globalTable.namespaced.get('src/utils.js::utils')).toBe('entity-1');
+    expect(globalTable.namespaced.get('lib/utils.js::utils')).toBe('entity-2');
+  });
+
+  it('handles default exports', () => {
+    const analysisResult = {
+      language: 'javascript',
+      functions: [{ name: 'default', is_exported: true, start_line: 1, end_line: 10 }],
+      classes: [],
+      imports: [],
+      exports: [{ name: 'default', type: 'function', is_default: true }],
+      calls: [],
+    };
+
+    const symbolTable = queue.buildSymbolTable('src/index.js', analysisResult, 'entity-index');
+
+    expect(symbolTable.functions.get('default')).toBe('entity-index');
+    expect(symbolTable.defaultExport).toBe('entity-index');
+  });
+
+  it('supports symbol lookup by name', () => {
+    const analysisResult = {
+      language: 'javascript',
+      functions: [{ name: 'calculateTotal', is_exported: true, start_line: 1, end_line: 10 }],
+      classes: [],
+      imports: [],
+      exports: [{ name: 'calculateTotal', type: 'function' }],
+      calls: [],
+    };
+
+    const symbolTable = queue.buildSymbolTable('src/cart.js', analysisResult, 'entity-cart');
+    const entityId = queue.lookupSymbol(symbolTable, 'calculateTotal');
+
+    expect(entityId).toBe('entity-cart');
+  });
+
+  it('returns null for unresolved symbols', () => {
+    const symbolTable = queue.buildSymbolTable(
+      'src/empty.js',
+      {
+        language: 'javascript',
+        functions: [],
+        classes: [],
+        imports: [],
+        exports: [],
+        calls: [],
+      },
+      'entity-empty'
+    );
+
+    const entityId = queue.lookupSymbol(symbolTable, 'nonexistent');
+
+    expect(entityId).toBeNull();
+  });
+});
+
+describe('Auto Depends-On Extraction (Tasks 4.1-4.7)', () => {
+  let queue;
+
+  beforeEach(() => {
+    queue = new AnalysisQueue();
+  });
+
+  it('extracts ES6 import statements', () => {
+    const analysisResult = {
+      language: 'javascript',
+      functions: [],
+      classes: [],
+      imports: [{ source: './utils', imported_names: ['foo', 'bar'], start_line: 1 }],
+      exports: [],
+      calls: [],
+    };
+
+    const imports = queue.extractImports(analysisResult);
+
+    expect(imports).toHaveLength(1);
+    expect(imports[0].source).toBe('./utils');
+    expect(imports[0].imported_names).toEqual(['foo', 'bar']);
+    expect(imports[0].type).toBe('es6');
+  });
+
+  it('extracts default imports', () => {
+    const analysisResult = {
+      language: 'javascript',
+      functions: [],
+      classes: [],
+      imports: [{ source: './utils', imported_names: ['default'], start_line: 1 }],
+      exports: [],
+      calls: [],
+    };
+
+    const imports = queue.extractImports(analysisResult);
+
+    expect(imports).toHaveLength(1);
+    expect(imports[0].source).toBe('./utils');
+    expect(imports[0].isDefault).toBe(true);
+  });
+
+  it('extracts namespace imports', () => {
+    const analysisResult = {
+      language: 'javascript',
+      functions: [],
+      classes: [],
+      imports: [{ source: './utils', imported_names: ['* as utils'], start_line: 1 }],
+      exports: [],
+      calls: [],
+    };
+
+    const imports = queue.extractImports(analysisResult);
+
+    expect(imports).toHaveLength(1);
+    expect(imports[0].isNamespace).toBe(true);
+    expect(imports[0].namespace).toBe('utils');
+  });
+
+  it('resolves import paths to entity IDs using symbol table', () => {
+    const globalSymbolTable = {
+      pathToEntityId: new Map([
+        ['src/utils.js', 'entity-utils'],
+        ['src/helpers.js', 'entity-helpers'],
+      ]),
+      functions: new Map(),
+      classes: new Map(),
+      namespaced: new Map(),
+    };
+
+    const resolved = queue.resolveImportPath('./utils', 'src/index.js', globalSymbolTable);
+
+    expect(resolved).toBe('entity-utils');
+  });
+
+  it('creates depends_on relationships for internal imports', async () => {
+    const globalSymbolTable = {
+      pathToEntityId: new Map([['src/utils.js', 'entity-utils']]),
+      functions: new Map(),
+      classes: new Map(),
+      namespaced: new Map(),
+    };
+
+    const dependencies = await queue.createDependsOnRelations(
+      'entity-index',
+      'src/index.js',
+      [{ source: './utils', imported_names: ['foo'], type: 'es6' }],
+      globalSymbolTable,
+      'default'
+    );
+
+    expect(dependencies).toHaveLength(1);
+    expect(dependencies[0].from_id).toBe('entity-index');
+    expect(dependencies[0].to_id).toBe('entity-utils');
+    expect(dependencies[0].type).toBe('depends_on');
+    expect(dependencies[0].weight).toBe(0.8);
+  });
+
+  it('skips external dependencies (node_modules)', async () => {
+    const globalSymbolTable = {
+      pathToEntityId: new Map(),
+      functions: new Map(),
+      classes: new Map(),
+      namespaced: new Map(),
+    };
+
+    const dependencies = await queue.createDependsOnRelations(
+      'entity-index',
+      'src/index.js',
+      [{ source: 'lodash', imported_names: ['merge'], type: 'es6' }],
+      globalSymbolTable,
+      'default'
+    );
+
+    expect(dependencies).toHaveLength(0);
+  });
+
+  it('skips built-in modules', async () => {
+    const globalSymbolTable = {
+      pathToEntityId: new Map(),
+      functions: new Map(),
+      classes: new Map(),
+      namespaced: new Map(),
+    };
+
+    const dependencies = await queue.createDependsOnRelations(
+      'entity-index',
+      'src/index.js',
+      [{ source: 'fs', imported_names: ['readFile'], type: 'es6' }],
+      globalSymbolTable,
+      'default'
+    );
+
+    expect(dependencies).toHaveLength(0);
+  });
+
+  it('handles multiple imports from different sources', async () => {
+    const globalSymbolTable = {
+      pathToEntityId: new Map([
+        ['src/utils.js', 'entity-utils'],
+        ['src/helpers.js', 'entity-helpers'],
+      ]),
+      functions: new Map(),
+      classes: new Map(),
+      namespaced: new Map(),
+    };
+
+    const dependencies = await queue.createDependsOnRelations(
+      'entity-index',
+      'src/index.js',
+      [
+        { source: './utils', imported_names: ['foo'], type: 'es6' },
+        { source: './helpers', imported_names: ['bar'], type: 'es6' },
+      ],
+      globalSymbolTable,
+      'default'
+    );
+
+    expect(dependencies).toHaveLength(2);
+  });
+
+  it('includes relationship metadata (import names, type)', async () => {
+    const globalSymbolTable = {
+      pathToEntityId: new Map([['src/utils.js', 'entity-utils']]),
+      functions: new Map(),
+      classes: new Map(),
+      namespaced: new Map(),
+    };
+
+    const dependencies = await queue.createDependsOnRelations(
+      'entity-index',
+      'src/index.js',
+      [{ source: './utils', imported_names: ['foo', 'bar'], type: 'es6' }],
+      globalSymbolTable,
+      'default'
+    );
+
+    expect(dependencies).toHaveLength(1);
+    expect(dependencies[0].description).toContain('Imports: foo, bar');
+    expect(dependencies[0].metadata).toBeDefined();
+    expect(dependencies[0].metadata.import_type).toBe('es6');
+  });
+
+  it('detects and skips duplicate relationships', async () => {
+    const globalSymbolTable = {
+      pathToEntityId: new Map([['src/utils.js', 'entity-utils']]),
+      functions: new Map(),
+      classes: new Map(),
+      namespaced: new Map(),
+    };
+
+    const existingRefs = new Set(['entity-index:entity-utils:depends_on']);
+
+    const dependencies = await queue.createDependsOnRelations(
+      'entity-index',
+      'src/index.js',
+      [{ source: './utils', imported_names: ['foo'], type: 'es6' }],
+      globalSymbolTable,
+      'default',
+      existingRefs
+    );
+
+    expect(dependencies).toHaveLength(0);
+  });
+
+  it('resolves relative paths with file extension handling', () => {
+    const globalSymbolTable = {
+      pathToEntityId: new Map([
+        ['src/utils.js', 'entity-utils'],
+        ['src/utils/index.js', 'entity-utils-index'],
+      ]),
+      functions: new Map(),
+      classes: new Map(),
+      namespaced: new Map(),
+    };
+
+    const resolved1 = queue.resolveImportPath('./utils', 'src/index.js', globalSymbolTable);
+    expect(resolved1).toBe('entity-utils');
+
+    const resolved2 = queue.resolveImportPath('./utils/index', 'src/index.js', globalSymbolTable);
+    expect(resolved2).toBe('entity-utils-index');
+  });
+});
+
+describe('Integration: Symbol Table + Depends-On', () => {
+  let queue;
+
+  beforeEach(() => {
+    queue = new AnalysisQueue();
+  });
+
+  it('builds symbol table and adds to global table in uploadProject flow', () => {
+    const globalSymbolTable = {
+      pathToEntityId: new Map(),
+      functions: new Map(),
+      classes: new Map(),
+      namespaced: new Map(),
+      defaultExport: null,
+    };
+
+    const result = {
+      functions: [{ name: 'foo', is_exported: true, start_line: 1, end_line: 5 }],
+      classes: [{ name: 'MyClass', start_line: 10, end_line: 20 }],
+      imports: [{ source: './utils', imported_names: ['bar'], start_line: 1 }],
+      exports: [
+        { name: 'foo', type: 'function' },
+        { name: 'MyClass', type: 'class' },
+      ],
+      calls: [],
+    };
+
+    const symbolTable = queue.buildSymbolTable('src/index.js', result, 'entity-index');
+    queue.addToGlobalSymbolTable(globalSymbolTable, 'src/index.js', symbolTable);
+
+    expect(globalSymbolTable.pathToEntityId.get('src/index.js')).toBe('entity-index');
+    expect(globalSymbolTable.functions.get('foo')).toBe('entity-index');
+    expect(globalSymbolTable.classes.get('MyClass')).toBe('entity-index');
   });
 });

@@ -1,0 +1,199 @@
+## 1. Real-Time Quality Dashboard
+
+- [x] 1.1 Implement `opencode-memory quality-dashboard` CLI command
+- [x] 1.2 Implement overall health score calculation (coverage + relationship + search) / 3
+- [x] 1.3 Implement health grade display (A/B/C/D/F)
+- [x] 1.4 Implement color coding for health score (green/yellow/red)
+- [x] 1.5 Implement score breakdown display
+- [x] 1.6 Implement total entity count query
+- [x] 1.7 Implement entity type distribution query (code_module, code_class, etc.)
+- [x] 1.8 Implement directory coverage query (lib/, tools/, cli/, agents/)
+- [x] 1.9 Implement entity growth display (today, this week)
+- [x] 1.10 Implement network density calculation
+- [x] 1.11 Implement isolated entity count query
+- [x] 1.12 Implement average relationships per entity calculation
+- [x] 1.13 Implement relationship type distribution query
+- [x] 1.14 Implement recent search latency query (last 10 searches)
+- [x] 1.15 Implement search accuracy calculation (precision@K)
+- [x] 1.16 Implement search mode usage statistics
+- [x] 1.17 Implement search anomaly count display
+- [x] 1.18 Implement manual refresh on 'r' key press
+- [x] 1.19 Implement auto-refresh every 60 seconds
+- [x] 1.20 Implement auto-refresh toggle on 'a' key press
+- [x] 1.21 Implement last refresh timestamp display
+- [x] 1.22 Implement top 3 issues display
+- [x] 1.23 Implement suggested SOP commands display
+- [x] 1.24 Implement one-click fix options display
+- [x] 1.25 Implement priority color coding (critical/warning/info)
+- [x] 1.26 Implement dashboard layout (top/left/center/right/bottom)
+- [x] 1.27 Test dashboard display
+- [x] 1.28 Document dashboard usage
+
+## 2. Instant SOP Execution
+
+- [x] 2.1 Implement `opencode-memory sop run <name>` command
+- [x] 2.2 Implement SOP YAML loader from `.opencode/sops/`
+- [x] 2.3 Implement SOP structure validation
+- [x] 2.4 Implement sequential step execution
+- [x] 2.5 Implement step failure handling
+- [x] 2.6 Implement progress display during execution
+- [x] 2.7 Implement `--threshold` parameter override
+- [x] 2.8 Implement multiple parameter overrides
+- [x] 2.9 Implement parameter value validation
+- [x] 2.10 Implement `--help` for SOP parameters
+- [x] 2.11 Implement `--dry-run` mode
+- [x] 2.12 Implement affected entities preview in dry-run
+- [x] 2.13 Implement estimated impact display in dry-run
+- [x] 2.14 Implement confirmation prompt for non-dry-run
+- [x] 2.15 Implement `--step <name>` for specific step execution
+- [x] 2.16 Implement `--step-range <start>-<end>` for range execution
+- [x] 2.17 Implement `--skip <step>` for skipping steps
+- [x] 2.18 Implement `--list-steps` to show available steps
+- [x] 2.19 Implement execution summary display
+- [x] 2.20 Implement detailed changes display
+- [x] 2.21 Implement before/after metrics display
+- [x] 2.22 Implement report saving to `.opencode/sop-reports/`
+- [x] 2.23 Implement `sop list` command
+- [x] 2.24 Implement `sop show <name>` command
+- [x] 2.25 Implement `--category` filter for sop list
+- [x] 2.26 Implement last execution time display
+- [x] 2.27 Test SOP execution
+- [x] 2.28 Document SOP usage
+
+## 3. Dev Phase Quality Guard
+
+- [x] 3.1 Implement memory_write hook
+- [x] 3.2 Implement post-write quality check trigger
+- [x] 3.3 Implement isolated entity detection after write
+- [x] 3.4 Implement entity completeness check after write
+- [x] 3.5 Implement quality warning display after write
+- [x] 3.6 Implement memory_relate hook
+- [x] 3.7 Implement post-relate quality check trigger
+- [x] 3.8 Implement relationship weight validation after relate
+- [x] 3.9 Implement relationship type validation after relate
+- [x] 3.10 Implement duplicate relation detection after relate
+- [x] 3.11 Implement quality check completion in < 100ms
+- [x] 3.12 Implement affected entity only check
+- [x] 3.13 Implement async quality check execution
+- [x] 3.14 Implement quality guard skip when disabled
+- [x] 3.15 Implement quality guard enable/disable configuration
+- [x] 3.16 Implement check_on_write configuration
+- [x] 3.17 Implement check_on_relate configuration
+- [x] 3.18 Implement threshold configuration (isolated_threshold, etc.)
+- [x] 3.19 Implement warning level configuration
+- [x] 3.20 Implement clear warning message display
+- [x] 3.21 Implement affected entities list in warning
+- [x] 3.22 Implement suggested fix in warning
+- [x] 3.23 Implement ignore option for warnings
+- [x] 3.24 Implement `--no-quality-check` flag
+- [x] 3.25 Implement batch operation bypass
+- [x] 3.26 Implement auto re-enable after batch
+- [x] 3.27 Implement bypass event logging
+- [x] 3.28 Test quality guard
+- [x] 3.29 Document quality guard configuration
+
+## 4. One-Click Fix
+
+- [x] 4.1 Implement `opencode-memory fix` command
+- [x] 4.2 Implement isolated entity detection
+- [x] 4.3 Implement low-weight relationship detection
+- [x] 4.4 Implement missing relationship detection
+- [x] 4.5 Implement duplicate entity detection
+- [x] 4.6 Implement incomplete entity detection
+- [x] 4.7 Implement relation recommendation for isolated entities
+- [x] 4.8 Implement weight adjustment recommendation
+- [x] 4.9 Implement relation creation recommendation
+- [x] 4.10 Implement entity merge recommendation
+- [x] 4.11 Implement fix preview display
+- [x] 4.12 Implement `--dry-run` mode
+- [x] 4.13 Implement fix count by type in dry-run
+- [x] 4.14 Implement estimated impact in dry-run
+- [x] 4.15 Implement report export in dry-run
+- [x] 4.16 Implement `--auto` mode for safe fixes
+- [x] 4.17 Implement unsafe fix skipping in auto mode
+- [x] 4.18 Implement auto-fix progress display
+- [x] 4.19 Implement auto-fix report generation
+- [x] 4.20 Implement `--interactive` mode
+- [x] 4.21 Implement interactive issue display
+- [x] 4.22 Implement fix options (yes/no/show/quit)
+- [x] 4.23 Implement immediate fix on confirmation
+- [x] 4.24 Implement skip to next on decline
+- [x] 4.25 Implement details display on request
+- [x] 4.26 Implement `fix isolated-entities` command
+- [x] 4.27 Implement `fix low-weight-relations` command
+- [x] 4.28 Implement `fix missing-relations` command
+- [x] 4.29 Implement `fix duplicates` command
+- [x] 4.30 Implement combined fix types
+- [x] 4.31 Implement `--undo` for last fix
+- [x] 4.32 Implement `--undo <fix-id>` for specific fix
+- [x] 4.33 Implement `--history` to show recent fixes
+- [x] 4.34 Implement undo depth limit (last 10)
+- [x] 4.35 Implement fix success verification
+- [x] 4.36 Implement side effect detection
+- [x] 4.37 Implement rollback on failure
+- [x] 4.38 Implement validation results display
+- [x] 4.39 Test one-click fix
+- [x] 4.40 Document fix usage
+
+## 5. Quality Trend Visualization
+
+- [x] 5.1 Implement daily entity count recording
+- [x] 5.2 Implement daily relationship count recording
+- [x] 5.3 Implement daily network density recording
+- [x] 5.4 Implement daily isolated entity count recording
+- [x] 5.5 Implement daily search latency recording
+- [x] 5.6 Implement daily search accuracy recording
+- [x] 5.7 Implement ISO timestamp storage
+- [x] 5.8 Implement `.opencode/quality-metrics.json` storage
+- [x] 5.9 Implement 7-day entity growth trend calculation
+- [x] 5.10 Implement 7-day relationship growth trend calculation
+- [x] 5.11 Implement 7-day density change trend calculation
+- [x] 5.12 Implement 7-day isolated entity reduction trend calculation
+- [x] 5.13 Implement 7-day latency improvement trend calculation
+- [x] 5.14 Implement trend direction display (↑/↓/→)
+- [x] 5.15 Implement ASCII bar chart for entity count
+- [x] 5.16 Implement ASCII bar chart for relationship count
+- [x] 5.17 Implement ASCII line chart for network density
+- [x] 5.18 Implement ASCII bar chart for isolated entities
+- [x] 5.19 Implement ASCII line chart for search latency
+- [x] 5.20 Implement terminal width scaling
+- [x] 5.21 Implement > 10% improvement highlighting (green)
+- [x] 5.22 Implement > 10% degradation highlighting (red)
+- [x] 5.23 Implement new record highlighting (⭐)
+- [x] 5.24 Implement absolute change display (+X / -X)
+- [x] 5.25 Implement target comparison display
+- [x] 5.26 Implement progress bar display
+- [x] 5.27 Implement time to target estimation
+- [x] 5.28 Implement off-target metric alerting
+- [x] 5.29 Implement `quality export --format csv` command
+- [x] 5.30 Implement `quality export --format json` command
+- [x] 5.31 Implement `--from` and `--to` date range export
+- [x] 5.32 Implement `--metrics` specific metric export
+- [x] 5.33 Implement `quality trends --from --to` query
+- [x] 5.34 Implement `quality trends --metric` query
+- [x] 5.35 Implement `quality trends --compare week` comparison
+- [x] 5.36 Implement trend statistics (min, max, avg, stddev)
+- [x] 5.37 Test trend visualization
+- [x] 5.38 Document trend usage
+
+## 6. Integration and Documentation
+
+- [x] 6.1 Integrate dashboard with existing CLI
+- [x] 6.2 Integrate SOP execution with existing CLI
+- [x] 6.3 Integrate quality guard with memory tools
+- [x] 6.4 Integrate fix command with existing CLI
+- [x] 6.5 Integrate trend visualization with dashboard
+- [x] 6.6 Create SOP YAML templates
+- [x] 6.7 Create quality guard configuration template
+- [x] 6.8 Write dashboard usage documentation
+- [x] 6.9 Write SOP execution documentation
+- [x] 6.10 Write quality guard documentation
+- [x] 6.11 Write one-click fix documentation
+- [x] 6.12 Write trend visualization documentation
+- [x] 6.13 Create usage examples
+- [x] 6.14 Create troubleshooting guide
+- [x] 6.15 Run integration tests
+- [x] 6.16 Verify all commands work end-to-end
+- [x] 6.17 Update main README
+- [x] 6.18 Update tasks.md with all tasks marked complete
+- [x] 6.19 Archive the OpenSpec change

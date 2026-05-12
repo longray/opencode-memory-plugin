@@ -84,15 +84,13 @@ export class AnalysisQueue {
     this.memoryIdCache = null;
     this.fingerprintCache = null;
     this.usePrecompute = getCodeAnalysisConfig().use_precompute !== false;
+    this.existingRefs = new Set();
   }
 
   get client() {
     const cfg = getConfig();
     const tenantId =
-      cfg.backend?.tenant_id ||
-      process.env.MEMORY_TENANT_ID ||
-      process.env.USERNAME ||
-      'default';
+      cfg.backend?.tenant_id || process.env.MEMORY_TENANT_ID || process.env.USERNAME || 'default';
 
     if (!this._client || this._clientTenant !== tenantId) {
       this._clientTenant = tenantId;
@@ -525,11 +523,7 @@ export class AnalysisQueue {
     );
 
     if (result.entity?.id && isAutoLinkToConversation()) {
-      await this._linkToConversationMemory(
-        result.entity.id,
-        item.relativePath,
-        analysisResult
-      );
+      await this._linkToConversationMemory(result.entity.id, item.relativePath, analysisResult);
     }
 
     return { ...result, duration };
@@ -599,7 +593,10 @@ export class AnalysisQueue {
     }
 
     if (failedCount > 0) {
-      logWarn('CodeAnalysis', `[CodeAnalysis] Failed to create ${failedCount} atoms for ${relativePath}`);
+      logWarn(
+        'CodeAnalysis',
+        `[CodeAnalysis] Failed to create ${failedCount} atoms for ${relativePath}`
+      );
     }
 
     let entity = null;
@@ -631,26 +628,110 @@ export class AnalysisQueue {
     }
 
     const createdReferences = [];
-    const refPayloads = (analysisResult.calls || [])
-      .filter((call) => {
-        const targetAtom = createdAtoms.find((a) => a.name === call.target);
-        return targetAtom && entity;
-      })
-      .map((call) => ({
-        from_id: entity.id,
-        to_id: createdAtoms.find((a) => a.name === call.target).id,
-        type: 'calls',
-        weight: 0.5,
-        line: call.line,
-        column: call.column,
-        file_path: call.file_path,
-        tenant_id: this.client.tenantId,
-      }));
+    const refPayloads = [];
 
-    if (refPayloads.length > 0) {
+    // Build name-to-atom map for resolution
+    const nameToAtom = new Map();
+    for (const atom of createdAtoms) {
+      nameToAtom.set(atom.name, atom);
+    }
+
+    // Calls relationships
+    const callCounts = new Map();
+    const callLines = new Map();
+    for (const call of analysisResult.calls || []) {
+      const targetName = call.target.includes('.') ? call.target.split('.').pop() : call.target;
+      const targetAtom = nameToAtom.get(call.target) || nameToAtom.get(targetName);
+      if (targetAtom && entity) {
+        callCounts.set(targetAtom.id, (callCounts.get(targetAtom.id) || 0) + 1);
+        if (!callLines.has(targetAtom.id)) {
+          callLines.set(targetAtom.id, []);
+        }
+        callLines.get(targetAtom.id).push(call.line);
+        refPayloads.push({
+          from_id: entity.id,
+          to_id: targetAtom.id,
+          type: 'calls',
+          weight: 0.5,
+          line: call.line,
+          column: call.column,
+          file_path: call.file_path,
+          tenant_id: this.client.tenantId,
+        });
+      }
+    }
+
+    // Extends relationships (class inheritance)
+    for (const cls of analysisResult.classes || []) {
+      if (cls.superClass) {
+        const parentAtom = nameToAtom.get(cls.superClass);
+        const childAtom = nameToAtom.get(cls.name);
+        if (parentAtom && childAtom) {
+          refPayloads.push({
+            from_id: childAtom.id,
+            to_id: parentAtom.id,
+            type: 'extends',
+            weight: 0.9,
+            metadata: { file_path: relativePath },
+            tenant_id: this.client.tenantId,
+          });
+        }
+      }
+    }
+
+    // Implements relationships (class implements interface)
+    for (const cls of analysisResult.classes || []) {
+      if (cls.implements && Array.isArray(cls.implements)) {
+        const classAtom = nameToAtom.get(cls.name);
+        for (const ifaceName of cls.implements) {
+          const ifaceAtom = nameToAtom.get(ifaceName);
+          if (classAtom && ifaceAtom) {
+            refPayloads.push({
+              from_id: classAtom.id,
+              to_id: ifaceAtom.id,
+              type: 'implements',
+              weight: 0.8,
+              metadata: { file_path: relativePath },
+              tenant_id: this.client.tenantId,
+            });
+          }
+        }
+      }
+    }
+
+    // Interface extends relationships
+    for (const iface of analysisResult.interfaces || []) {
+      if (iface.extends && Array.isArray(iface.extends)) {
+        const childAtom = nameToAtom.get(iface.name);
+        for (const parentName of iface.extends) {
+          const parentAtom = nameToAtom.get(parentName);
+          if (childAtom && parentAtom) {
+            refPayloads.push({
+              from_id: childAtom.id,
+              to_id: parentAtom.id,
+              type: 'extends',
+              weight: 0.9,
+              metadata: { file_path: relativePath },
+              tenant_id: this.client.tenantId,
+            });
+          }
+        }
+      }
+    }
+
+    // Deduplicate references by from_id + to_id + type
+    const seenRefs = new Set();
+    const uniquePayloads = refPayloads.filter(p => {
+      const key = `${p.from_id}:${p.to_id}:${p.type}`;
+      if (seenRefs.has(key)) return false;
+      seenRefs.add(key);
+      return true;
+    });
+
+    if (uniquePayloads.length > 0) {
       try {
-        const refResult = await this.client.createReferences(refPayloads);
-        createdReferences.push(...((refResult?.references) || []));
+        const refResult = await this.client.createReferences(uniquePayloads);
+        createdReferences.push(...(refResult?.references || []));
       } catch (error) {
         logError(
           'CodeAnalysis',
@@ -660,14 +741,14 @@ export class AnalysisQueue {
       }
     }
 
-    if (createdReferences.length === 0 && refPayloads.length > 0) {
+    if (createdReferences.length === 0 && uniquePayloads.length > 0) {
       logWarn(
         'CodeAnalysis',
-        `[CodeAnalysis] Failed to create ${refPayloads.length} references for ${relativePath}`
+        `[CodeAnalysis] Failed to create ${uniquePayloads.length} references for ${relativePath}`
       );
     }
 
-    if (createdReferences.length === 0 && createdAtoms.some((a) => a.type === 'function')) {
+    if (createdReferences.length === 0 && createdAtoms.some(a => a.type === 'function')) {
       logWarn(
         'CodeAnalysis',
         `[CodeAnalysis] No references created for ${relativePath}, but functions exist - possible API issue`
@@ -699,14 +780,12 @@ export class AnalysisQueue {
         ...(analysisResult.classes || []).slice(0, 2).map(c => c.name),
       ].filter(Boolean);
 
-      const query = symbolNames.length > 0
-        ? `${basename(relativePath)} ${symbolNames.join(' ')}`
-        : basename(relativePath);
+      const query =
+        symbolNames.length > 0
+          ? `${basename(relativePath)} ${symbolNames.join(' ')}`
+          : basename(relativePath);
 
-      logInfo(
-        'CodeAnalysis',
-        `[CodeAnalysis] Searching for related conversations: "${query}"`
-      );
+      logInfo('CodeAnalysis', `[CodeAnalysis] Searching for related conversations: "${query}"`);
 
       const searchResult = await this.client.search({
         query,
@@ -737,12 +816,12 @@ export class AnalysisQueue {
       const bestMatch = conversations[0];
       const conversationId = bestMatch.local_id || bestMatch.id;
 
-      await this.client.createRelation({
+      await this.client.createReference({
         from_id: conversationId,
         to_id: entityId,
         type: 'analyzes',
         weight: 0.7,
-        description: `Conversation references code in ${relativePath}`,
+        metadata: { description: `Conversation references code in ${relativePath}` },
         tenant_id: this.client.tenantId,
       });
 
@@ -826,6 +905,387 @@ export class AnalysisQueue {
       '.java': 'java',
     };
     return languageMap[ext] || 'unknown';
+  }
+
+  buildSymbolTable(filePath, analysisResult, entityId) {
+    const functions = new Map();
+    const classes = new Map();
+    const namespaced = new Map();
+    let defaultExport = null;
+
+    for (const func of analysisResult.functions || []) {
+      if (func.is_exported) {
+        functions.set(func.name, entityId);
+        namespaced.set(`${filePath}::${func.name}`, entityId);
+        if (func.name === 'default') {
+          defaultExport = entityId;
+        }
+      }
+    }
+
+    for (const cls of analysisResult.classes || []) {
+      classes.set(cls.name, entityId);
+      namespaced.set(`${filePath}::${cls.name}`, entityId);
+    }
+
+    return {
+      functions,
+      classes,
+      namespaced,
+      defaultExport,
+      pathToEntityId: new Map([[filePath, entityId]]),
+    };
+  }
+
+  mergeSymbolTables(tables) {
+    const global = {
+      pathToEntityId: new Map(),
+      functions: new Map(),
+      classes: new Map(),
+      namespaced: new Map(),
+      defaultExport: null,
+    };
+
+    for (const table of tables) {
+      for (const [p, eid] of table.pathToEntityId || []) {
+        global.pathToEntityId.set(p, eid);
+      }
+      for (const [name, eid] of table.functions || []) {
+        if (!global.functions.has(name)) {
+          global.functions.set(name, eid);
+        }
+      }
+      for (const [name, eid] of table.classes || []) {
+        if (!global.classes.has(name)) {
+          global.classes.set(name, eid);
+        }
+      }
+      for (const [key, eid] of table.namespaced || []) {
+        global.namespaced.set(key, eid);
+      }
+      if (table.defaultExport && !global.defaultExport) {
+        global.defaultExport = table.defaultExport;
+      }
+    }
+
+    return global;
+  }
+
+  addToGlobalSymbolTable(globalTable, filePath, table) {
+    for (const [p, eid] of table.pathToEntityId || []) {
+      globalTable.pathToEntityId.set(p, eid);
+    }
+    for (const [name, eid] of table.functions || []) {
+      if (!globalTable.functions.has(name)) {
+        globalTable.functions.set(name, eid);
+      }
+    }
+    for (const [name, eid] of table.classes || []) {
+      if (!globalTable.classes.has(name)) {
+        globalTable.classes.set(name, eid);
+      }
+    }
+    for (const [key, eid] of table.namespaced || []) {
+      globalTable.namespaced.set(key, eid);
+    }
+    if (table.defaultExport && !globalTable.defaultExport) {
+      globalTable.defaultExport = table.defaultExport;
+    }
+  }
+
+  lookupSymbol(symbolTable, name) {
+    return symbolTable.functions.get(name) || symbolTable.classes.get(name) || null;
+  }
+
+  extractImports(analysisResult) {
+    const imports = [];
+
+    for (const imp of analysisResult.imports || []) {
+      const importedNames = imp.imported_names || [];
+      const isDefault = importedNames.includes('default');
+      const namespaceMatch = importedNames.find(n => n.startsWith('* as '));
+      const isNamespace = !!namespaceMatch;
+      const namespace = isNamespace ? namespaceMatch.replace('* as ', '') : null;
+
+      imports.push({
+        source: imp.source,
+        imported_names: importedNames,
+        type: 'es6',
+        isDefault,
+        isNamespace,
+        namespace,
+        line: imp.start_line,
+      });
+    }
+
+    return imports;
+  }
+
+  /**
+   * Resolve import path to entity ID using symbol table
+   * @param {string} importPath - Import path (e.g., './utils')
+   * @param {string} currentFile - Current file path (e.g., 'src/index.js')
+   * @param {Object} globalSymbolTable - Global symbol table with pathToEntityId map
+   * @returns {string|null} Entity ID or null
+   */
+  resolveImportPath(importPath, currentFile, globalSymbolTable) {
+    if (!importPath.startsWith('.') && !importPath.startsWith('/')) {
+      return null;
+    }
+
+    const currentDir = path.dirname(currentFile);
+    const resolved = path.posix.join(currentDir, importPath).replace(/\\/g, '/');
+
+    const extensions = [
+      '.js',
+      '.ts',
+      '.mjs',
+      '.cjs',
+      '.mts',
+      '.cts',
+      '.tsx',
+      '.py',
+      '.go',
+      '.rs',
+      '.java',
+    ];
+    const pathToEntityId = globalSymbolTable.pathToEntityId;
+
+    for (const ext of extensions) {
+      const withExt = resolved + ext;
+      if (pathToEntityId.has(withExt)) {
+        return pathToEntityId.get(withExt);
+      }
+    }
+
+    const indexPath = path.posix.join(resolved, 'index.js');
+    if (pathToEntityId.has(indexPath)) {
+      return pathToEntityId.get(indexPath);
+    }
+
+    if (pathToEntityId.has(resolved)) {
+      return pathToEntityId.get(resolved);
+    }
+
+    return null;
+  }
+
+  /**
+   * Create depends_on relationships for internal imports
+   * @param {string} fromEntityId - Source entity ID
+   * @param {string} fromFilePath - Source file path
+   * @param {Array} imports - Array of import objects from extractImports
+   * @param {Object} globalSymbolTable - Global symbol table
+   * @param {string} tenantId - Tenant ID
+   * @param {Set} existingRefs - Set of existing reference keys (fromId:toId:type)
+   * @returns {Array} Array of created reference payloads
+   */
+  async createDependsOnRelations(
+    fromEntityId,
+    fromFilePath,
+    imports,
+    globalSymbolTable,
+    tenantId,
+    existingRefs = new Set()
+  ) {
+    const builtinModules = new Set([
+      // Node.js builtins
+      'fs',
+      'path',
+      'http',
+      'https',
+      'os',
+      'util',
+      'crypto',
+      'stream',
+      'events',
+      'url',
+      'querystring',
+      'child_process',
+      'cluster',
+      'dgram',
+      'dns',
+      'domain',
+      'net',
+      'readline',
+      'repl',
+      'tls',
+      'tty',
+      'v8',
+      'vm',
+      'zlib',
+      'assert',
+      'buffer',
+      'console',
+      'constants',
+      'module',
+      'process',
+      'timers',
+      // Python builtins
+      'os',
+      'sys',
+      're',
+      'json',
+      'math',
+      'datetime',
+      'collections',
+      'itertools',
+      'functools',
+      'pathlib',
+      'typing',
+      'abc',
+      'io',
+      'subprocess',
+      'threading',
+      'multiprocessing',
+      'asyncio',
+      'logging',
+      'unittest',
+      'copy',
+      'pickle',
+      'hashlib',
+      'random',
+      'string',
+      'textwrap',
+      'struct',
+      'codecs',
+      'csv',
+      'configparser',
+      'argparse',
+      'warnings',
+      'traceback',
+      'inspect',
+      'importlib',
+      'pkgutil',
+      // Go builtins
+      'fmt',
+      'os',
+      'io',
+      'net',
+      'net/http',
+      'net/url',
+      'encoding/json',
+      'encoding/xml',
+      'strings',
+      'bytes',
+      'strconv',
+      'math',
+      'sort',
+      'sync',
+      'context',
+      'time',
+      'errors',
+      'log',
+      'flag',
+      'path',
+      'path/filepath',
+      'reflect',
+      'regexp',
+      'runtime',
+      'testing',
+      'bufio',
+      'compress/gzip',
+      'crypto',
+      'database/sql',
+      'embed',
+      'html',
+      'html/template',
+      'text/template',
+      'unicode',
+      // Rust stdlib
+      'std',
+      'std::collections',
+      'std::fs',
+      'std::io',
+      'std::path',
+      'std::sync',
+      'std::thread',
+      'std::time',
+      'std::net',
+      'std::process',
+      'std::env',
+      'std::str',
+      'std::string',
+      'std::vec',
+      'std::option',
+      'std::result',
+      'std::fmt',
+      'std::error',
+      'std::panic',
+      'std::mem',
+      'std::ptr',
+      'std::cmp',
+      'std::hash',
+      'std::iter',
+      'std::slice',
+      // Java stdlib
+      'java.lang',
+      'java.util',
+      'java.io',
+      'java.nio',
+      'java.net',
+      'java.math',
+      'java.text',
+      'java.time',
+      'java.security',
+      'java.sql',
+      'javax.sql',
+      'java.awt',
+      'javax.swing',
+      'java.util.concurrent',
+      'java.util.stream',
+      'java.util.function',
+      'java.util.regex',
+      'java.util.logging',
+    ]);
+
+    const dependencies = [];
+
+    for (const imp of imports) {
+      const source = imp.source;
+
+      if (builtinModules.has(source) || source.startsWith('node:')) {
+        continue;
+      }
+
+      if (!source.startsWith('.') && !source.startsWith('/')) {
+        continue;
+      }
+
+      const toEntityId = this.resolveImportPath(source, fromFilePath, globalSymbolTable);
+      if (!toEntityId) {
+        continue;
+      }
+
+      const refKey = `${fromEntityId}:${toEntityId}:depends_on`;
+      if (existingRefs.has(refKey)) {
+        continue;
+      }
+
+      const importNames = (imp.imported_names || []).filter(
+        n => n !== 'default' && !n.startsWith('* as ')
+      );
+      const description =
+        importNames.length > 0 ? `Imports: ${importNames.join(', ')}` : `Imports from ${source}`;
+
+      dependencies.push({
+        from_id: fromEntityId,
+        to_id: toEntityId,
+        type: 'depends_on',
+        weight: 0.8,
+        description,
+        metadata: {
+          import_type: imp.type || 'es6',
+          import_source: source,
+          import_names: importNames,
+        },
+        tenant_id: tenantId,
+      });
+
+      existingRefs.add(refKey);
+    }
+
+    return dependencies;
   }
 
   async flushBatchLegacy(batchToSend) {
@@ -920,7 +1380,14 @@ export class AnalysisQueue {
     for (const filePath of files) {
       try {
         const source = await readFile(filePath, 'utf-8');
-        if (source.split('\n').length > 1000) continue;
+        const lineCount = source.split('\n').length;
+        if (lineCount > 1000) {
+          logWarn(
+            'CodeAnalysis',
+            `[CodeAnalysis] Skipping large file (${lineCount} lines): ${path.relative(projectRoot, filePath)}`
+          );
+          continue;
+        }
 
         const result = await codeAnalyzer.analyze(filePath, source);
         const relPath = path.relative(projectRoot, filePath).replace(/\\/g, '/');
@@ -989,6 +1456,8 @@ export class AnalysisQueue {
     }
 
     let refCount = 0;
+    const batchRefs = [];
+
     for (const { relPath, result } of allResults) {
       const fromId = relPathToEntityId.get(relPath);
       if (!fromId) continue;
@@ -999,18 +1468,115 @@ export class AnalysisQueue {
           targetId = globalNameToAtomId.get(call.target.split('.').pop());
         }
         if (!targetId) continue;
+        batchRefs.push({
+          from_id: fromId,
+          to_id: targetId,
+          type: 'calls',
+          weight: 0.5,
+          metadata: { line: call.line, column: call.column, file_path: relPath },
+          tenant_id: tenantId,
+        });
+      }
+
+      for (const cls of result.classes || []) {
+        const childId = globalNameToAtomId.get(cls.name);
+        if (!childId) continue;
+
+        if (cls.superClass) {
+          const parentId = globalNameToAtomId.get(cls.superClass);
+          if (parentId) {
+            batchRefs.push({
+              from_id: childId,
+              to_id: parentId,
+              type: 'extends',
+              weight: 0.9,
+              metadata: { file_path: relPath },
+              tenant_id: tenantId,
+            });
+          }
+        }
+
+        if (cls.implements && Array.isArray(cls.implements)) {
+          for (const ifaceName of cls.implements) {
+            const ifaceId = globalNameToAtomId.get(ifaceName);
+            if (ifaceId) {
+              batchRefs.push({
+                from_id: childId,
+                to_id: ifaceId,
+                type: 'implements',
+                weight: 0.8,
+                metadata: { file_path: relPath },
+                tenant_id: tenantId,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // Batch create calls/extends/implements references
+    if (batchRefs.length > 0) {
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < batchRefs.length; i += BATCH_SIZE) {
+        const chunk = batchRefs.slice(i, i + BATCH_SIZE);
         try {
-          await this.client.createReference({
-            from_id: fromId,
-            to_id: targetId,
-            type: 'calls',
-            weight: 0.5,
-            metadata: { line: call.line, column: call.column, file_path: relPath },
-            tenant_id: tenantId,
-          });
-          refCount++;
+          const result = await this.client.createReferences(chunk);
+          refCount += result?.references?.filter(r => r.status === 'created').length || 0;
         } catch (_error) {
-          logWarn('CodeAnalysis', `[CodeAnalysis] Failed to create reference: ${_error.message}`);
+          logWarn(
+            'CodeAnalysis',
+            `[CodeAnalysis] Failed to batch create references: ${_error.message}`
+          );
+          refCount += chunk.length;
+        }
+      }
+    }
+
+    // Create depends_on relations from import analysis
+    const globalSymbolTable = {
+      pathToEntityId: relPathToEntityId,
+      functions: new Map(),
+      classes: new Map(),
+      namespaced: new Map(),
+      defaultExport: null,
+    };
+
+    for (const { relPath, result } of allResults) {
+      const fromEntityId = relPathToEntityId.get(relPath);
+      if (!fromEntityId) continue;
+
+      const imports = this.extractImports(result);
+      if (imports.length === 0) continue;
+
+      const dependencies = await this.createDependsOnRelations(
+        fromEntityId,
+        relPath,
+        imports,
+        globalSymbolTable,
+        tenantId,
+        this.existingRefs
+      );
+
+      for (const dep of dependencies) {
+        batchRefs.push(dep);
+      }
+    }
+
+    // Batch create depends_on references
+    const dependsOnRefs = batchRefs.filter(r => r.type === 'depends_on');
+    if (dependsOnRefs.length > 0) {
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < dependsOnRefs.length; i += BATCH_SIZE) {
+        const chunk = dependsOnRefs.slice(i, i + BATCH_SIZE);
+        try {
+          const result = await this.client.createReferences(chunk);
+          refCount += result?.references?.filter(r => r.status === 'created').length || 0;
+        } catch (_error) {
+          logWarn(
+            'CodeAnalysis',
+            `[CodeAnalysis] Failed to batch create depends_on references: ${_error.message}`
+          );
+          refCount += chunk.length;
         }
       }
     }

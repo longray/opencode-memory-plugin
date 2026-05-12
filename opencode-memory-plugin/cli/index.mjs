@@ -31,6 +31,17 @@ const commands = {
   rebuild: rebuildCommand,
   checkpoint: checkpointCommand,
   conflicts: conflictsCommand,
+  // Quality Dashboard (Phase 1)
+  'quality-dashboard': qualityDashboardCommand,
+  // SOP Execution (Phase 2)
+  sop: sopCommand,
+  // Quality Guard (Phase 3)
+  'quality-guard': qualityGuardCommand,
+  // One-Click Fix (Phase 4)
+  fix: fixCommand,
+  // Quality Trends (Phase 5)
+  'quality-trends': qualityTrendsCommand,
+  'quality-export': qualityExportCommand,
   help: showHelp,
 };
 
@@ -80,6 +91,15 @@ Commands:
   rebuild  Rebuild vector index
   checkpoint  View sync checkpoints
   conflicts   List sync conflicts
+
+Quality Commands (v3.4):
+  quality-dashboard  Real-time quality dashboard
+  sop                SOP execution (run/list/show)
+  quality-guard      Quality guard configuration
+  fix                One-click diagnosis and repair
+  quality-trends     7-day quality trend visualization
+  quality-export     Export quality metrics (CSV/JSON)
+
   help     Show this help
 
 Examples:
@@ -544,6 +564,466 @@ async function conflictsCommand(args) {
     }
   } catch (e) {
     log(`❌ Conflicts failed: ${e.message}`, 'red');
+    process.exit(1);
+  }
+}
+
+// ─── Quality Dashboard (Phase 1) ──────────────────────────────────
+
+async function qualityDashboardCommand(args) {
+  try {
+    const { gatherQualityMetrics, renderDashboard } = await import('../lib/quality-dashboard.js');
+    const { recordDailyMetrics } = await import('../lib/quality-metrics.js');
+
+    const metrics = await gatherQualityMetrics({ includeSearch: !args['no-search'] });
+
+    // Record metrics for trends
+    recordDailyMetrics({
+      entity_count: metrics.entity_count,
+      relationship_count: metrics.relationship_count,
+      network_density: metrics.network_density,
+      isolated_entities: metrics.isolated_entities,
+      search_latency: metrics.search_latency,
+      search_accuracy: metrics.search_accuracy,
+      health_score: metrics.health_score,
+    });
+
+    console.log(renderDashboard(metrics, { showTrends: !args['no-trends'] }));
+
+    // Auto-refresh mode
+    if (args['auto-refresh']) {
+      const interval = setInterval(async () => {
+        process.stdout.write('\x1b[H\x1b[2J');
+        const newMetrics = await gatherQualityMetrics({ includeSearch: false });
+        recordDailyMetrics({
+          entity_count: newMetrics.entity_count,
+          relationship_count: newMetrics.relationship_count,
+          network_density: newMetrics.network_density,
+          isolated_entities: newMetrics.isolated_entities,
+          search_latency: newMetrics.search_latency,
+          search_accuracy: newMetrics.search_accuracy,
+          health_score: newMetrics.health_score,
+        });
+        console.log(renderDashboard(newMetrics, { showTrends: true }));
+      }, 60000);
+
+      process.stdin.setRawMode(true);
+      process.stdin.on('data', key => {
+        if (key.toString() === 'q') {
+          clearInterval(interval);
+          process.exit(0);
+        }
+        if (key.toString() === 'r') {
+          // Manual refresh handled by interval
+        }
+      });
+    }
+  } catch (e) {
+    log(`❌ Dashboard failed: ${e.message}`, 'red');
+    process.exit(1);
+  }
+}
+
+// ─── SOP Execution (Phase 2) ──────────────────────────────────────
+
+async function sopCommand(args) {
+  const subCommand = args._[1];
+
+  try {
+    const { executeSOP, listSOPs, showSOP } = await import('../lib/sop-engine.js');
+
+    if (subCommand === 'run') {
+      const sopName = args._[2];
+      if (!sopName) {
+        log('Error: SOP name is required', 'red');
+        log('Usage: opencode-memory sop run <name> [--dry-run] [--step <name>]', 'yellow');
+        process.exit(1);
+      }
+
+      const overrides = {};
+      if (args.threshold) overrides.threshold = parseFloat(args.threshold);
+      if (args['min-weight']) overrides.min_weight = parseFloat(args['min-weight']);
+
+      const result = await executeSOP({
+        name: sopName,
+        overrides,
+        dryRun: !!args['dry-run'],
+        step: args.step,
+        stepRange: args['step-range'],
+        skip: args.skip ? args.skip.split(',') : [],
+        listSteps: !!args['list-steps'],
+      });
+
+      if (!result.success) {
+        log(`❌ SOP failed: ${result.error}`, 'red');
+        process.exit(1);
+      }
+
+      if (result.dryRun) {
+        log(`📋 Dry Run: ${result.sop}`, 'yellow');
+        log(`  Steps to run: ${result.stepsToRun}`, 'blue');
+        log(`  Parameters: ${JSON.stringify(result.parameters)}`, 'dim');
+        for (const s of result.steps) {
+          log(`    - ${s.name}: ${s.description}`, 'cyan');
+        }
+      } else if (result.listSteps) {
+        log(`📋 Steps for ${result.sop}:`, 'blue');
+        for (const s of result.steps) {
+          log(`  ${s.index}. ${s.name} - ${s.description}`, 'cyan');
+        }
+      } else {
+        log(`✅ SOP completed: ${result.sop}`, 'green');
+        log(
+          `  Steps: ${result.steps_executed} executed, ${result.success_count} success, ${result.failed_count} failed`,
+          'blue'
+        );
+        log(`  Duration: ${result.duration_ms}ms`, 'blue');
+        if (result.report_path) log(`  Report: ${result.report_path}`, 'dim');
+      }
+    } else if (subCommand === 'list') {
+      const sops = listSOPs(args.category);
+      if (sops.length === 0) {
+        log('No SOPs found. Create YAML files in ~/.opencode/sops/', 'yellow');
+        return;
+      }
+      log('📋 Available SOPs:', 'blue');
+      for (const sop of sops) {
+        const lastRun = sop.last_run ? ` (last run: ${sop.last_run})` : '';
+        log(`  ${sop.name} [${sop.category}] - ${sop.description}${lastRun}`, 'cyan');
+      }
+    } else if (subCommand === 'show') {
+      const sopName = args._[2];
+      if (!sopName) {
+        log('Error: SOP name is required', 'red');
+        process.exit(1);
+      }
+      const sop = showSOP(sopName);
+      if (!sop) {
+        log(`SOP "${sopName}" not found`, 'red');
+        process.exit(1);
+      }
+      log(`📋 SOP: ${sop.name}`, 'blue');
+      log(`  Description: ${sop.description}`, 'cyan');
+      log(`  Category: ${sop.category || 'general'}`, 'cyan');
+      if (sop.parameters) {
+        log(`  Parameters:`, 'cyan');
+        for (const [k, v] of Object.entries(sop.parameters)) {
+          log(`    --${k}: ${v}`, 'dim');
+        }
+      }
+      if (sop.steps) {
+        log(`  Steps:`, 'cyan');
+        for (const [i, step] of sop.steps.entries()) {
+          log(`    ${i + 1}. ${step.name || step.action} - ${step.description || ''}`, 'dim');
+        }
+      }
+    } else {
+      log(`Unknown sop subcommand: ${subCommand}`, 'red');
+      log('Usage: opencode-memory sop <run|list|show>', 'yellow');
+      process.exit(1);
+    }
+  } catch (e) {
+    log(`❌ SOP failed: ${e.message}`, 'red');
+    process.exit(1);
+  }
+}
+
+// ─── Quality Guard (Phase 3) ──────────────────────────────────────
+
+async function qualityGuardCommand(args) {
+  try {
+    const {
+      loadQualityGuardConfig,
+      saveQualityGuardConfig,
+      disableQualityGuard,
+      enableQualityGuard,
+    } = await import('../lib/quality-guard.js');
+
+    const action = args._[1] || 'status';
+
+    if (action === 'status') {
+      const config = loadQualityGuardConfig();
+      log('🛡️  Quality Guard Configuration:', 'blue');
+      log(`  Enabled: ${config.enabled ? '✅' : '❌'}`, config.enabled ? 'green' : 'red');
+      log(`  Check on Write: ${config.check_on_write ? '✅' : '❌'}`, 'cyan');
+      log(`  Check on Relate: ${config.check_on_relate ? '✅' : '❌'}`, 'cyan');
+      log(`  Isolated Threshold: ${config.thresholds.isolated}`, 'cyan');
+      log(
+        `  Weight Range: [${config.thresholds.min_weight}, ${config.thresholds.max_weight}]`,
+        'cyan'
+      );
+      log(`  Warning Level: ${config.warning_level}`, 'cyan');
+    } else if (action === 'enable') {
+      enableQualityGuard();
+      log('✅ Quality guard enabled', 'green');
+    } else if (action === 'disable') {
+      disableQualityGuard(args.reason || 'manual');
+      log('⚠️  Quality guard disabled', 'yellow');
+    } else if (action === 'set') {
+      const key = args._[2];
+      const value = args._[3];
+      if (!key || value === undefined) {
+        log('Usage: opencode-memory quality-guard set <key> <value>', 'yellow');
+        process.exit(1);
+      }
+      const updates = {};
+      if (key.includes('.')) {
+        const [section, field] = key.split('.');
+        updates[section] = {
+          [field]:
+            value === 'true'
+              ? true
+              : value === 'false'
+                ? false
+                : isNaN(value)
+                  ? value
+                  : Number(value),
+        };
+      } else {
+        updates[key] =
+          value === 'true'
+            ? true
+            : value === 'false'
+              ? false
+              : isNaN(value)
+                ? value
+                : Number(value);
+      }
+      saveQualityGuardConfig(updates);
+      log(`✅ Updated ${key} = ${value}`, 'green');
+    } else {
+      log(`Unknown action: ${action}`, 'red');
+      log('Usage: opencode-memory quality-guard <status|enable|disable|set>', 'yellow');
+      process.exit(1);
+    }
+  } catch (e) {
+    log(`❌ Quality guard failed: ${e.message}`, 'red');
+    process.exit(1);
+  }
+}
+
+// ─── One-Click Fix (Phase 4) ──────────────────────────────────────
+
+async function fixCommand(args) {
+  try {
+    const { diagnoseIssues, applyFixes, undoFix, getFixHistory } =
+      await import('../lib/fix-engine.js');
+
+    // Undo mode
+    if (args.undo) {
+      const result = await undoFix({
+        fixId: typeof args.undo === 'string' ? args.undo : undefined,
+      });
+      if (!result.success) {
+        log(`❌ Undo failed: ${result.error}`, 'red');
+        process.exit(1);
+      }
+      log(`✅ Undo successful: ${result.message}`, 'green');
+      return;
+    }
+
+    // History mode
+    if (args.history) {
+      const history = getFixHistory(10);
+      if (history.length === 0) {
+        log('No fix history available', 'yellow');
+        return;
+      }
+      log('📋 Fix History:', 'blue');
+      for (const record of history) {
+        log(
+          `  ${record.id} [${record.mode}] ${record.issue_type} - ${record.results.applied} applied, ${record.results.failed} failed`,
+          'cyan'
+        );
+      }
+      return;
+    }
+
+    // Determine issue type
+    const issueType = args._[1] || 'all';
+
+    // Dry-run mode
+    if (args['dry-run']) {
+      const diagnosis = await diagnoseIssues({
+        types: issueType === 'all' ? undefined : [issueType],
+      });
+      log(`🔍 Diagnosis (dry-run):`, 'blue');
+      log(`  Total issues: ${diagnosis.total_issues}`, 'cyan');
+      for (const [type, count] of Object.entries(diagnosis.summary)) {
+        if (count > 0) log(`  ${type}: ${count}`, count > 5 ? 'red' : 'yellow');
+      }
+      return;
+    }
+
+    // Apply fixes
+    const result = await applyFixes({
+      issueType,
+      mode: args.auto ? 'auto' : 'dry-run',
+      options: {},
+    });
+
+    if (result.mode === 'dry-run') {
+      log(result.message, 'yellow');
+      log(`  Total issues: ${result.diagnosis.total_issues}`, 'cyan');
+      for (const [type, count] of Object.entries(result.diagnosis.summary)) {
+        if (count > 0) log(`  ${type}: ${count}`, 'yellow');
+      }
+    } else {
+      log(`✅ Fix completed: ${result.issue_type}`, 'green');
+      log(
+        `  Applied: ${result.applied}, Skipped: ${result.skipped}, Failed: ${result.failed}`,
+        'blue'
+      );
+      log(`  Fix ID: ${result.fix_id}`, 'dim');
+    }
+  } catch (e) {
+    log(`❌ Fix failed: ${e.message}`, 'red');
+    process.exit(1);
+  }
+}
+
+// ─── Quality Trends (Phase 5) ─────────────────────────────────────
+
+async function qualityTrendsCommand(args) {
+  try {
+    const {
+      getMetricsForDays,
+      getMetricsByRange,
+      calculateTrend,
+      calculateTrendStats,
+      compareWithTarget,
+      estimateDaysToTarget,
+      QUALITY_TARGETS,
+    } = await import('../lib/quality-metrics.js');
+    const { renderProgressBar, renderTrendIndicator } = await import('../lib/ascii-charts.js');
+
+    let metrics;
+    if (args.from && args.to) {
+      metrics = getMetricsByRange(args.from, args.to);
+    } else {
+      metrics = getMetricsForDays(parseInt(args.days) || 7);
+    }
+
+    if (metrics.length === 0) {
+      log('No trend data available. Run quality-dashboard first to collect metrics.', 'yellow');
+      return;
+    }
+
+    const metricNames = [
+      'entity_count',
+      'relationship_count',
+      'network_density',
+      'isolated_entities',
+      'search_latency',
+      'health_score',
+    ];
+    const filterMetric = args.metric;
+
+    log('📈 Quality Trends (Last 7 Days)', 'blue');
+    log('');
+
+    for (const metricName of metricNames) {
+      if (filterMetric && metricName !== filterMetric) continue;
+
+      const trend = calculateTrend(metrics, metricName);
+      const values = trend.values;
+      if (values.length === 0) continue;
+
+      const stats = calculateTrendStats(values);
+      const target = compareWithTarget(metricName, values[values.length - 1]);
+
+      const displayName = metricName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      log(`  ${displayName}:`, 'cyan');
+      log(
+        `    ${renderTrendIndicator({ changePercent: trend.changePercent, change: trend.change })}`,
+        'bold'
+      );
+      log(`    Min: ${stats.min} | Max: ${stats.max} | Avg: ${stats.avg}`, 'dim');
+
+      if (target.target !== null) {
+        log(
+          `    Target: ${target.target} | Progress: ${target.progress}% | ${target.onTarget ? '✅ On target' : '⚠️ Off target'}`,
+          target.onTarget ? 'green' : 'yellow'
+        );
+        log(
+          `    ${renderProgressBar({ current: values[values.length - 1], target: target.target, width: 20 })}`,
+          'dim'
+        );
+
+        const dailyChange =
+          values.length > 1 ? (values[values.length - 1] - values[0]) / (values.length - 1) : 0;
+        const targetConfig = QUALITY_TARGETS[metricName];
+        if (targetConfig) {
+          const days = estimateDaysToTarget(
+            values[values.length - 1],
+            targetConfig.target,
+            dailyChange,
+            targetConfig.direction
+          );
+          if (days !== null) log(`    Est. days to target: ${days}`, 'dim');
+        }
+      }
+      log('');
+    }
+
+    // Comparison mode
+    if (args.compare === 'week') {
+      const thisWeek = metrics.slice(-7);
+      const lastWeek = metrics.slice(-14, -7);
+      if (lastWeek.length > 0) {
+        log('📊 Week-over-Week Comparison:', 'blue');
+        for (const metricName of metricNames) {
+          if (filterMetric && metricName !== filterMetric) continue;
+          const thisAvg =
+            thisWeek.length > 0
+              ? thisWeek.reduce((s, m) => s + (m[metricName] || 0), 0) / thisWeek.length
+              : 0;
+          const lastAvg = lastWeek.reduce((s, m) => s + (m[metricName] || 0), 0) / lastWeek.length;
+          const change = lastAvg !== 0 ? ((thisAvg - lastAvg) / lastAvg) * 100 : 0;
+          log(
+            `  ${metricName}: ${lastAvg.toFixed(1)} → ${thisAvg.toFixed(1)} (${change >= 0 ? '+' : ''}${change.toFixed(1)}%)`,
+            change >= 0 ? 'green' : 'red'
+          );
+        }
+      }
+    }
+  } catch (e) {
+    log(`❌ Trends failed: ${e.message}`, 'red');
+    process.exit(1);
+  }
+}
+
+// ─── Quality Export (Phase 5) ─────────────────────────────────────
+
+async function qualityExportCommand(args) {
+  try {
+    const { getMetricsForDays, getMetricsByRange, exportToCSV, exportToJSON } =
+      await import('../lib/quality-metrics.js');
+
+    let metrics;
+    if (args.from && args.to) {
+      metrics = getMetricsByRange(args.from, args.to);
+    } else {
+      metrics = getMetricsForDays(parseInt(args.days) || 30);
+    }
+
+    if (metrics.length === 0) {
+      log('No data to export', 'yellow');
+      return;
+    }
+
+    const metricNames = args.metrics ? args.metrics.split(',') : null;
+    let output;
+
+    if (args.format === 'csv') {
+      output = exportToCSV(metrics, metricNames);
+      console.log(output);
+    } else {
+      output = exportToJSON(metrics, metricNames);
+      console.log(output);
+    }
+  } catch (e) {
+    log(`❌ Export failed: ${e.message}`, 'red');
     process.exit(1);
   }
 }

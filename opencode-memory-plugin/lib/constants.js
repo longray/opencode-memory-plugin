@@ -67,6 +67,62 @@ export const MAX_OVERVIEW_LENGTH = RECOMMENDED_OVERVIEW_LENGTH;
 /** Maximum lines in overview file — used by indexer to limit .overview.md length */
 export const MAX_OVERVIEW_LINES = 102;
 
+// ─── Scheduled Health Check Defaults ────────────────────────────────────────
+
+/** Health check enabled by default */
+export const HEALTH_CHECK_ENABLED = true;
+
+/** Default schedule: daily at 9 AM (cron format) */
+export const HEALTH_CHECK_SCHEDULE = '0 9 * * *';
+
+/** Default health score threshold (below this triggers warning) */
+export const HEALTH_CHECK_THRESHOLD = 80;
+
+/** Default network density threshold (below this triggers warning) */
+export const HEALTH_CHECK_DENSITY_THRESHOLD = 0.02;
+
+/** Default orphan rate threshold (above this triggers warning) */
+export const HEALTH_CHECK_ORPHAN_RATE_THRESHOLD = 0.2;
+
+/** Health check execution timeout (ms) */
+export const HEALTH_CHECK_TIMEOUT_MS = 60_000;
+
+/** Reports directory relative to HOME */
+export const REPORTS_DIR_NAME = 'reports';
+
+export const REPORTS_DIR = path.join(HOME, '.opencode', REPORTS_DIR_NAME);
+
+// ─── Dual Threshold Recommendation Defaults ─────────────────────────────────
+
+/** Similarity threshold for auto-creating relations (>= this value) */
+export const RECOMMENDATION_AUTO_CREATE_THRESHOLD = 0.85;
+
+/** Similarity threshold for pending review (>= this value, < auto_create) */
+export const RECOMMENDATION_REVIEW_THRESHOLD = 0.75;
+
+/** Auto-create enabled by default */
+export const RECOMMENDATION_AUTO_CREATE_ENABLED = true;
+
+/** Pending review queue expiry days */
+export const RECOMMENDATION_QUEUE_EXPIRY_DAYS = 7;
+
+/** Pending review queue filename */
+export const PENDING_REVIEW_QUEUE_FILE = 'pending-review-queue.json';
+
+// ─── Quality Dashboard Defaults ──────────────────────────────────────────────
+
+/** Quality check timeout (ms) — lightweight checks should complete within this */
+export const QUALITY_CHECK_TIMEOUT_MS = 100;
+
+/** Auto-refresh interval for dashboard (ms) */
+export const DASHBOARD_REFRESH_INTERVAL_MS = 60_000;
+
+/** Quality metrics retention period (days) */
+export const QUALITY_METRICS_RETENTION_DAYS = 90;
+
+/** Fix history retention count */
+export const FIX_HISTORY_MAX_ENTRIES = 10;
+
 // ─── API Defaults ──────────────────────────────────────────────────────────────
 
 /** Default API port — used by WrapperClient for backend connection */

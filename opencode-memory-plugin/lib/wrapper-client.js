@@ -49,6 +49,7 @@
 import { writeLog, logWarn } from './logger.js';
 import { DEFAULT_HTTP_TIMEOUT_MS, RETRY_BASE_DELAY_MS } from './constants.js';
 import { DEFAULT_API_PORT } from './constants.js';
+import { getConfig } from './storage.js';
 
 function logInfo(category, message, data) {
   writeLog('INFO', category, message, data);
@@ -1062,18 +1063,30 @@ export class WrapperClient {
 
 let wrapperClientInstance = null;
 
+/**
+ * 获取 WrapperClient 单例实例
+ *
+ * 行为：
+ * - 无参调用：使用配置文件默认值创建/返回单例
+ * - 带配置调用：创建/返回使用该配置的单例
+ * - forceNew=true：返回独立实例，不影响全局单例
+ */
 export function getWrapperClient(config) {
+  const effectiveConfig = config || getConfig();
+
+  if (config?.forceNew) {
+    return new WrapperClient(effectiveConfig);
+  }
+
   if (!wrapperClientInstance) {
-    wrapperClientInstance = new WrapperClient(config);
-  } else if (config?.forceNew) {
-    wrapperClientInstance = new WrapperClient(config);
+    wrapperClientInstance = new WrapperClient(effectiveConfig);
   } else if (
-    config?.backend?.tenant_id &&
-    config.backend.tenant_id !== wrapperClientInstance.tenantId
+    effectiveConfig?.backend?.tenant_id &&
+    effectiveConfig.backend.tenant_id !== wrapperClientInstance.tenantId
   ) {
     logWarn(
       'WrapperClient',
-      `Ignoring tenant_id change: ${wrapperClientInstance.tenantId} → ${config.backend.tenant_id}. Use forceNew=true if needed.`
+      `Ignoring tenant_id change: ${wrapperClientInstance.tenantId} → ${effectiveConfig.backend.tenant_id}. Use forceNew=true if needed.`
     );
   }
   return wrapperClientInstance;

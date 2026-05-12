@@ -75,6 +75,51 @@ const EXTENSION_TO_LANGUAGE = {
 };
 
 /**
+ * 内置调用列表（用于过滤常见内置函数调用）
+ * 使用 Set 实现 O(1) 查找
+ */
+const BUILTIN_CALLS = new Set([
+  'console.log',
+  'console.error',
+  'console.warn',
+  'console.info',
+  'console.debug',
+  'Array.isArray',
+  'Array.from',
+  'Array.of',
+  'Object.keys',
+  'Object.values',
+  'Object.entries',
+  'Object.assign',
+  'Object.create',
+  'Object.freeze',
+  'Object.seal',
+  'Math.max',
+  'Math.min',
+  'Math.random',
+  'Math.floor',
+  'Math.ceil',
+  'Math.round',
+  'Math.abs',
+  'Math.pow',
+  'Math.sqrt',
+  'String.fromCharCode',
+  'String.raw',
+  'Number.parseInt',
+  'Number.parseFloat',
+  'Number.isNaN',
+  'Number.isFinite',
+  'Number.isInteger',
+  'Promise.all',
+  'Promise.allSettled',
+  'Promise.race',
+  'Promise.resolve',
+  'Promise.reject',
+  'JSON.parse',
+  'JSON.stringify',
+]);
+
+/**
  * 代码分析器类
  * 使用 Oxc 进行 AST 分析，支持 Tree-sitter WASM 降级策略
  */
@@ -145,9 +190,10 @@ export class CodeAnalyzer {
         const oxcDuration = performance.now() - oxcStartTime;
 
         if (oxcDuration > 200) {
+          const fileSizeKB = Math.round(sourceCode.length / 1024);
           logWarn(
             'CodeAnalyzer',
-            `[CodeAnalyzer] ${filePath} exceeds max size (${fileSizeKB}KB > ${maxSizeKB}KB), using tree-sitter fallback`
+            `[CodeAnalyzer] ${filePath} Oxc parse slow (${oxcDuration.toFixed(0)}ms for ${fileSizeKB}KB)`
           );
         }
 
@@ -437,6 +483,26 @@ export class CodeAnalyzer {
         const classMethods = [];
         const classProperties = [];
 
+        let superClass = null;
+        if (node.superClass) {
+          if (node.superClass.type === 'Identifier') {
+            superClass = node.superClass.name;
+          } else if (node.superClass.type === 'MemberExpression') {
+            superClass = node.superClass.property?.name || node.superClass.object?.name || null;
+          }
+        }
+
+        const implementsList = [];
+        if (node.implements && Array.isArray(node.implements)) {
+          for (const impl of node.implements) {
+            if (impl.expression?.type === 'Identifier') {
+              implementsList.push(impl.expression.name);
+            } else if (impl.expression?.type === 'MemberExpression') {
+              implementsList.push(impl.expression.property?.name || impl.expression.object?.name);
+            }
+          }
+        }
+
         node.body?.body?.forEach(member => {
           if (member.type === 'MethodDefinition') {
             classMethods.push(member.key?.name || 'anonymous');
@@ -451,6 +517,8 @@ export class CodeAnalyzer {
           end_line: this.offsetToLine(sourceCode, node.end),
           methods: classMethods,
           properties: classProperties,
+          superClass,
+          implements: implementsList.length > 0 ? implementsList : undefined,
           jsdoc,
         });
 
@@ -464,6 +532,17 @@ export class CodeAnalyzer {
         const jsdoc = this.extractJSDoc(node.start, comments);
         const interfaceMethods = [];
         const interfaceProperties = [];
+
+        const extendsList = [];
+        if (node.extends && Array.isArray(node.extends)) {
+          for (const ext of node.extends) {
+            if (ext.expression?.type === 'Identifier') {
+              extendsList.push(ext.expression.name);
+            } else if (ext.expression?.type === 'MemberExpression') {
+              extendsList.push(ext.expression.property?.name || ext.expression.object?.name);
+            }
+          }
+        }
 
         node.body?.body?.forEach(member => {
           if (member.type === 'TSMethodSignature') {
@@ -479,6 +558,7 @@ export class CodeAnalyzer {
           end_line: this.offsetToLine(sourceCode, node.end),
           methods: interfaceMethods,
           properties: interfaceProperties,
+          extends: extendsList.length > 0 ? extendsList : undefined,
           jsdoc,
         });
         break;
@@ -847,36 +927,37 @@ export class CodeAnalyzer {
    */
   extractCallsFromOxcAst(ast, filePath, sourceCode) {
     const calls = [];
-    const builtinCalls = [
-      'console.log',
-      'console.error',
-      'console.warn',
-      'console.info',
-      'console.debug',
-    ];
+
+    function resolveMemberObject(node) {
+      if (!node) return '';
+      if (node.type === 'Identifier') return node.name;
+      if (node.type === 'ThisExpression') return 'this';
+      if (node.type === 'Super') return 'super';
+      if (node.type === 'MemberExpression') {
+        const obj = resolveMemberObject(node.object);
+        const prop = node.property?.name || '';
+        return obj ? `${obj}.${prop}` : prop;
+      }
+      return '';
+    }
 
     const traverse = node => {
       if (!node || typeof node !== 'object') return;
 
-      // 处理 CallExpression
       if (node.type === 'CallExpression') {
         let targetName = null;
 
-        // 直接调用: func()
         if (node.callee?.type === 'Identifier') {
           targetName = node.callee.name;
-        }
-        // 成员调用: obj.method()
-        else if (node.callee?.type === 'MemberExpression') {
-          const obj = node.callee.object?.name || '';
+        } else if (node.callee?.type === 'MemberExpression') {
+          const obj = resolveMemberObject(node.callee.object);
           const prop = node.callee.property?.name || '';
           if (obj && prop) {
             targetName = `${obj}.${prop}`;
           }
         }
 
-        // 过滤内置调用
-        if (targetName && !builtinCalls.includes(targetName)) {
+        if (targetName && !BUILTIN_CALLS.has(targetName)) {
           const line = this.getLineFromPosition(sourceCode, node.start);
           const column = this.getColumnFromPosition(sourceCode, node.start);
           calls.push({
@@ -888,7 +969,6 @@ export class CodeAnalyzer {
         }
       }
 
-      // 递归遍历子节点
       for (const key in node) {
         if (key === 'type' || key === 'loc' || key === 'range') continue;
         const value = node[key];
@@ -911,8 +991,11 @@ export class CodeAnalyzer {
    * @returns {number} 行号（1-based）
    */
   getLineFromPosition(sourceCode, position) {
-    const lines = sourceCode.substring(0, position).split('\n');
-    return lines.length;
+    let line = 1;
+    for (let i = 0; i < position && i < sourceCode.length; i++) {
+      if (sourceCode.charCodeAt(i) === 0x0a) line++;
+    }
+    return line;
   }
 
   /**
@@ -922,9 +1005,12 @@ export class CodeAnalyzer {
    * @returns {number} 列号（0-based）
    */
   getColumnFromPosition(sourceCode, position) {
-    const lines = sourceCode.substring(0, position).split('\n');
-    const lastLine = lines[lines.length - 1];
-    return lastLine.length;
+    let col = 0;
+    for (let i = 0; i < position && i < sourceCode.length; i++) {
+      if (sourceCode.charCodeAt(i) === 0x0a) col = 0;
+      else col++;
+    }
+    return col;
   }
 
   createFallbackResult(filePath, sourceCode, lines, warnings) {
@@ -953,6 +1039,7 @@ export class CodeAnalyzer {
         external: [],
         builtin: [],
       },
+      calls: [],
       warnings,
     };
   }
