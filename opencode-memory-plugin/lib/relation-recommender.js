@@ -1,4 +1,16 @@
 /**
+ * @deprecated since v3.4 - Replaced by graphify-bridge.js
+ * Graphify provides direct relationship extraction.
+ * This module's signal-based approach was too weak.
+ */
+
+/**
+ * @deprecated since v3.4 - Replaced by graphify-bridge.js
+ * Graphify provides direct relationship extraction.
+ * This module's signal-based approach was too weak.
+ */
+
+/**
  * 基于本地link-map的关系推荐引擎
  *
  * 使用本地数据和向量搜索发现语义相似的实体，自动推荐关系

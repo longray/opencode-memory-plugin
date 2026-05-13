@@ -31,6 +31,7 @@ const commands = {
   rebuild: rebuildCommand,
   checkpoint: checkpointCommand,
   conflicts: conflictsCommand,
+  graphify: graphifyCommand,
   // Quality Dashboard (Phase 1)
   'quality-dashboard': qualityDashboardCommand,
   // SOP Execution (Phase 2)
@@ -91,6 +92,7 @@ Commands:
   rebuild  Rebuild vector index
   checkpoint  View sync checkpoints
   conflicts   List sync conflicts
+  graphify Analyze project with graphify and import to SurrealDB
 
 Quality Commands (v3.4):
   quality-dashboard  Real-time quality dashboard
@@ -99,6 +101,9 @@ Quality Commands (v3.4):
   fix                One-click diagnosis and repair
   quality-trends     7-day quality trend visualization
   quality-export     Export quality metrics (CSV/JSON)
+
+Advanced Commands:
+  graphify           Analyze project with graphify and import to SurrealDB
 
   help     Show this help
 
@@ -993,37 +998,28 @@ async function qualityTrendsCommand(args) {
   }
 }
 
-// ─── Quality Export (Phase 5) ─────────────────────────────────────
+// ─── Graphify Command ──────────────────────────────────────────────
 
-async function qualityExportCommand(args) {
+async function graphifyCommand(args) {
   try {
-    const { getMetricsForDays, getMetricsByRange, exportToCSV, exportToJSON } =
-      await import('../lib/quality-metrics.js');
+    const { graphifyProject } = await import('../lib/graphify-bridge.js');
+    const result = await graphifyProject({
+      projectPath: args.project || process.cwd(),
+      skipGraphify: args['skip-graphify'] || false,
+    });
 
-    let metrics;
-    if (args.from && args.to) {
-      metrics = getMetricsByRange(args.from, args.to);
-    } else {
-      metrics = getMetricsForDays(parseInt(args.days) || 30);
+    console.log('\n=== Graphify Import Report ===');
+    console.log(`Entities:   ${result.entities}`);
+    console.log(`Atoms:      ${result.atoms}`);
+    console.log(`References: ${result.references}`);
+    if (result.errors) console.log(`Errors:     ${result.errors}`);
+    if (result.skipped) console.log(`Skipped:    ${result.skipped}`);
+    console.log('\nBy Relation:');
+    for (const [type, count] of Object.entries(result.byRelation || {})) {
+      console.log(`  ${type}: ${count}`);
     }
-
-    if (metrics.length === 0) {
-      log('No data to export', 'yellow');
-      return;
-    }
-
-    const metricNames = args.metrics ? args.metrics.split(',') : null;
-    let output;
-
-    if (args.format === 'csv') {
-      output = exportToCSV(metrics, metricNames);
-      console.log(output);
-    } else {
-      output = exportToJSON(metrics, metricNames);
-      console.log(output);
-    }
-  } catch (e) {
-    log(`❌ Export failed: ${e.message}`, 'red');
+  } catch (err) {
+    log(`Error: ${err.message}`, 'red');
     process.exit(1);
   }
 }
