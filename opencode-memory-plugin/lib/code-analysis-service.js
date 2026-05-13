@@ -6,6 +6,7 @@ import { resolveProjectId } from './project-resolver.js';
 import { shouldSkipFile } from './privacy-filter.js';
 import { getConfig } from './storage.js';
 import { MemoryIdCache } from './memory-id-cache.js';
+import { graphifyProject } from './graphify-bridge.js';
 import fs from 'fs';
 import path from 'path';
 import { readFile } from 'fs/promises';
@@ -1472,3 +1473,5 @@ export function flushPendingUploads() {
 export function uploadProject(projectRoot, options = {}) {
   return analysisQueue.uploadProject(projectRoot, options);
 }
+
+export { graphifyProject };

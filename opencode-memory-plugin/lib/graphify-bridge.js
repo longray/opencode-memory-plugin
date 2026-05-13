@@ -8,6 +8,16 @@
  */
 
 import path from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { writeLog } from './logger.js';
+
+function logInfo(category, message, data) {
+  writeLog('INFO', category, message, data);
+}
+function logError(category, message, data) {
+  writeLog('ERROR', category, message, data);
+}
 
 const LANG_MAP = {
   '.js': 'javascript',
@@ -203,16 +213,156 @@ export function buildReferencePayload(link, fromId, toId, tenantId) {
   };
 }
 
-// Stubs for later tasks
+// ===== Graphify Integration =====
+
+/**
+ * Check if graphify Python package is installed
+ */
 export async function checkGraphifyInstalled() {
-  throw new Error('Not implemented');
+  try {
+    const { stdout } = await execFile('python', ['-m', 'graphify', '--version'], {
+      timeout: 10000,
+    });
+    const version = stdout.trim();
+    return { installed: true, version };
+  } catch {
+    return { installed: false, version: null };
+  }
 }
-export async function runGraphify() {
-  throw new Error('Not implemented');
+
+/**
+ * Run graphify to generate graph.json
+ */
+export async function runGraphify(projectPath) {
+  try {
+    const { stdout, stderr } = await execFile('python', ['-m', 'graphify', 'update', projectPath], {
+      timeout: 300000,
+      cwd: projectPath,
+    });
+    const outputPath = path.join(projectPath, 'graphify-out', 'graph.json');
+    return { success: true, outputPath, stdout, stderr };
+  } catch (err) {
+    logError('GRAPHIFY', 'graphify run failed', {
+      error: err.message,
+      stderr: err.stderr?.toString(),
+    });
+    return { success: false, outputPath: null, error: err.message, stderr: err.stderr?.toString() };
+  }
 }
-export async function importGraphJSON() {
-  throw new Error('Not implemented');
+
+/**
+ * Import graph.json from graphify output into the backend
+ */
+export async function importGraphJSON(options) {
+  const { projectPath, projectId, client, tenantId } = options;
+
+  // Step 1: Read graph.json
+  const graphPath = path.join(projectPath, 'graphify-out', 'graph.json');
+  const raw = await readFile(graphPath, 'utf-8');
+  const graph = JSON.parse(raw);
+  logInfo(
+    'GRAPHIFY',
+    `Loaded graph.json: ${graph.nodes.length} nodes, ${graph.links.length} links`
+  );
+
+  // Step 2: Classify nodes
+  const { entityNodes, atomNodes } = classifyNodes(graph.nodes);
+  logInfo('GRAPHIFY', `Classified: ${entityNodes.length} entities, ${atomNodes.length} atoms`);
+
+  // Step 3: Clean old data
+  if (client.deleteByProject) {
+    await client.deleteByProject(projectId, tenantId);
+    logInfo('GRAPHIFY', 'Cleared old data for project');
+  }
+
+  // Step 4: Batch create Entities
+  const entityBatch = entityNodes.map(n => buildEntityPayload(n, projectId, tenantId));
+  const entityResults = await client.batchCreateEntities(entityBatch);
+  logInfo('GRAPHIFY', `Created ${entityResults.created ?? 0} entities`);
+
+  const entityResultList = entityResults.entities || entityResults.data || [];
+  const { entityMap, atomMap } = buildIdMaps(entityNodes, atomNodes, entityResultList, []);
+
+  // Step 5: Batch create Atoms
+  const atomBatch = atomNodes.map(n => buildAtomPayload(n, projectId, tenantId));
+  const atomResults = await client.batchCreateAtoms(atomBatch);
+  logInfo('GRAPHIFY', `Created ${atomResults.created ?? 0} atoms`);
+
+  const atomResultList = atomResults.atoms || atomResults.data || [];
+  for (let i = 0; i < atomNodes.length; i++) {
+    if (atomResultList[i] && atomResultList[i].id) {
+      atomMap.set(atomNodes[i].id, atomResultList[i].id);
+    }
+  }
+
+  // Step 6: Concurrent create References
+  const linkTasks = graph.links.map(link => {
+    const fromId = resolveId(link.source, entityMap, atomMap);
+    const toId = resolveId(link.target, entityMap, atomMap);
+    if (!fromId || !toId) return () => ({ skipped: true, link });
+    const payload = buildReferencePayload(link, fromId, toId, tenantId);
+    return () => client.createRelation(payload);
+  });
+
+  const refResults = await runConcurrent(linkTasks, { concurrency: 10 });
+  const errors = refResults.filter(r => r && r.error).length;
+  const skipped = refResults.filter(r => r && r.skipped).length;
+  logInfo(
+    'GRAPHIFY',
+    `References: ${graph.links.length} total, ${errors} errors, ${skipped} skipped`
+  );
+
+  // Step 7: Stats
+  const byRelation = {};
+  for (const link of graph.links) {
+    byRelation[link.relation] = (byRelation[link.relation] || 0) + 1;
+  }
+
+  return {
+    entities: entityNodes.length,
+    atoms: atomNodes.length,
+    references: graph.links.length,
+    errors,
+    skipped,
+    byRelation,
+  };
 }
-export async function graphifyProject() {
-  throw new Error('Not implemented');
+
+/**
+ * Full graphify project workflow: run graphify + import
+ */
+export async function graphifyProject(options = {}) {
+  const { projectPath = process.cwd(), skipGraphify = false } = options;
+
+  if (!skipGraphify) {
+    const { installed, version } = await checkGraphifyInstalled();
+    if (!installed) {
+      throw new Error(
+        'graphify 未安装。请运行: pip install graphifyy\n' +
+          '文档: https://github.com/safishamsi/graphify'
+      );
+    }
+    logInfo('GRAPHIFY', `graphify v${version} detected`);
+
+    const { success, error } = await runGraphify(projectPath);
+    if (!success) {
+      throw new Error(`graphify 运行失败: ${error}`);
+    }
+  }
+
+  // Dynamic import to avoid circular dependencies
+  const storageModule = await import('./storage.js');
+  const getConfig = storageModule.getConfig;
+  const wcModule = await import('./wrapper-client.js');
+  const WrapperClient = wcModule.WrapperClient;
+  const config = getConfig();
+  const client = new WrapperClient(config);
+  const projectId = config.project?.id || 'unknown';
+
+  return await importGraphJSON({
+    projectPath,
+    projectId,
+    client,
+    tenantId: config.backend?.tenant_id || process.env.USERNAME,
+  });
 }
