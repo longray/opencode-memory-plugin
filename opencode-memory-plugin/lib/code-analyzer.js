@@ -4,12 +4,6 @@
  * Use graphifyProject() from graphify-bridge.js instead.
  */
 
-/**
- * @deprecated since v3.4 - Replaced by graphify-bridge.js
- * This module will be removed in a future version.
- * Use graphifyProject() from graphify-bridge.js instead.
- */
-
 import { parseSync } from 'oxc-parser';
 import { readFile } from 'fs/promises';
 import { extname } from 'path';

@@ -12,6 +12,9 @@ import { readFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { writeLog } from './logger.js';
 
+/** Batch size limit for backend API (max 100 per request) */
+const BATCH_SIZE = 100;
+
 function logInfo(category, message, data) {
   writeLog('INFO', category, message, data);
 }
@@ -48,13 +51,24 @@ export function classifyNodes(nodes) {
   const entityNodes = [];
   const atomNodes = [];
   for (const node of nodes) {
-    if (!node.source_location || node.source_location === '') {
+    // graphify gives ALL nodes a source_location (even files get "L1").
+    // Classification: file-level nodes have labels with file extensions (e.g. "index.js"),
+    // symbol-level nodes are functions/classes (e.g. "getWebSocketClient()", "WrapperClient").
+    // Exception: nodes without source_location at all are also file-level.
+    if (!node.source_location || node.source_location === '' || hasFileExtension(node.label)) {
       entityNodes.push(node);
     } else {
       atomNodes.push(node);
     }
   }
   return { entityNodes, atomNodes };
+}
+
+function hasFileExtension(label) {
+  // Match labels that look like filenames: contain a dot followed by an extension
+  // e.g. "index.js", "wrapper-client.js", "cli-tool.test.ts"
+  // but NOT "MemoryPlugin()" or "getWebSocketClient()"
+  return /\.(js|mjs|cjs|ts|tsx|py|go|rs|java|md|json|yaml|yml|toml|cjs)$/i.test(label);
 }
 
 /**
@@ -277,25 +291,44 @@ export async function importGraphJSON(options) {
 
   // Step 4: Batch create Entities
   const entityBatch = entityNodes.map(n => buildEntityPayload(n, projectId, tenantId));
-  const entityResults = await client.batchCreateEntities(entityBatch);
-  logInfo('GRAPHIFY', `Created ${entityResults.created ?? 0} entities`);
+  let totalEntitiesCreated = 0;
+  const entityResultList = [];
+  for (let i = 0; i < entityBatch.length; i += BATCH_SIZE) {
+    const batch = entityBatch.slice(i, i + BATCH_SIZE);
+    const result = await client.batchCreateEntities(batch);
+    totalEntitiesCreated += result.created ?? 0;
+    entityResultList.push(...(result.entities || result.data || []));
+  }
+  logInfo(
+    'GRAPHIFY',
+    `Created ${totalEntitiesCreated} entities in ${Math.ceil(entityBatch.length / BATCH_SIZE)} batches`
+  );
 
-  const entityResultList = entityResults.entities || entityResults.data || [];
   const { entityMap, atomMap } = buildIdMaps(entityNodes, atomNodes, entityResultList, []);
+  logInfo('GRAPHIFY', `ID maps: entityMap=${entityMap.size}, atomMap=${atomMap.size}`);
 
-  // Step 5: Batch create Atoms
+  // Step 5: Batch create Atoms (sequential — backend embedding is the bottleneck)
   const atomBatch = atomNodes.map(n => buildAtomPayload(n, projectId, tenantId));
-  const atomResults = await client.batchCreateAtoms(atomBatch);
-  logInfo('GRAPHIFY', `Created ${atomResults.created ?? 0} atoms`);
+  const atomBatches = Math.ceil(atomBatch.length / BATCH_SIZE);
+  let totalAtomsCreated = 0;
+  const atomResultList = [];
+  for (let i = 0; i < atomBatch.length; i += BATCH_SIZE) {
+    const batch = atomBatch.slice(i, i + BATCH_SIZE);
+    const result = await client.batchCreateAtoms(batch);
+    totalAtomsCreated += result.created ?? 0;
+    atomResultList.push(...(result.atoms || result.data || []));
+  }
+  logInfo('GRAPHIFY', `Created ${totalAtomsCreated} atoms in ${atomBatches} batches`);
 
-  const atomResultList = atomResults.atoms || atomResults.data || [];
   for (let i = 0; i < atomNodes.length; i++) {
     if (atomResultList[i] && atomResultList[i].id) {
       atomMap.set(atomNodes[i].id, atomResultList[i].id);
     }
   }
+  logInfo('GRAPHIFY', `atomMap size after update: ${atomMap.size}`);
 
   // Step 6: Concurrent create References
+  logInfo('GRAPHIFY', `Creating ${graph.links.length} references (concurrency=10)`);
   const linkTasks = graph.links.map(link => {
     const fromId = resolveId(link.source, entityMap, atomMap);
     const toId = resolveId(link.target, entityMap, atomMap);

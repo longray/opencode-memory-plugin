@@ -11,6 +11,32 @@ import { logInfo, logError } from '../lib/logger.js';
 
 const VERSION = 'v3.3.0';
 
+// ─── Graphify Command ──────────────────────────────────────────────
+
+async function graphifyCommand(args) {
+  try {
+    const { graphifyProject } = await import('../lib/graphify-bridge.js');
+    const result = await graphifyProject({
+      projectPath: args.project || process.cwd(),
+      skipGraphify: args['skip-graphify'] || false,
+    });
+
+    console.log('\n=== Graphify Import Report ===');
+    console.log(`Entities:   ${result.entities}`);
+    console.log(`Atoms:      ${result.atoms}`);
+    console.log(`References: ${result.references}`);
+    if (result.errors) console.log(`Errors:     ${result.errors}`);
+    if (result.skipped) console.log(`Skipped:    ${result.skipped}`);
+    console.log('\nBy Relation:');
+    for (const [type, count] of Object.entries(result.byRelation || {})) {
+      console.log(`  ${type}: ${count}`);
+    }
+  } catch (err) {
+    log(`Error: ${err.message}`, 'red');
+    process.exit(1);
+  }
+}
+
 const commands = {
   write: writeCommand,
   read: readCommand,
@@ -998,28 +1024,37 @@ async function qualityTrendsCommand(args) {
   }
 }
 
-// ─── Graphify Command ──────────────────────────────────────────────
+// ─── Quality Export (Phase 5) ─────────────────────────────────────
 
-async function graphifyCommand(args) {
+async function qualityExportCommand(args) {
   try {
-    const { graphifyProject } = await import('../lib/graphify-bridge.js');
-    const result = await graphifyProject({
-      projectPath: args.project || process.cwd(),
-      skipGraphify: args['skip-graphify'] || false,
-    });
+    const { getMetricsForDays, getMetricsByRange, exportToCSV, exportToJSON } =
+      await import('../lib/quality-metrics.js');
 
-    console.log('\n=== Graphify Import Report ===');
-    console.log(`Entities:   ${result.entities}`);
-    console.log(`Atoms:      ${result.atoms}`);
-    console.log(`References: ${result.references}`);
-    if (result.errors) console.log(`Errors:     ${result.errors}`);
-    if (result.skipped) console.log(`Skipped:    ${result.skipped}`);
-    console.log('\nBy Relation:');
-    for (const [type, count] of Object.entries(result.byRelation || {})) {
-      console.log(`  ${type}: ${count}`);
+    let metrics;
+    if (args.from && args.to) {
+      metrics = getMetricsByRange(args.from, args.to);
+    } else {
+      metrics = getMetricsForDays(parseInt(args.days) || 30);
     }
-  } catch (err) {
-    log(`Error: ${err.message}`, 'red');
+
+    if (metrics.length === 0) {
+      log('No data to export', 'yellow');
+      return;
+    }
+
+    const metricNames = args.metrics ? args.metrics.split(',') : null;
+    let output;
+
+    if (args.format === 'csv') {
+      output = exportToCSV(metrics, metricNames);
+      console.log(output);
+    } else {
+      output = exportToJSON(metrics, metricNames);
+      console.log(output);
+    }
+  } catch (e) {
+    log(`❌ Export failed: ${e.message}`, 'red');
     process.exit(1);
   }
 }

@@ -8,6 +8,9 @@ test-env/memory/
 test-env/config/
 *.log
 
+# Graphify output
+graphify-out/
+
 # Docker
 *.log
 

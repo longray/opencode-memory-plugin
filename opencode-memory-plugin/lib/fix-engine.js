@@ -5,12 +5,6 @@
  */
 
 /**
- * @deprecated since v3.4 - Replaced by graphify-bridge.js
- * Graphify solves the root cause (42% isolation rate) directly.
- * This module only diagnosed but never fixed issues.
- */
-
-/**
  * Fix Engine - One-click diagnosis and repair for knowledge graph issues
  *
  * Diagnoses issues, generates fix recommendations, supports dry-run/auto/interactive modes,

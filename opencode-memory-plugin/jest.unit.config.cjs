@@ -4,6 +4,6 @@ module.exports = {
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/tests/setup-unit.js'],
   testMatch: ['<rootDir>/tests/**/*.test.js'],
-  testPathIgnorePatterns: ['integration', 'e2e', 'cli', 'performance'],
+  testPathIgnorePatterns: ['integration', 'e2e', '[/\\\\]cli[/\\\\]', 'performance'],
   testTimeout: 30000,
 };

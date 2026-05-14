@@ -451,7 +451,16 @@ export class WrapperClient {
    * @param {Object} params - 关系参数
    * @returns {Promise<{id: string, type: string, weight: number}>}
    */
-  async createRelation({ from_id, to_id, type = 'related', weight = 0.5, description, tenant_id }) {
+  async createRelation({
+    from_id,
+    to_id,
+    type = 'related',
+    weight = 0.5,
+    description,
+    confidence,
+    confidence_score,
+    tenant_id,
+  }) {
     const requestBody = {
       from_id,
       to_id,
@@ -462,6 +471,12 @@ export class WrapperClient {
 
     if (description) {
       requestBody.description = description;
+    }
+    if (confidence) {
+      requestBody.confidence = confidence;
+    }
+    if (confidence_score !== undefined) {
+      requestBody.confidence_score = confidence_score;
     }
 
     return await withRetry(
@@ -722,6 +737,7 @@ export class WrapperClient {
     if (atomData.status) requestBody.status = atomData.status;
     if (atomData.metadata) requestBody.metadata = atomData.metadata;
     if (atomData.project) requestBody.project = atomData.project;
+    if (atomData.norm_label) requestBody.norm_label = atomData.norm_label;
 
     const result = await withRetry(
       () => this.http.post('/api/v1/atoms', requestBody),
@@ -857,6 +873,7 @@ export class WrapperClient {
     }
     if (entityData.complexity_metrics)
       requestBody.complexity_metrics = entityData.complexity_metrics;
+    if (entityData.norm_label) requestBody.norm_label = entityData.norm_label;
 
     const result = await withRetry(
       () => this.http.post('/api/v1/entities', requestBody),
@@ -988,6 +1005,7 @@ export class WrapperClient {
         status: a.status,
         metadata: a.metadata,
         project: a.project,
+        norm_label: a.norm_label,
       })),
     };
 
@@ -1034,6 +1052,7 @@ export class WrapperClient {
         quality_score:
           typeof e.quality_score === 'number' ? { score: e.quality_score } : e.quality_score,
         complexity_metrics: e.complexity_metrics,
+        norm_label: e.norm_label,
       })),
     };
 
@@ -1088,6 +1107,26 @@ export class WrapperClient {
       () => this.http.delete(`/api/v1/references/${referenceId}?${params.toString()}`),
       this.maxRetries
     );
+  }
+
+  async deleteByProject(projectId, tenant_id) {
+    const tid = tenant_id || this.tenantId;
+    try {
+      const result = await withRetry(
+        () =>
+          this.http.delete(
+            `/api/v1/entities/by-project/${encodeURIComponent(projectId)}?tenant_id=${tid}`
+          ),
+        this.maxRetries
+      );
+      logInfo('ENTITY', 'deleteByProject completed', { projectId, deleted: result.deleted ?? 0 });
+      return result;
+    } catch (err) {
+      logInfo('ENTITY', 'deleteByProject: endpoint not available, skipping cleanup', {
+        error: err.message,
+      });
+      return { deleted: 0 };
+    }
   }
 
   async verifyUploadCompleteness({ project, tenant_id } = {}) {
