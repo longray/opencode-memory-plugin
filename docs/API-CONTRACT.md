@@ -771,10 +771,21 @@ src/auth.ts → 01H2DEF...
 | 项目        | 值                                                                        |
 | ----------- | ------------------------------------------------------------------------- |
 | 源文件      | `lib/graphify-bridge.js` → `lib/wrapper-client.js`                        |
-| Client 方法 | `client.createRelation(payload)`                                          |
-| HTTP        | `POST /api/v1/references`                                                 |
-| 参数        | `{from_id, to_id, type, weight, confidence, description, tenant_id, ...}` |
-| 并发        | 10 并发（`runConcurrent`）                                                |
+| Client 方法 | `client.createReferences(batch)` (批量) / `client.createReference(payload)` (单条 fallback) |
+| HTTP        | `POST /api/v1/references/batch` (批量) / `POST /api/v1/references` (单条) |
+| 参数        | `[{from_id, to_id, type, weight, confidence, description, tenant_id, ...}]` (批量, max 100/batch) |
+| 并发        | 批量 100/批，失败时降级到单条 10 并发                                     |
+
+### 增量导入
+
+| 项目        | 值                                            |
+| ----------- | --------------------------------------------- |
+| Client 方法 | `importGraphJSONIncremental(options)`         |
+| Diff 算法   | `diffGraphs(oldGraph, newGraph)` — node ID + content hash |
+| 缓存路径    | `graphify-out/.graphify-cache.json`           |
+| 缓存内容    | nodes + links + backendMaps (entityMap/atomMap) |
+| CLI 选项    | `--incremental` (默认) / `--full` (强制全量)  |
+| 级联删除    | `deleteEntityCascade()` — 优先 `DELETE /api/v1/entities/{id}`，fallback 手动查询删除 |
 
 ### 删除项目数据
 

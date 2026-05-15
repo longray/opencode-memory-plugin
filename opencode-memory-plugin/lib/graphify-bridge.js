@@ -69,7 +69,7 @@ function endProgress(text) {
   if (IS_TTY) {
     process.stdout.write(`\r${text}\n`);
   } else {
-    logInfo('GRAPHIFY', text.replace(/\u001b\[[0-9;]*m/g, ''));
+    logInfo('GRAPHIFY', text.replace(/\x1b\[[0-9;]*m/g, ''));
   }
 }
 
@@ -367,13 +367,19 @@ export async function importGraphJSON(options) {
   // Step 4: Batch create Entities
   const entityBatch = entityNodes.map(n => buildEntityPayload(n, projectId, tenantId));
   let totalEntitiesCreated = 0;
-  const entityResultList = [];
   const entityTotal = Math.ceil(entityBatch.length / BATCH_SIZE);
+  const fileToEntity = new Map();
   for (let i = 0; i < entityBatch.length; i += BATCH_SIZE) {
     const batch = entityBatch.slice(i, i + BATCH_SIZE);
+    const batchNodes = entityNodes.slice(i, i + BATCH_SIZE);
     const result = await client.batchCreateEntities(batch);
     totalEntitiesCreated += result.created ?? 0;
-    entityResultList.push(...(result.entities || result.data || []));
+    const entities = result.entities || result.data || [];
+    for (let j = 0; j < entities.length; j++) {
+      const sf = batchNodes[j]?.source_file;
+      const eid = entities[j]?.id;
+      if (sf && eid) fileToEntity.set(sf, eid);
+    }
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
     logBatchProgress('Entities', batchNum, entityTotal);
   }
@@ -382,10 +388,7 @@ export async function importGraphJSON(options) {
       ` ${PB_COLORS.green}✓${PB_COLORS.reset} ${totalEntitiesCreated} created`
   );
 
-  // Build source_file → backend entity ID map for atom entity_id
-  const fileToEntity = buildFileToEntityMap(entityNodes, entityResultList);
-
-  // Step 5: Batch create Atoms (sequential — backend embedding is the bottleneck)
+  // Step 5: Batch create Atoms (with dynamic concurrency probing)
   const atomBatch = atomNodes.map(n =>
     buildAtomPayload(n, projectId, tenantId, fileToEntity.get(n.source_file))
   );
@@ -393,22 +396,118 @@ export async function importGraphJSON(options) {
   let totalAtomsCreated = 0;
   const atomResultList = [];
   const atomStart = Date.now();
+
+  // Dynamic concurrency probe: try concurrency=2 for first 3 batches
+  const PROBE_COUNT = 3;
+  const PROBE_CONCURRENCY = 2;
+  const PROBE_TIMEOUT_MS = 120_000;
+  let useConcurrency = false;
+
+  // Build all batch slices upfront
+  const allAtomSlices = [];
   for (let i = 0; i < atomBatch.length; i += BATCH_SIZE) {
-    const batch = atomBatch.slice(i, i + BATCH_SIZE);
-    const batchStart = Date.now();
-    const result = await client.batchCreateAtoms(batch);
-    totalAtomsCreated += result.created ?? 0;
-    atomResultList.push(...(result.atoms || result.data || []));
-    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-    const batchMs = Date.now() - batchStart;
-    const batchRate = batchMs > 0 ? (batchMs / batch.length).toFixed(0) : '—';
-    const totalElapsed = ((Date.now() - atomStart) / 1000).toFixed(1);
-    logBatchProgress('Atoms   ', batchNum, atomBatches, ` ${totalElapsed}s ~${batchRate}ms/atom`);
+    allAtomSlices.push(atomBatch.slice(i, i + BATCH_SIZE));
   }
+
+  // Phase A: Probe — run first 3 batches concurrently
+  const probeSlices = allAtomSlices.slice(0, Math.min(PROBE_COUNT, allAtomSlices.length));
+  const restSlices = allAtomSlices.slice(probeSlices.length);
+
+  if (probeSlices.length >= 1) {
+    if (probeSlices.length >= 2) {
+      const probeStart = Date.now();
+      const probeResults = await runConcurrent(
+        probeSlices.map(slice => () =>
+          Promise.race([
+            client.batchCreateAtoms(slice),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('probe timeout')), PROBE_TIMEOUT_MS)
+            ),
+          ])
+        ),
+        { concurrency: PROBE_CONCURRENCY }
+      );
+
+      const probeSuccess = probeResults.every(r => !r.error);
+      const probeElapsed = Date.now() - probeStart;
+
+      if (probeSuccess) {
+        useConcurrency = true;
+        logInfo('GRAPHIFY', `Concurrency probe passed: ${PROBE_CONCURRENCY} concurrent batches in ${(probeElapsed / 1000).toFixed(1)}s`);
+      } else {
+        logInfo('GRAPHIFY', 'Concurrency probe failed, falling back to serial', {
+          errors: probeResults.filter(r => r.error).map(r => r.error),
+        });
+        for (let i = 0; i < probeResults.length; i++) {
+          if (probeResults[i].error) {
+            const result = await client.batchCreateAtoms(probeSlices[i]);
+            probeResults[i] = result;
+          }
+        }
+      }
+
+      for (const r of probeResults) {
+        if (r && !r.error) {
+          totalAtomsCreated += r.created ?? 0;
+          atomResultList.push(...(r.atoms || r.data || []));
+        }
+      }
+
+      for (let i = 0; i < probeSlices.length; i++) {
+        logBatchProgress('Atoms   ', i + 1, atomBatches, ` ${((Date.now() - atomStart) / 1000).toFixed(1)}s probe`);
+      }
+    } else {
+      // Single batch — run directly (no probe needed)
+      const batchStart = Date.now();
+      const result = await client.batchCreateAtoms(probeSlices[0]);
+      totalAtomsCreated += result.created ?? 0;
+      atomResultList.push(...(result.atoms || result.data || []));
+      const batchMs = Date.now() - batchStart;
+      const batchRate = batchMs > 0 ? (batchMs / probeSlices[0].length).toFixed(0) : '—';
+      logBatchProgress('Atoms   ', 1, atomBatches, ` ${((Date.now() - atomStart) / 1000).toFixed(1)}s ~${batchRate}ms/atom`);
+    }
+  }
+
+  // Phase B: Remaining batches (concurrent or serial based on probe)
+  if (restSlices.length > 0) {
+    if (useConcurrency) {
+      // Concurrent: process remaining in groups of PROBE_CONCURRENCY
+      for (let g = 0; g < restSlices.length; g += PROBE_CONCURRENCY) {
+        const group = restSlices.slice(g, g + PROBE_CONCURRENCY);
+        const results = await runConcurrent(
+          group.map(slice => () => client.batchCreateAtoms(slice)),
+          { concurrency: PROBE_CONCURRENCY }
+        );
+        for (const r of results) {
+          if (r && !r.error) {
+            totalAtomsCreated += r.created ?? 0;
+            atomResultList.push(...(r.atoms || r.data || []));
+          } else if (r && r.error) {
+            logError('GRAPHIFY', 'Atom batch failed', { error: r.error });
+          }
+        }
+        const batchNum = probeSlices.length + g + group.length;
+        logBatchProgress('Atoms   ', batchNum, atomBatches, ` ${((Date.now() - atomStart) / 1000).toFixed(1)}s c=${PROBE_CONCURRENCY}`);
+      }
+    } else {
+      // Serial fallback
+      for (let i = 0; i < restSlices.length; i++) {
+        const batchStart = Date.now();
+        const result = await client.batchCreateAtoms(restSlices[i]);
+        totalAtomsCreated += result.created ?? 0;
+        atomResultList.push(...(result.atoms || result.data || []));
+        const batchNum = probeSlices.length + i + 1;
+        const batchMs = Date.now() - batchStart;
+        const batchRate = batchMs > 0 ? (batchMs / restSlices[i].length).toFixed(0) : '—';
+        logBatchProgress('Atoms   ', batchNum, atomBatches, ` ${((Date.now() - atomStart) / 1000).toFixed(1)}s ~${batchRate}ms/atom`);
+      }
+    }
+  }
+
   const atomElapsed = ((Date.now() - atomStart) / 1000).toFixed(1);
   endProgress(
     progressBar({ current: atomBatches, total: atomBatches, label: 'Atoms   ' }) +
-      ` ${PB_COLORS.green}✓${PB_COLORS.reset} ${totalAtomsCreated} created in ${atomElapsed}s`
+      ` ${PB_COLORS.green}✓${PB_COLORS.reset} ${totalAtomsCreated} created in ${atomElapsed}s${useConcurrency ? ` (concurrency=${PROBE_CONCURRENCY})` : ''}`
   );
 
   // Map atom results by index (backend returns same-count array)
@@ -418,12 +517,17 @@ export async function importGraphJSON(options) {
       got: atomResultList.length,
     });
   }
-  const { entityMap, atomMap } = buildIdMaps(
-    entityNodes,
-    atomNodes,
-    entityResultList,
-    atomResultList
-  );
+  const entityMap = new Map();
+  for (const [sf, eid] of fileToEntity) {
+    const node = entityNodes.find(n => n.source_file === sf);
+    if (node) entityMap.set(node.id, eid);
+  }
+  const atomMap = new Map();
+  for (let i = 0; i < atomNodes.length; i++) {
+    if (atomResultList[i]?.id) {
+      atomMap.set(atomNodes[i].id, atomResultList[i].id);
+    }
+  }
   logInfo('GRAPHIFY', `ID maps: entityMap=${entityMap.size}, atomMap=${atomMap.size}`);
 
   // Step 6: Batch create References (with fallback to individual creation)
@@ -463,8 +567,7 @@ export async function importGraphJSON(options) {
           error: err.message,
         });
         useBatch = false;
-        // Fallback: create this batch individually
-        const fallbackResults = await runConcurrent(
+        await runConcurrent(
           batch.map(payload => () =>
             client.createReference(payload)
               .then(() => { refCreated++; })
@@ -510,11 +613,333 @@ export async function importGraphJSON(options) {
   };
 }
 
+// ===== Incremental Import =====
+
+import crypto from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
+
+const CACHE_FILENAME = '.graphify-cache.json';
+
+export function nodeHash(node) {
+  const raw = `${node.label}|${node.source_file}|${node.source_location || ''}|${node.file_type || ''}|${node.community ?? ''}|${node.norm_label || ''}`;
+  return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
+}
+
+export function diffGraphs(oldGraph, newGraph) {
+  const oldNodeMap = new Map(oldGraph.nodes.map(n => [n.id, n]));
+  const newNodeMap = new Map(newGraph.nodes.map(n => [n.id, n]));
+
+  const addedNodes = [];
+  const removedNodes = [];
+  const changedNodes = [];
+  const changedNodeIds = new Set();
+
+  for (const node of newGraph.nodes) {
+    const old = oldNodeMap.get(node.id);
+    if (!old) {
+      addedNodes.push(node);
+    } else if (nodeHash(old) !== nodeHash(node)) {
+      changedNodes.push({ old, new: node });
+      changedNodeIds.add(node.id);
+    }
+  }
+
+  for (const node of oldGraph.nodes) {
+    if (!newNodeMap.has(node.id)) {
+      removedNodes.push(node);
+    }
+  }
+
+  const oldLinkSet = new Set(oldGraph.links.map(l => `${l.source}|${l.target}|${l.relation}`));
+  const newLinkSet = new Set(newGraph.links.map(l => `${l.source}|${l.target}|${l.relation}`));
+
+  const addedLinks = newGraph.links.filter(l => !oldLinkSet.has(`${l.source}|${l.target}|${l.relation}`));
+  const removedLinks = oldGraph.links.filter(l => !newLinkSet.has(`${l.source}|${l.target}|${l.relation}`));
+
+  // Links referencing changed nodes need remapping
+  const remappableLinks = newGraph.links.filter(
+    l => changedNodeIds.has(l.source) || changedNodeIds.has(l.target)
+  );
+
+  return { addedNodes, removedNodes, changedNodes, changedNodeIds, addedLinks, removedLinks, remappableLinks };
+}
+
+export async function loadCache(cachePath) {
+  try {
+    const raw = await readFile(cachePath, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export async function saveCache(cachePath, graph, backendMaps) {
+  const cache = {
+    version: 1,
+    timestamp: new Date().toISOString(),
+    nodes: graph.nodes.map(n => ({ ...n, _hash: nodeHash(n) })),
+    links: graph.links,
+    backendMaps: {
+      entityMap: Object.fromEntries(backendMaps.entityMap),
+      atomMap: Object.fromEntries(backendMaps.atomMap),
+    },
+  };
+  await writeFile(cachePath, JSON.stringify(cache, null, 2), 'utf-8');
+}
+
+async function deleteEntityCascade(client, entityId, _tenantId) {
+  try {
+    await client.http.delete(`/api/v1/entities/${entityId}`);
+    return { deleted: true, method: 'cascade' };
+  } catch (err) {
+    logError('GRAPHIFY', 'Cascade delete failed, falling back to manual', { entityId, error: err.message });
+    let atomsDeleted = 0;
+    let refsDeleted = 0;
+    try {
+      const atomsRes = await client.http.get(`/api/v1/atoms?entity_id=${entityId}&limit=1000`);
+      const atoms = atomsRes.atoms || atomsRes.data || [];
+      for (const atom of atoms) {
+        try {
+          await client.http.delete(`/api/v1/references?atom_id=${atom.id}`);
+          refsDeleted++;
+        } catch (refErr) { logError('GRAPHIFY', 'Ref delete failed', { atomId: atom.id, error: refErr.message }); }
+        try {
+          await client.http.delete(`/api/v1/atoms/${atom.id}`);
+          atomsDeleted++;
+        } catch (atomErr) { logError('GRAPHIFY', 'Atom delete failed', { atomId: atom.id, error: atomErr.message }); }
+      }
+    } catch (queryErr) { logError('GRAPHIFY', 'Atom query failed', { entityId, error: queryErr.message }); }
+    try {
+      await client.http.delete(`/api/v1/entities/${entityId}`);
+    } catch (entityErr) { logError('GRAPHIFY', 'Entity delete failed', { entityId, error: entityErr.message }); }
+    return { deleted: true, method: 'manual', atomsDeleted, refsDeleted };
+  }
+}
+
+export async function importGraphJSONIncremental(options) {
+  const { projectPath, projectId, client, tenantId } = options;
+  const cachePath = path.join(projectPath, 'graphify-out', CACHE_FILENAME);
+
+  const graphPath = path.join(projectPath, 'graphify-out', 'graph.json');
+  const raw = await readFile(graphPath, 'utf-8');
+  const newGraph = JSON.parse(raw);
+
+  if (!Array.isArray(newGraph.nodes) || !Array.isArray(newGraph.links)) {
+    throw new Error('Invalid graph.json: expected {nodes: Array, links: Array}');
+  }
+
+  const cached = await loadCache(cachePath);
+  if (!cached || !cached.nodes || !cached.links) {
+    logInfo('GRAPHIFY', 'No valid cache found, falling back to full import');
+    const result = await importGraphJSON(options);
+    await saveCache(cachePath, newGraph, { entityMap: new Map(), atomMap: new Map() });
+    return { ...result, mode: 'full' };
+  }
+
+  const oldGraph = { nodes: cached.nodes, links: cached.links };
+  const diff = diffGraphs(oldGraph, newGraph);
+
+  const totalChanges = diff.addedNodes.length + diff.removedNodes.length + diff.changedNodes.length;
+  if (totalChanges === 0 && diff.addedLinks.length === 0 && diff.removedLinks.length === 0) {
+    logInfo('GRAPHIFY', 'No changes detected, skipping import');
+    return { mode: 'incremental', entities: 0, atoms: 0, references: 0, errors: 0, skipped: 0, byRelation: {} };
+  }
+
+  logInfo('GRAPHIFY', `Incremental diff: +${diff.addedNodes.length} -${diff.removedNodes.length} ~${diff.changedNodes.length} nodes, +${diff.addedLinks.length} -${diff.removedLinks.length} links`);
+
+  // Restore backend maps from cache
+  const entityMap = new Map(Object.entries(cached.backendMaps?.entityMap || {}));
+  const atomMap = new Map(Object.entries(cached.backendMaps?.atomMap || {}));
+
+  // Step 1: Delete removed nodes (cascade)
+  const { entityNodes: removedEntities, atomNodes: removedAtoms } = classifyNodes(diff.removedNodes);
+  let deletedCount = 0;
+
+  endProgress(`Removals: ${PB_COLORS.red}${removedEntities.length} entities, ${removedAtoms.length} atoms${PB_COLORS.reset}`);
+
+  for (const entity of removedEntities) {
+    const backendId = entityMap.get(entity.id);
+    if (backendId) {
+      await deleteEntityCascade(client, backendId, tenantId);
+      entityMap.delete(entity.id);
+      deletedCount++;
+    }
+  }
+
+  for (const atom of removedAtoms) {
+    const backendId = atomMap.get(atom.id);
+    if (backendId) {
+      try {
+        await client.http.delete(`/api/v1/atoms/${backendId}`);
+      } catch { /* already deleted via entity cascade */ }
+      atomMap.delete(atom.id);
+      deletedCount++;
+    }
+  }
+
+  // Step 2: Delete old versions of changed nodes, then recreate
+  const changedOldNodes = diff.changedNodes.map(c => c.old);
+  const changedNewNodes = diff.changedNodes.map(c => c.new);
+  const { entityNodes: changedEntities, atomNodes: changedAtoms } = classifyNodes(changedOldNodes);
+  const { entityNodes: changedNewEntities, atomNodes: changedNewAtoms } = classifyNodes(changedNewNodes);
+
+  // Delete old changed entities/atoms
+  for (const entity of changedEntities) {
+    const backendId = entityMap.get(entity.id);
+    if (backendId) {
+      await deleteEntityCascade(client, backendId, tenantId);
+      entityMap.delete(entity.id);
+    }
+  }
+  for (const atom of changedAtoms) {
+    const backendId = atomMap.get(atom.id);
+    if (backendId) {
+      try { await client.http.delete(`/api/v1/atoms/${backendId}`); } catch { /* cascade */ }
+      atomMap.delete(atom.id);
+    }
+  }
+
+  // Step 3: Create added + changed nodes
+  const allNewEntityNodes = [...diff.addedNodes.filter(n => hasFileExtension(n.label) || !n.source_location || n.source_location === ''), ...changedNewEntities];
+  const allNewAtomNodes = [...diff.addedNodes.filter(n => n.source_location && n.source_location !== '' && !hasFileExtension(n.label)), ...changedNewAtoms];
+
+  // Create added+changed entities
+  let newEntitiesCreated = 0;
+  const entityBatch = allNewEntityNodes.map(n => buildEntityPayload(n, projectId, tenantId));
+  const entityBatches = Math.ceil(entityBatch.length / BATCH_SIZE);
+  const newEntityResults = [];
+
+  for (let i = 0; i < entityBatch.length; i += BATCH_SIZE) {
+    const batch = entityBatch.slice(i, i + BATCH_SIZE);
+    const result = await client.batchCreateEntities(batch);
+    newEntitiesCreated += result.created ?? 0;
+    newEntityResults.push(...(result.entities || result.data || []));
+    logBatchProgress('Inc Ents', Math.floor(i / BATCH_SIZE) + 1, entityBatches);
+  }
+  if (entityBatches > 0) {
+    endProgress(`Inc Ents ${PB_COLORS.green}✓${PB_COLORS.reset} ${newEntitiesCreated} created`);
+  }
+
+  // Update entityMap with new entity IDs
+  const fileToEntity = buildFileToEntityMap(allNewEntityNodes, newEntityResults);
+  for (let i = 0; i < allNewEntityNodes.length; i++) {
+    if (newEntityResults[i]?.id) {
+      entityMap.set(allNewEntityNodes[i].id, newEntityResults[i].id);
+    }
+  }
+
+  // Create added+changed atoms
+  let newAtomsCreated = 0;
+  const atomPayloads = allNewAtomNodes.map(n =>
+    buildAtomPayload(n, projectId, tenantId, fileToEntity.get(n.source_file))
+  );
+  const atomBatches = Math.ceil(atomPayloads.length / BATCH_SIZE);
+  const newAtomResults = [];
+
+  for (let i = 0; i < atomPayloads.length; i += BATCH_SIZE) {
+    const batch = atomPayloads.slice(i, i + BATCH_SIZE);
+    const result = await client.batchCreateAtoms(batch);
+    newAtomsCreated += result.created ?? 0;
+    newAtomResults.push(...(result.atoms || result.data || []));
+    logBatchProgress('Inc Atoms', Math.floor(i / BATCH_SIZE) + 1, atomBatches);
+  }
+  if (atomBatches > 0) {
+    endProgress(`Inc Atoms ${PB_COLORS.green}✓${PB_COLORS.reset} ${newAtomsCreated} created`);
+  }
+
+  // Update atomMap with new atom IDs
+  for (let i = 0; i < allNewAtomNodes.length; i++) {
+    if (newAtomResults[i]?.id) {
+      atomMap.set(allNewAtomNodes[i].id, newAtomResults[i].id);
+    }
+  }
+
+  // Step 4: Delete removed links, then create added/remapped links
+  let refCreated = 0;
+  let refErrors = 0;
+
+  for (const link of diff.removedLinks) {
+    const fromId = resolveId(link.source, entityMap, atomMap);
+    const toId = resolveId(link.target, entityMap, atomMap);
+    if (fromId && toId) {
+      try {
+        await client.http.delete(`/api/v1/references?from_id=${fromId}&to_id=${toId}&type=${link.relation}`);
+      } catch { /* reference may not exist */ }
+    }
+  }
+
+  const allRefLinks = [...diff.addedLinks, ...diff.remappableLinks];
+
+  const refPayloads = [];
+  for (const link of allRefLinks) {
+    const fromId = resolveId(link.source, entityMap, atomMap);
+    const toId = resolveId(link.target, entityMap, atomMap);
+    if (fromId && toId) {
+      refPayloads.push(buildReferencePayload(link, fromId, toId, tenantId));
+    }
+  }
+
+  const refBatches = Math.ceil(refPayloads.length / BATCH_SIZE);
+  let useBatch = true;
+
+  for (let i = 0; i < refPayloads.length; i += BATCH_SIZE) {
+    const batch = refPayloads.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+
+    if (useBatch) {
+      try {
+        const result = await client.createReferences(batch);
+        refCreated += result.references?.filter(r => r.status !== 'error')?.length ?? result.created ?? 0;
+        refErrors += result.references?.filter(r => r.status === 'error')?.length ?? result.errors ?? 0;
+      } catch {
+        useBatch = false;
+        await runConcurrent(
+          batch.map(p => () => client.createReference(p).then(() => { refCreated++; }).catch(() => { refErrors++; })),
+          { concurrency: 10 }
+        );
+      }
+    } else {
+      await runConcurrent(
+        batch.map(p => () => client.createReference(p).then(() => { refCreated++; }).catch(() => { refErrors++; })),
+        { concurrency: 10 }
+      );
+    }
+    logBatchProgress('Inc Refs', batchNum, refBatches);
+  }
+  if (refBatches > 0) {
+    endProgress(`Inc Refs ${PB_COLORS.green}✓${PB_COLORS.reset} ${refCreated} created, ${refErrors}err`);
+  }
+
+  // Save updated cache
+  await saveCache(cachePath, newGraph, { entityMap, atomMap });
+
+  const byRelation = {};
+  for (const link of allRefLinks) {
+    byRelation[link.relation] = (byRelation[link.relation] || 0) + 1;
+  }
+
+  return {
+    mode: 'incremental',
+    entities: newEntitiesCreated,
+    atoms: newAtomsCreated,
+    references: refCreated,
+    errors: refErrors,
+    skipped: 0,
+    deleted: deletedCount,
+    byRelation,
+  };
+}
+
 /**
  * Full graphify project workflow: run graphify + import
+ *
+ * @param {object} options
+ * @param {string} [options.projectPath] - Project directory
+ * @param {boolean} [options.skipGraphify] - Skip running graphify
+ * @param {'incremental'|'full'} [options.mode] - Import mode (default: 'incremental')
  */
 export async function graphifyProject(options = {}) {
-  const { projectPath = process.cwd(), skipGraphify = false } = options;
+  const { projectPath = process.cwd(), skipGraphify = false, mode = 'incremental' } = options;
 
   if (!skipGraphify) {
     const { installed, version, command } = await checkGraphifyInstalled();
@@ -539,11 +964,14 @@ export async function graphifyProject(options = {}) {
   const config = getConfig();
   const client = new WrapperClient(config);
   const projectId = config.project?.id || 'unknown';
+  const tenantId = config.backend?.tenant_id || process.env.USERNAME;
+  const importOpts = { projectPath, projectId, client, tenantId };
 
-  return await importGraphJSON({
-    projectPath,
-    projectId,
-    client,
-    tenantId: config.backend?.tenant_id || process.env.USERNAME,
-  });
+  if (mode === 'full') {
+    logInfo('GRAPHIFY', 'Full import mode (forced)');
+    const result = await importGraphJSON(importOpts);
+    return { ...result, mode: 'full' };
+  }
+
+  return await importGraphJSONIncremental(importOpts);
 }

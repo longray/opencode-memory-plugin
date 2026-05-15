@@ -51,6 +51,21 @@ import { DEFAULT_HTTP_TIMEOUT_MS, RETRY_BASE_DELAY_MS } from './constants.js';
 import { DEFAULT_API_PORT } from './constants.js';
 import { getConfig } from './storage.js';
 
+// HTTP Keep-Alive via undici Agent (Node.js 18+ built-in)
+// Node.js native fetch() does NOT support node:http.Agent, so we use undici.
+// Scoped to HTTPClient instances via dispatcher option — avoids global side effects.
+let _undiciAgent = null;
+try {
+  // eslint-disable-next-line n/no-unpublished-import
+  const { Agent } = await import('undici');
+  _undiciAgent = new Agent({
+    keepAliveTimeout: 30_000,
+    connections: 10,
+  });
+} catch {
+  // undici not available (Node.js < 18 or missing) — keep-alive disabled, fetch uses default
+}
+
 function logInfo(category, message, data) {
   writeLog('INFO', category, message, data);
 }
@@ -115,7 +130,7 @@ class HTTPClient {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      const response = await fetch(url, { ...options, signal: controller.signal });
+      const response = await fetch(url, { ...options, signal: controller.signal, dispatcher: _undiciAgent });
       clearTimeout(timeoutId);
 
       logInfo('HTTP', `<<< ${response.status} ${endpoint}`);

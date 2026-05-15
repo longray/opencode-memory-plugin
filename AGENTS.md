@@ -84,7 +84,7 @@ D:/github/opencode-memory-plugin/
 | entry.js              | buildEntryContent, writeEntryToTimeline, parseEntryFromFile                                                                       | 条目格式化和文件操作                 |
 | extractor.js          | extractByLevel, getEntryInfo                                                                                                      | 分层提取和 frontmatter 解析          |
 | wrapper-client.js     | WrapperClient                                                                                                                     | 后端 API 客户端（所有 HTTP 调用）    |
-| graphify-bridge.js    | importGraphJSON, graphifyProject, classifyNodes, buildAtomPayload, buildEntityPayload, buildReferencePayload                      | graphify graph.json → SurrealDB 桥接 |
+| graphify-bridge.js    | importGraphJSON, importGraphJSONIncremental, graphifyProject, classifyNodes, diffGraphs, nodeHash, loadCache, saveCache, buildAtomPayload, buildEntityPayload, buildReferencePayload | graphify graph.json → SurrealDB 桥接 + 增量导入 |
 | storage.js            | getConfig, getLinkMap, getEntryById                                                                                               | 配置和 link-map 读取                 |
 | trie-index.js         | searchByPrefix, getAutocompleteSuggestions                                                                                        | Trie 索引和自动补全                  |
 | code-analyzer.js      | CodeAnalyzer                                                                                                                      | 代码 AST 分析（Oxc + Tree-sitter）   |

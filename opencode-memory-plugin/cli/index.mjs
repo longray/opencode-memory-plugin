@@ -8,6 +8,8 @@
  */
 
 import { logInfo, logError } from '../lib/logger.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const VERSION = 'v3.3.0';
 
@@ -15,18 +17,22 @@ const VERSION = 'v3.3.0';
 
 async function graphifyCommand(args) {
   try {
+    const mode = args.full ? 'full' : 'incremental';
     const { graphifyProject } = await import('../lib/graphify-bridge.js');
     const result = await graphifyProject({
       projectPath: args.project || process.cwd(),
       skipGraphify: args['skip-graphify'] || false,
+      mode,
     });
 
-    console.log('\n=== Graphify Import Report ===');
+    console.log(`\n=== Graphify Import Report (${result.mode || mode}) ===`);
+    console.log(`Mode:       ${result.mode || mode}`);
     console.log(`Entities:   ${result.entities}`);
     console.log(`Atoms:      ${result.atoms}`);
     console.log(`References: ${result.references}`);
     if (result.errors) console.log(`Errors:     ${result.errors}`);
     if (result.skipped) console.log(`Skipped:    ${result.skipped}`);
+    if (result.deleted) console.log(`Deleted:    ${result.deleted}`);
     console.log('\nBy Relation:');
     for (const [type, count] of Object.entries(result.byRelation || {})) {
       console.log(`  ${type}: ${count}`);
@@ -119,6 +125,8 @@ Commands:
   checkpoint  View sync checkpoints
   conflicts   List sync conflicts
   graphify Analyze project with graphify and import to SurrealDB
+             Options: --full (force full import)
+             Default: incremental if cache exists, full otherwise
 
 Quality Commands (v3.4):
   quality-dashboard  Real-time quality dashboard
@@ -1063,8 +1071,6 @@ async function qualityExportCommand(args) {
 
 async function initCommand() {
   try {
-    const fs = require('fs');
-    const path = require('path');
     const { TIMELINE_DIR } = await import('../lib/constants.js');
 
     const now = new Date();

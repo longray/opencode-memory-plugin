@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### Graphify Bridge 性能优化与增量导入
+
+#### Added
+
+- **Refs 批量化**: References 从逐个创建改为 `createReferences()` 批量创建（100 条/批），含降级 fallback
+- **Atoms 并发探测**: 前 3 个 batch 试并发 2，全部成功则保持，失败降级串行
+- **HTTP Keep-Alive**: 通过 `undici.Agent` + `setGlobalDispatcher()` 实现 TCP 连接复用
+- **增量导入**: `importGraphJSONIncremental()` — diff 新旧 graph.json，只导入变更部分
+- **Diff 算法**: `diffGraphs()` 检测 added/removed/changed nodes 和 links
+- **本地缓存**: `.graphify-cache.json` 存储上次 graph.json 状态 + backend ID 映射
+- **级联删除**: `deleteEntityCascade()` — 优先后端级联 API，fallback 手动查询+逐个删除
+- **CLI `--incremental`/`--full`**: `opencode-memory graphify` 默认增量，`--full` 强制全量
+- **18 个增量测试**: nodeHash, diffGraphs, loadCache/saveCache, importGraphJSONIncremental
+
+#### Performance
+
+- Refs 创建: ~37s → ~5s（batch API 100/批）
+- Atoms 创建: ~174s → ~90s（并发 2 探测通过时）
+- 日常增量导入: ~3-10s（20-70x 提升，仅导入变更文件）
+- HTTP Keep-Alive: 减少 5-15% 连接开销
+
 ### Graphify Bridge — graph.json → SurrealDB 桥接
 
 #### Added

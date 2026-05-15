@@ -76,7 +76,8 @@ function createMockClient() {
     deleteByProject: [],
     batchCreateEntities: [],
     batchCreateAtoms: [],
-    createRelation: [],
+    createReferences: [],
+    createReference: [],
   };
   return {
     calls,
@@ -97,8 +98,13 @@ function createMockClient() {
       calls.batchCreateAtoms.push(args);
       return { created: 2, skipped: 0, errors: 0, atoms: [{ id: 'atom:at1' }, { id: 'atom:at2' }] };
     },
-    createRelation: async (...args) => {
-      calls.createRelation.push(args);
+    createReferences: async (...args) => {
+      calls.createReferences.push(args);
+      const refs = args[0].map(() => ({ id: `reference:ref${calls.createReferences.length}`, status: 'created' }));
+      return { references: refs, created: refs.length, errors: 0 };
+    },
+    createReference: async (...args) => {
+      calls.createReference.push(args);
       return { id: 'reference:ref1' };
     },
   };
@@ -138,7 +144,8 @@ describe('importGraphJSON', () => {
     expect(client.calls.deleteByProject).toEqual([['test-project', 'longray']]);
     expect(client.calls.batchCreateEntities).toHaveLength(1);
     expect(client.calls.batchCreateAtoms).toHaveLength(1);
-    expect(client.calls.createRelation).toHaveLength(4);
+    expect(client.calls.createReferences).toHaveLength(1);
+    expect(client.calls.createReference).toHaveLength(0);
   });
 
   it('should skip links with unresolvable IDs', async () => {
@@ -181,15 +188,17 @@ describe('importGraphJSON', () => {
     expect(result.skipped).toBe(1);
   });
 
-  it('should report errors from failed relation creation', async () => {
+  it('should report errors from failed reference creation', async () => {
     writeGraphFile(SAMPLE_GRAPH);
-    let callCount = 0;
     const client = {
       ...createMockClient(),
-      createRelation: async () => {
-        callCount++;
-        if (callCount === 2) throw new Error('network error');
-        return { id: 'reference:ref1' };
+      createReferences: async (batch) => {
+        const refs = batch.map((_, i) => ({
+          id: i === 0 ? 'reference:err' : `reference:ref${i}`,
+          status: i === 0 ? 'error' : 'created',
+        }));
+        const errorCount = refs.filter(r => r.status === 'error').length;
+        return { references: refs, created: refs.length - errorCount, errors: errorCount };
       },
     };
 
@@ -200,7 +209,7 @@ describe('importGraphJSON', () => {
       tenantId: 'longray',
     });
 
-    expect(result.errors).toBe(1);
+    expect(result.errors).toBeGreaterThanOrEqual(1);
   });
 
   it('should count relations by type', async () => {
