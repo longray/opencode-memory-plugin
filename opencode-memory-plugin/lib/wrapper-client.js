@@ -992,6 +992,7 @@ export class WrapperClient {
         content: a.content,
         tenant_id: a.tenant_id || this.tenantId,
         name: a.name,
+        entity_id: a.entity_id,
         signature: a.signature,
         params: a.params,
         return_type: a.return_type,

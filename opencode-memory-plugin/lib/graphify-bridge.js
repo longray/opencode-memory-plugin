@@ -22,6 +22,65 @@ function logError(category, message, data) {
   writeLog('ERROR', category, message, data);
 }
 
+// ─── Inline Progress Bar ──────────────────────────────────────────
+const PB_COLORS = {
+  reset: '\x1b[0m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  red: '\x1b[31m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  cyan: '\x1b[36m',
+};
+const PB_BAR = '\u2588';
+const PB_EMPTY = '\u2591';
+const IS_TTY = process.stdout.isTTY;
+
+/**
+ * Render an inline progress bar string (for batch loops)
+ * @param {object} opts
+ * @param {number} opts.current - Items completed so far
+ * @param {number} opts.total  - Total items
+ * @param {string} opts.label  - Phase label (e.g. "Entities")
+ * @param {number} [opts.width] - Bar width in chars
+ * @returns {string}
+ */
+function progressBar({ current, total, label, width = 30 }) {
+  const pct = total > 0 ? Math.min(1, Math.max(0, current / total)) : 1;
+  const filled = Math.round(pct * width);
+  const bar =
+    (pct >= 1 ? PB_COLORS.green : pct >= 0.5 ? PB_COLORS.yellow : PB_COLORS.red) +
+    PB_BAR.repeat(filled) +
+    PB_COLORS.reset +
+    PB_COLORS.dim +
+    PB_EMPTY.repeat(width - filled) +
+    PB_COLORS.reset;
+  const pctStr = PB_COLORS.bold + `${Math.round(pct * 100)}%` + PB_COLORS.reset;
+  return `${PB_COLORS.cyan}${label}${PB_COLORS.reset} [${bar}] ${pctStr} (${current}/${total})`;
+}
+
+function writeProgress(text) {
+  if (IS_TTY) {
+    process.stdout.write(`\r${text}`);
+  }
+}
+
+function endProgress(text) {
+  if (IS_TTY) {
+    process.stdout.write(`\r${text}\n`);
+  } else {
+    logInfo('GRAPHIFY', text.replace(/\u001b\[[0-9;]*m/g, ''));
+  }
+}
+
+function logBatchProgress(label, batchNum, totalBatches, extra) {
+  if (IS_TTY) {
+    writeProgress(progressBar({ current: batchNum, total: totalBatches, label }) + (extra || ''));
+  } else if (batchNum === totalBatches || batchNum % 5 === 0) {
+    logInfo('GRAPHIFY', `${label} batch ${batchNum}/${totalBatches}${extra || ''}`);
+  }
+}
+
 const LANG_MAP = {
   '.js': 'javascript',
   '.mjs': 'javascript',
@@ -51,10 +110,6 @@ export function classifyNodes(nodes) {
   const entityNodes = [];
   const atomNodes = [];
   for (const node of nodes) {
-    // graphify gives ALL nodes a source_location (even files get "L1").
-    // Classification: file-level nodes have labels with file extensions (e.g. "index.js"),
-    // symbol-level nodes are functions/classes (e.g. "getWebSocketClient()", "WrapperClient").
-    // Exception: nodes without source_location at all are also file-level.
     if (!node.source_location || node.source_location === '' || hasFileExtension(node.label)) {
       entityNodes.push(node);
     } else {
@@ -65,16 +120,11 @@ export function classifyNodes(nodes) {
 }
 
 function hasFileExtension(label) {
-  // Match labels that look like filenames: contain a dot followed by an extension
-  // e.g. "index.js", "wrapper-client.js", "cli-tool.test.ts"
-  // but NOT "MemoryPlugin()" or "getWebSocketClient()"
-  return /\.(js|mjs|cjs|ts|tsx|py|go|rs|java|md|json|yaml|yml|toml|cjs)$/i.test(label);
+  return /\.(js|mjs|cjs|ts|tsx|py|go|rs|java|md|json|yaml|yml|toml)$/i.test(label);
 }
 
 /**
  * Parse graphify source_location to start_line/end_line
- * "L206" → { start_line: 206 }
- * "LL206-230" → { start_line: 206, end_line: 230 }
  */
 export function parseSourceLocation(loc) {
   if (!loc) return {};
@@ -91,7 +141,6 @@ export function parseSourceLocation(loc) {
 
 /**
  * Infer Atom type from label
- * "foo()" → "function", "MyClass" → "class", default → "function"
  */
 export function inferAtomType(label) {
   if (label.endsWith('()')) return 'function';
@@ -156,6 +205,21 @@ export function buildIdMaps(entityNodes, atomNodes, entityResults, atomResults) 
 }
 
 /**
+ * Build source_file → backend entity ID mapping for atom entity_id assignment
+ */
+export function buildFileToEntityMap(entityNodes, entityResults) {
+  const map = new Map();
+  for (let i = 0; i < entityNodes.length; i++) {
+    const sf = entityNodes[i].source_file;
+    const eid = entityResults[i]?.id;
+    if (sf && eid) {
+      map.set(sf, eid);
+    }
+  }
+  return map;
+}
+
+/**
  * Resolve graphify link source/target to our ID
  */
 export function resolveId(graphifyId, entityMap, atomMap) {
@@ -182,13 +246,14 @@ export function buildEntityPayload(node, projectId, tenantId) {
 /**
  * Build Atom payload from symbol-level node
  */
-export function buildAtomPayload(node, projectId, tenantId) {
+export function buildAtomPayload(node, projectId, tenantId, entityBackendId) {
   const name = node.label.replace(/\(\)$/, '');
   const location = parseSourceLocation(node.source_location);
   return {
     type: inferAtomType(node.label),
     name,
     content: '',
+    entity_id: entityBackendId || null,
     norm_label: node.norm_label || null,
     start_line: location.start_line,
     end_line: location.end_line || undefined,
@@ -233,23 +298,26 @@ export function buildReferencePayload(link, fromId, toId, tenantId) {
  * Check if graphify Python package is installed
  */
 export async function checkGraphifyInstalled() {
-  try {
-    const { stdout } = await execFile('python', ['-m', 'graphify', '--version'], {
-      timeout: 10000,
-    });
-    const version = stdout.trim();
-    return { installed: true, version };
-  } catch {
-    return { installed: false, version: null };
+  const commands = ['python3', 'python'];
+  for (const cmd of commands) {
+    try {
+      const { stdout } = await execFile(cmd, ['-m', 'graphify', '--version'], {
+        timeout: 10000,
+      });
+      return { installed: true, version: stdout.trim(), command: cmd };
+    } catch {
+      continue;
+    }
   }
+  return { installed: false, version: null, command: null };
 }
 
 /**
  * Run graphify to generate graph.json
  */
-export async function runGraphify(projectPath) {
+export async function runGraphify(projectPath, command = 'python') {
   try {
-    const { stdout, stderr } = await execFile('python', ['-m', 'graphify', 'update', projectPath], {
+    const { stdout, stderr } = await execFile(command, ['-m', 'graphify', 'update', projectPath], {
       timeout: 300000,
       cwd: projectPath,
     });
@@ -270,10 +338,17 @@ export async function runGraphify(projectPath) {
 export async function importGraphJSON(options) {
   const { projectPath, projectId, client, tenantId } = options;
 
-  // Step 1: Read graph.json
+  // Step 1: Read and validate graph.json
   const graphPath = path.join(projectPath, 'graphify-out', 'graph.json');
   const raw = await readFile(graphPath, 'utf-8');
   const graph = JSON.parse(raw);
+
+  if (!Array.isArray(graph.nodes) || !Array.isArray(graph.links)) {
+    throw new Error(
+      `Invalid graph.json: expected {nodes: Array, links: Array}, got nodes=${typeof graph.nodes}, links=${typeof graph.links}`
+    );
+  }
+
   logInfo(
     'GRAPHIFY',
     `Loaded graph.json: ${graph.nodes.length} nodes, ${graph.links.length} links`
@@ -293,56 +368,111 @@ export async function importGraphJSON(options) {
   const entityBatch = entityNodes.map(n => buildEntityPayload(n, projectId, tenantId));
   let totalEntitiesCreated = 0;
   const entityResultList = [];
+  const entityTotal = Math.ceil(entityBatch.length / BATCH_SIZE);
   for (let i = 0; i < entityBatch.length; i += BATCH_SIZE) {
     const batch = entityBatch.slice(i, i + BATCH_SIZE);
     const result = await client.batchCreateEntities(batch);
     totalEntitiesCreated += result.created ?? 0;
     entityResultList.push(...(result.entities || result.data || []));
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+    logBatchProgress('Entities', batchNum, entityTotal);
   }
-  logInfo(
-    'GRAPHIFY',
-    `Created ${totalEntitiesCreated} entities in ${Math.ceil(entityBatch.length / BATCH_SIZE)} batches`
+  endProgress(
+    progressBar({ current: entityTotal, total: entityTotal, label: 'Entities' }) +
+      ` ${PB_COLORS.green}✓${PB_COLORS.reset} ${totalEntitiesCreated} created`
   );
 
-  const { entityMap, atomMap } = buildIdMaps(entityNodes, atomNodes, entityResultList, []);
-  logInfo('GRAPHIFY', `ID maps: entityMap=${entityMap.size}, atomMap=${atomMap.size}`);
+  // Build source_file → backend entity ID map for atom entity_id
+  const fileToEntity = buildFileToEntityMap(entityNodes, entityResultList);
 
   // Step 5: Batch create Atoms (sequential — backend embedding is the bottleneck)
-  const atomBatch = atomNodes.map(n => buildAtomPayload(n, projectId, tenantId));
+  const atomBatch = atomNodes.map(n =>
+    buildAtomPayload(n, projectId, tenantId, fileToEntity.get(n.source_file))
+  );
   const atomBatches = Math.ceil(atomBatch.length / BATCH_SIZE);
   let totalAtomsCreated = 0;
   const atomResultList = [];
+  const atomStart = Date.now();
   for (let i = 0; i < atomBatch.length; i += BATCH_SIZE) {
     const batch = atomBatch.slice(i, i + BATCH_SIZE);
+    const batchStart = Date.now();
     const result = await client.batchCreateAtoms(batch);
     totalAtomsCreated += result.created ?? 0;
     atomResultList.push(...(result.atoms || result.data || []));
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+    const batchMs = Date.now() - batchStart;
+    const batchRate = batchMs > 0 ? (batchMs / batch.length).toFixed(0) : '—';
+    const totalElapsed = ((Date.now() - atomStart) / 1000).toFixed(1);
+    logBatchProgress('Atoms   ', batchNum, atomBatches, ` ${totalElapsed}s ~${batchRate}ms/atom`);
   }
-  logInfo('GRAPHIFY', `Created ${totalAtomsCreated} atoms in ${atomBatches} batches`);
+  const atomElapsed = ((Date.now() - atomStart) / 1000).toFixed(1);
+  endProgress(
+    progressBar({ current: atomBatches, total: atomBatches, label: 'Atoms   ' }) +
+      ` ${PB_COLORS.green}✓${PB_COLORS.reset} ${totalAtomsCreated} created in ${atomElapsed}s`
+  );
 
-  for (let i = 0; i < atomNodes.length; i++) {
-    if (atomResultList[i] && atomResultList[i].id) {
-      atomMap.set(atomNodes[i].id, atomResultList[i].id);
-    }
+  // Map atom results by index (backend returns same-count array)
+  if (atomResultList.length !== atomNodes.length) {
+    logError('GRAPHIFY', 'Atom result count mismatch', {
+      expected: atomNodes.length,
+      got: atomResultList.length,
+    });
   }
-  logInfo('GRAPHIFY', `atomMap size after update: ${atomMap.size}`);
+  const { entityMap, atomMap } = buildIdMaps(
+    entityNodes,
+    atomNodes,
+    entityResultList,
+    atomResultList
+  );
+  logInfo('GRAPHIFY', `ID maps: entityMap=${entityMap.size}, atomMap=${atomMap.size}`);
 
   // Step 6: Concurrent create References
-  logInfo('GRAPHIFY', `Creating ${graph.links.length} references (concurrency=10)`);
+  const linkTotal = graph.links.length;
+  const refStart = Date.now();
+  let refDone = 0;
+  let refErrors = 0;
+  let refSkipped = 0;
   const linkTasks = graph.links.map(link => {
     const fromId = resolveId(link.source, entityMap, atomMap);
     const toId = resolveId(link.target, entityMap, atomMap);
-    if (!fromId || !toId) return () => ({ skipped: true, link });
+    if (!fromId || !toId)
+      return () => {
+        refSkipped++;
+        refDone++;
+        return { skipped: true, link };
+      };
     const payload = buildReferencePayload(link, fromId, toId, tenantId);
-    return () => client.createRelation(payload);
+    return () =>
+      client
+        .createRelation(payload)
+        .then(r => {
+          refDone++;
+          if (IS_TTY) {
+            writeProgress(
+              progressBar({ current: refDone, total: linkTotal, label: 'Refs    ' }) +
+                ` ${((Date.now() - refStart) / 1000).toFixed(1)}s ${refErrors}err ${refSkipped}skip`
+            );
+          }
+          return r;
+        })
+        .catch(err => {
+          refErrors++;
+          refDone++;
+          if (IS_TTY) {
+            writeProgress(
+              progressBar({ current: refDone, total: linkTotal, label: 'Refs    ' }) +
+                ` ${((Date.now() - refStart) / 1000).toFixed(1)}s ${refErrors}err ${refSkipped}skip`
+            );
+          }
+          return { error: err.message };
+        });
   });
 
-  const refResults = await runConcurrent(linkTasks, { concurrency: 10 });
-  const errors = refResults.filter(r => r && r.error).length;
-  const skipped = refResults.filter(r => r && r.skipped).length;
-  logInfo(
-    'GRAPHIFY',
-    `References: ${graph.links.length} total, ${errors} errors, ${skipped} skipped`
+  await runConcurrent(linkTasks, { concurrency: 10 });
+  const refElapsed = ((Date.now() - refStart) / 1000).toFixed(1);
+  endProgress(
+    progressBar({ current: linkTotal, total: linkTotal, label: 'Refs    ' }) +
+      ` ${PB_COLORS.green}✓${PB_COLORS.reset} ${linkTotal - refSkipped - refErrors} created in ${refElapsed}s`
   );
 
   // Step 7: Stats
@@ -355,8 +485,8 @@ export async function importGraphJSON(options) {
     entities: entityNodes.length,
     atoms: atomNodes.length,
     references: graph.links.length,
-    errors,
-    skipped,
+    errors: refErrors,
+    skipped: refSkipped,
     byRelation,
   };
 }
@@ -368,22 +498,21 @@ export async function graphifyProject(options = {}) {
   const { projectPath = process.cwd(), skipGraphify = false } = options;
 
   if (!skipGraphify) {
-    const { installed, version } = await checkGraphifyInstalled();
+    const { installed, version, command } = await checkGraphifyInstalled();
     if (!installed) {
       throw new Error(
-        'graphify 未安装。请运行: pip install graphifyy\n' +
+        'graphify 未安装。请运行: pip install graphify\n' +
           '文档: https://github.com/safishamsi/graphify'
       );
     }
-    logInfo('GRAPHIFY', `graphify v${version} detected`);
+    logInfo('GRAPHIFY', `graphify v${version} detected (${command})`);
 
-    const { success, error } = await runGraphify(projectPath);
+    const { success, error } = await runGraphify(projectPath, command);
     if (!success) {
       throw new Error(`graphify 运行失败: ${error}`);
     }
   }
 
-  // Dynamic import to avoid circular dependencies
   const storageModule = await import('./storage.js');
   const getConfig = storageModule.getConfig;
   const wcModule = await import('./wrapper-client.js');

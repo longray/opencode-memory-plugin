@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### Graphify Bridge — graph.json → SurrealDB 桥接
+
+#### Added
+
+- **`graphify-bridge.js`**: 将 graphify 的 `graph.json` 完整导入 SurrealDB（Entity/Atom/Reference）
+- **CLI `graphify` 命令**: `opencode-memory graphify [--skip-graphify] [--project <id>]`
+- **进度条**: Entities/Atoms/Refs 三阶段实时进度条（TTY 动画，非 TTY 降级日志）
+- **Atom `entity_id`**: atoms 关联到所属 entity，支持 `entity_atoms` 工具查询
+- **`buildFileToEntityMap()`**: source_file → entity backend ID 映射
+- **`checkGraphifyInstalled()`**: 自动尝试 `python3` / `python` 命令
+- **输入校验**: `importGraphJSON` 校验 graph.json 的 nodes/links 类型
+- **33 个单元测试**: 4 个 test suites（parse, mapping, concurrent, import）
+
+#### Changed
+
+- **`buildAtomPayload()`**: 新增第 4 个参数 `entityBackendId`（可选）
+- **`wrapper-client.batchCreateAtoms()`**: 发送 `entity_id` 字段
+- **Atom rate 显示**: 改为当前批次速率（非累计平均）
+
+#### Performance
+
+- 导入耗时 700s → 205s（3.4x 提升），得益于后端 batch embedding 优化
+- E2E 数据: 194 entities, 2452 atoms, 2843 references, 0 errors, 856 skipped
+
 ### Auto Code Relation Extraction
 
 #### Added

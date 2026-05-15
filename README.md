@@ -418,13 +418,13 @@ opencode-memory-plugin/
 │   │   └── fingerprint-cache.js # SHA-256 change detection
 │   ├── code-analyzer.js   # Code AST analysis (Oxc)
 │   ├── code-analysis-service.js # Batch analysis queue
+│   ├── graphify-bridge.js  # graphify graph.json → SurrealDB bridge
 │   ├── code-fingerprint.js # Change detection
 │   └── privacy-filter.js  # Sensitive content filter
 ├── bin/                 # Install scripts
 │   └── install.cjs        # NPM install hook
 ├── cli/                 # CLI tools
-│   ├── index.cjs          # Main CLI interface
-│   └── code-analyzer.cjs  # Code analysis CLI
+│   └── index.mjs          # Main CLI interface
 ├── plugin.js            # OpenCode plugin entry
 ├── index.js             # Plugin metadata
 └── package.json         # NPM package config

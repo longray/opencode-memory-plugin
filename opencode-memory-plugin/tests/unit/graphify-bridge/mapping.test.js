@@ -73,6 +73,7 @@ describe('buildAtomPayload', () => {
     expect(payload.type).toBe('function');
     expect(payload.start_line).toBe(206);
     expect(payload.metadata.graphify_id).toBe('lib_test_js_foo');
+    expect(payload.entity_id).toBeNull();
   });
 
   it('should detect class type from PascalCase', () => {
@@ -88,6 +89,18 @@ describe('buildAtomPayload', () => {
     expect(payload.type).toBe('class');
     expect(payload.start_line).toBe(10);
     expect(payload.end_line).toBe(50);
+  });
+
+  it('should include entity_id when provided', () => {
+    const node = {
+      id: 'lib_test_js_baz',
+      label: 'baz()',
+      source_file: 'lib/test.js',
+      source_location: 'L30',
+      norm_label: 'baz',
+    };
+    const payload = buildAtomPayload(node, 'test-project', 'longray', 'entity:abc123');
+    expect(payload.entity_id).toBe('entity:abc123');
   });
 });
 

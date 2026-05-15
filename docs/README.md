@@ -59,6 +59,13 @@
 | [ARCHITECTURE.md](./archive/ARCHITECTURE.md) | 系统架构说明（已归档） |
 | [DESIGN.md](./archive/DESIGN.md)             | 设计文档（已归档）     |
 
+### Superpowers 设计文档
+
+| 文档                                                                                                   | 说明                     | 状态      |
+| ------------------------------------------------------------------------------------------------------ | ------------------------ | --------- |
+| [specs/2026-05-13-graphify-bridge-design.md](./superpowers/specs/2026-05-13-graphify-bridge-design.md) | Graphify Bridge 设计文档 | ✅ 已实现 |
+| [plans/2026-05-13-graphify-bridge.md](./superpowers/plans/2026-05-13-graphify-bridge.md)               | Graphify Bridge 实施计划 | ✅ 已实现 |
+
 ### 已归档文档
 
 `archive/` 目录包含 26 个已归档的过时设计文档，仅供历史参考。
@@ -82,6 +89,7 @@
 | `project-analyzer.js`        | ProjectAnalyzer                             | 项目级分析（健康度评级）               |
 | `code-analysis-formatter.js` | formatCodeAnalysis, formatTable, formatTree | 输出格式化（table/tree/json）          |
 | `code-analysis-service.js`   | AnalysisQueue                               | 批量分析队列                           |
+| `graphify-bridge.js`         | importGraphJSON, graphifyProject            | graphify graph.json → SurrealDB 桥接   |
 | `code-fingerprint.js`        | CodeFingerprint                             | 变更检测                               |
 | `privacy-filter.js`          | shouldSkipFile, validateFileSize            | 敏感内容过滤                           |
 | `file-watcher.js`            | FileWatcher                                 | 文件系统监听（300ms debounce）         |

@@ -2,7 +2,7 @@
 
 > 工具与后端 API 的对应关系，供开发者参考
 
-**更新时间**: 2026-04-30
+**更新时间**: 2026-05-15
 
 ---
 
@@ -23,16 +23,17 @@
 
 ### 统一搜索端点
 
-| 项目        | 值                                                                  |
-| ----------- | ------------------------------------------------------------------- |
-| 工具文件    | `tools/search.js`                                                   |
-| Client 方法 | `client.unifiedSearch()`                                            |
-| HTTP        | `POST /api/v1/search`                                               |
+| 项目        | 值                                                                 |
+| ----------- | ------------------------------------------------------------------ |
+| 工具文件    | `tools/search.js`                                                  |
+| Client 方法 | `client.unifiedSearch()`                                           |
+| HTTP        | `POST /api/v1/search`                                              |
 | 参数        | `{query, mode, scope, types, atom_types, limit, level, tenant_id}` |
-| 返回        | `{results: [EntityResult \| AtomResult], total, mode, query}`         |
-| 状态        | ✅ v3.3 新增                                                        |
+| 返回        | `{results: [EntityResult \| AtomResult], total, mode, query}`      |
+| 状态        | ✅ v3.3 新增                                                       |
 
 **EntityResult**:
+
 ```json
 {
   "type": "entity",
@@ -44,6 +45,7 @@
 ```
 
 **AtomResult**:
+
 ```json
 {
   "type": "atom",
@@ -60,13 +62,14 @@
 
 ### Atom CRUD
 
-| 操作 | HTTP | 路径 | 状态 |
-|------|------|------|------|
-| 创建 | POST | `/api/v1/atoms` | ✅ v3.3 扩展字段 |
-| 更新 | PUT | `/api/v1/atoms/{id}` | ✅ v3.3 扩展字段 |
-| 查询 | GET | `/api/v1/atoms/{id}` | ✅ v3.3 扩展字段 |
+| 操作 | HTTP | 路径                 | 状态             |
+| ---- | ---- | -------------------- | ---------------- |
+| 创建 | POST | `/api/v1/atoms`      | ✅ v3.3 扩展字段 |
+| 更新 | PUT  | `/api/v1/atoms/{id}` | ✅ v3.3 扩展字段 |
+| 查询 | GET  | `/api/v1/atoms/{id}` | ✅ v3.3 扩展字段 |
 
 **v3.3 新增字段**:
+
 - `tags`: list[str] - 标签列表
 - `heading_level`: int (1-6) - 标题层级
 - `parent_id`: str | null - 父 Atom ID
@@ -80,18 +83,18 @@
 
 ## 本地工具（不依赖后端）
 
-| 工具                | 文件            | 说明                                        |
-| ------------------- | --------------- | ------------------------------------------- |
-| memory_write        | tools/core.js   | 写入本地文件 + 同步后端                     |
-| memory_pin          | tools/core.js   | 置顶/取消置顶条目                           |
-| entity_update       | tools/core.js   | 批量 Atom 操作（add/update/remove）+ 同步  |
-| entity_atoms        | tools/core.js   | 获取 Entity 的 Atom 树结构                  |
-| load_context_budget | tools/core.js   | 按 token 预算加载最相关的 Atom              |
-| load_context_level  | tools/core.js   | 按层级过滤加载 Entity 上下文                |
-| memory_read         | plugin.js       | 读取本地文件                                |
-| memory_suggest      | tools/search.js | Trie 索引本地搜索                           |
-| memory_timeline     | tools/browse.js | 读取 link-map.json                          |
-| memory_topics       | tools/browse.js | 读取 link-map.json                          |
+| 工具                | 文件            | 说明                                      |
+| ------------------- | --------------- | ----------------------------------------- |
+| memory_write        | tools/core.js   | 写入本地文件 + 同步后端                   |
+| memory_pin          | tools/core.js   | 置顶/取消置顶条目                         |
+| entity_update       | tools/core.js   | 批量 Atom 操作（add/update/remove）+ 同步 |
+| entity_atoms        | tools/core.js   | 获取 Entity 的 Atom 树结构                |
+| load_context_budget | tools/core.js   | 按 token 预算加载最相关的 Atom            |
+| load_context_level  | tools/core.js   | 按层级过滤加载 Entity 上下文              |
+| memory_read         | plugin.js       | 读取本地文件                              |
+| memory_suggest      | tools/search.js | Trie 索引本地搜索                         |
+| memory_timeline     | tools/browse.js | 读取 link-map.json                        |
+| memory_topics       | tools/browse.js | 读取 link-map.json                        |
 
 ---
 
@@ -242,16 +245,17 @@
 
 ### writeMemory (扩展)
 
-| 项目     | 值                                                              |
-| -------- | --------------------------------------------------------------- |
-| 文件     | `lib/memory-core.js`                                            |
-| 导出     | `writeMemory({abstract, overview, content, atoms, ...})`        |
-| 新增参数 | `atoms: Array<Atom>` - Atom 树结构                             |
-| 验证     | 自动检测循环引用 (detectCircularReference)                       |
-| 验证     | 自动检测悬挂引用 (detectDanglingReferences)                      |
-| 状态     | ✅ v3.3 扩展                                                    |
+| 项目     | 值                                                       |
+| -------- | -------------------------------------------------------- |
+| 文件     | `lib/memory-core.js`                                     |
+| 导出     | `writeMemory({abstract, overview, content, atoms, ...})` |
+| 新增参数 | `atoms: Array<Atom>` - Atom 树结构                       |
+| 验证     | 自动检测循环引用 (detectCircularReference)               |
+| 验证     | 自动检测悬挂引用 (detectDanglingReferences)              |
+| 状态     | ✅ v3.3 扩展                                             |
 
 **Atom 结构**:
+
 ```javascript
 {
   local_id: "01ATOM001",        // ULID
@@ -273,53 +277,53 @@
 
 ### readMemory (扩展)
 
-| 项目     | 值                                                          |
-| -------- | ----------------------------------------------------------- |
-| 文件     | `lib/memory-core.js`                                        |
-| 导出     | `readMemory({entry_id, level})`                             |
-| 自动检测 | 自动识别 Entity ID vs Atom local_id                         |
-| level    | 0=abstract, 1=overview, 2=full (含 atoms)                   |
-| 返回     | `{type: "entity" \| "atom", ...}`                          |
-| 状态     | ✅ v3.3 扩展                                                |
+| 项目     | 值                                        |
+| -------- | ----------------------------------------- |
+| 文件     | `lib/memory-core.js`                      |
+| 导出     | `readMemory({entry_id, level})`           |
+| 自动检测 | 自动识别 Entity ID vs Atom local_id       |
+| level    | 0=abstract, 1=overview, 2=full (含 atoms) |
+| 返回     | `{type: "entity" \| "atom", ...}`         |
+| 状态     | ✅ v3.3 扩展                              |
 
 ---
 
 ### updateEntity (新增)
 
-| 项目     | 值                                                                                     |
-| -------- | -------------------------------------------------------------------------------------- |
-| 文件     | `lib/memory-core.js`                                                                   |
-| 导出     | `updateEntity({entry_id, entity_updates, atoms_batch, client})`                       |
-| 批量操作 | `atoms_batch: [{action, local_id, ...}]`                                              |
-| actions  | `add`, `update`, `remove`                                                              |
-| 级联删除 | `remove` 支持 `cascade: true` 删除子树                                                 |
-| 状态     | ✅ v3.3 新增                                                                           |
+| 项目     | 值                                                              |
+| -------- | --------------------------------------------------------------- |
+| 文件     | `lib/memory-core.js`                                            |
+| 导出     | `updateEntity({entry_id, entity_updates, atoms_batch, client})` |
+| 批量操作 | `atoms_batch: [{action, local_id, ...}]`                        |
+| actions  | `add`, `update`, `remove`                                       |
+| 级联删除 | `remove` 支持 `cascade: true` 删除子树                          |
+| 状态     | ✅ v3.3 新增                                                    |
 
 **entity_updates 字段**（可选，更新 Entity 级别的元数据）:
 
-| 字段       | 类型              | 说明               |
-| ---------- | ----------------- | ------------------ |
-| `abstract` | `string`          | L0 摘要           |
-| `overview` | `string`          | L1 概览           |
-| `content`  | `string`          | L2 完整内容       |
-| `tags`     | `string[]`        | 标签列表          |
-| `meta`     | `object[]`        | 元数据（JSON 数组）|
+| 字段       | 类型       | 说明                |
+| ---------- | ---------- | ------------------- |
+| `abstract` | `string`   | L0 摘要             |
+| `overview` | `string`   | L1 概览             |
+| `content`  | `string`   | L2 完整内容         |
+| `tags`     | `string[]` | 标签列表            |
+| `meta`     | `object[]` | 元数据（JSON 数组） |
 
 **atoms_batch 操作字段**:
 
-| 字段           | 类型      | 适用 action     | 说明                       |
-| -------------- | --------- | --------------- | -------------------------- |
-| `action`       | `string`  | 全部（必填）    | `add` / `update` / `remove`|
-| `local_id`     | `string`  | 全部（必填）    | Atom 的 local ID          |
-| `type`         | `string`  | add, update     | Atom 类型                 |
-| `name`         | `string`  | add, update     | Atom 名称                 |
-| `content`      | `string`  | add, update     | Atom 内容                 |
-| `parent_id`    | `string`  | add, update     | 父 Atom local_id          |
-| `order`        | `string`  | add, update     | 分数索引（如 "a0"）       |
-| `heading_level`| `number`  | add, update     | 标题层级（1-4）           |
-| `tags`         | `string[]`| add, update     | Atom 标签                 |
-| `aliases`      | `string[]`| add, update     | Atom 别名                 |
-| `cascade`      | `boolean` | remove          | 是否级联删除子树          |
+| 字段            | 类型       | 适用 action  | 说明                        |
+| --------------- | ---------- | ------------ | --------------------------- |
+| `action`        | `string`   | 全部（必填） | `add` / `update` / `remove` |
+| `local_id`      | `string`   | 全部（必填） | Atom 的 local ID            |
+| `type`          | `string`   | add, update  | Atom 类型                   |
+| `name`          | `string`   | add, update  | Atom 名称                   |
+| `content`       | `string`   | add, update  | Atom 内容                   |
+| `parent_id`     | `string`   | add, update  | 父 Atom local_id            |
+| `order`         | `string`   | add, update  | 分数索引（如 "a0"）         |
+| `heading_level` | `number`   | add, update  | 标题层级（1-4）             |
+| `tags`          | `string[]` | add, update  | Atom 标签                   |
+| `aliases`       | `string[]` | add, update  | Atom 别名                   |
+| `cascade`       | `boolean`  | remove       | 是否级联删除子树            |
 
 **返回值**:
 
@@ -330,7 +334,12 @@
   "atoms_result": [
     { "action": "add", "local_id": "01NEW", "success": true },
     { "action": "update", "local_id": "01OLD", "success": true },
-    { "action": "remove", "local_id": "01DEL", "success": true, "removed_count": 3 }
+    {
+      "action": "remove",
+      "local_id": "01DEL",
+      "success": true,
+      "removed_count": 3
+    }
   ],
   "synced": true,
   "memory_id": "mem_xxx",
@@ -348,28 +357,34 @@ entity_update({
     abstract: "更新后的摘要",
     content: "更新后的完整内容",
     tags: ["updated-tag"],
-    meta: [{"key": "value"}]
+    meta: [{ key: "value" }],
   },
   atoms_batch: [
-    { action: "add", local_id: "01NEW001", type: "section", name: "新小节", content: "内容..." },
+    {
+      action: "add",
+      local_id: "01NEW001",
+      type: "section",
+      name: "新小节",
+      content: "内容...",
+    },
     { action: "update", local_id: "01OLD001", content: "更新后的内容" },
-    { action: "remove", local_id: "01DEL001", cascade: true }
-  ]
-})
+    { action: "remove", local_id: "01DEL001", cascade: true },
+  ],
+});
 ```
 
 ---
 
 ### getEntityAtoms (新增)
 
-| 项目     | 值                                                          |
-| -------- | ----------------------------------------------------------- |
-| 文件     | `lib/memory-core.js`                                        |
-| 导出     | `getEntityAtoms({entry_id, include_content})`               |
-| 参数     | `entry_id: string` — Entity ID（必填）                     |
-| 参数     | `include_content: boolean` — 是否包含 Atom 内容（默认 false）|
-| 返回     | `{success, entity_id, total_atoms, tree: [...]}`            |
-| 状态     | ✅ v3.3 新增                                                |
+| 项目 | 值                                                            |
+| ---- | ------------------------------------------------------------- |
+| 文件 | `lib/memory-core.js`                                          |
+| 导出 | `getEntityAtoms({entry_id, include_content})`                 |
+| 参数 | `entry_id: string` — Entity ID（必填）                        |
+| 参数 | `include_content: boolean` — 是否包含 Atom 内容（默认 false） |
+| 返回 | `{success, entity_id, total_atoms, tree: [...]}`              |
+| 状态 | ✅ v3.3 新增                                                  |
 
 **返回值**:
 
@@ -408,32 +423,32 @@ entity_update({
 
 ```javascript
 // 获取 Atom 树（不含内容，用于导航）
-entity_atoms({ entry_id: "01HQ...", include_content: false })
+entity_atoms({ entry_id: "01HQ...", include_content: false });
 
 // 获取完整 Atom 树（含内容）
-entity_atoms({ entry_id: "01HQ...", include_content: true })
+entity_atoms({ entry_id: "01HQ...", include_content: true });
 ```
 
 ---
 
 ### loadContextByBudget (新增)
 
-| 项目     | 值                                                                            |
-| -------- | ----------------------------------------------------------------------------- |
-| 文件     | `lib/memory-core.js`                                                          |
-| 导出     | `loadContextByBudget({entry_id, query, maxTokens, strategy})`                  |
-| 参数     | `entry_id: string` — Entity ID（必填）                                       |
-| 参数     | `query: string` — 当前查询，用于相关性评分（必填）                            |
-| 参数     | `maxTokens: number` — token 预算上限（默认 2000）                             |
-| 参数     | `strategy: string` — 选择策略：`relevance`（BM25+标题）/ `hierarchy`（层级优先）|
-| 返回     | `{success, selected_atoms, total_atoms, selected_count, used_tokens, max_tokens, strategy, budget_utilization}` |
-| 状态     | ✅ v3.3 新增                                                                  |
+| 项目 | 值                                                                                                              |
+| ---- | --------------------------------------------------------------------------------------------------------------- |
+| 文件 | `lib/memory-core.js`                                                                                            |
+| 导出 | `loadContextByBudget({entry_id, query, maxTokens, strategy})`                                                   |
+| 参数 | `entry_id: string` — Entity ID（必填）                                                                          |
+| 参数 | `query: string` — 当前查询，用于相关性评分（必填）                                                              |
+| 参数 | `maxTokens: number` — token 预算上限（默认 2000）                                                               |
+| 参数 | `strategy: string` — 选择策略：`relevance`（BM25+标题）/ `hierarchy`（层级优先）                                |
+| 返回 | `{success, selected_atoms, total_atoms, selected_count, used_tokens, max_tokens, strategy, budget_utilization}` |
+| 状态 | ✅ v3.3 新增                                                                                                    |
 
 **选择策略**:
 
-| 策略        | 说明                                                   |
-| ----------- | ------------------------------------------------------ |
-| `relevance` | 按 BM25 + 标题相似度排序，贪心选取最相关的 Atom        |
+| 策略        | 说明                                                            |
+| ----------- | --------------------------------------------------------------- |
+| `relevance` | 按 BM25 + 标题相似度排序，贪心选取最相关的 Atom                 |
 | `hierarchy` | 优先选取高层级 Atom（chapter > section > note），同层级按相关性 |
 
 **返回值**:
@@ -470,39 +485,39 @@ load_context_budget({
   entry_id: "01HQ...",
   query: "setup 函数如何使用",
   max_tokens: 2000,
-  strategy: "relevance"
-})
+  strategy: "relevance",
+});
 
 // 按层级优先加载
 load_context_budget({
   entry_id: "01HQ...",
   query: "项目架构",
   max_tokens: 4000,
-  strategy: "hierarchy"
-})
+  strategy: "hierarchy",
+});
 ```
 
 ---
 
 ### loadContextByLevel (新增)
 
-| 项目     | 值                                                                                    |
-| -------- | ------------------------------------------------------------------------------------- |
-| 文件     | `lib/memory-core.js`                                                                  |
-| 导出     | `loadContextByLevel({entry_id, maxLevel, includeBreadcrumbs})`                         |
-| 参数     | `entry_id: string` — Entity ID（必填）                                               |
-| 参数     | `maxLevel: number` — 最大 heading_level（1=仅章节, 2=章节+小节, 3=全部细节，默认 2） |
-| 参数     | `includeBreadcrumbs: boolean` — 是否包含父链面包屑（默认 true）                       |
-| 返回     | `{success, entry_id, filtered_tree, markdown, total_atoms, filtered_count, max_level}` |
-| 状态     | ✅ v3.3 新增                                                                          |
+| 项目 | 值                                                                                     |
+| ---- | -------------------------------------------------------------------------------------- |
+| 文件 | `lib/memory-core.js`                                                                   |
+| 导出 | `loadContextByLevel({entry_id, maxLevel, includeBreadcrumbs})`                         |
+| 参数 | `entry_id: string` — Entity ID（必填）                                                 |
+| 参数 | `maxLevel: number` — 最大 heading_level（1=仅章节, 2=章节+小节, 3=全部细节，默认 2）   |
+| 参数 | `includeBreadcrumbs: boolean` — 是否包含父链面包屑（默认 true）                        |
+| 返回 | `{success, entry_id, filtered_tree, markdown, total_atoms, filtered_count, max_level}` |
+| 状态 | ✅ v3.3 新增                                                                           |
 
 **层级映射**:
 
-| maxLevel | 保留内容                              | 典型用途           |
-| -------- | ------------------------------------- | ------------------ |
-| 1        | 仅 chapter（heading_level=1）         | 快速概览大纲       |
-| 2        | chapter + section（≤2）               | 标准阅读           |
-| 3        | chapter + section + detail（≤3）      | 完整阅读           |
+| maxLevel | 保留内容                         | 典型用途     |
+| -------- | -------------------------------- | ------------ |
+| 1        | 仅 chapter（heading_level=1）    | 快速概览大纲 |
+| 2        | chapter + section（≤2）          | 标准阅读     |
+| 3        | chapter + section + detail（≤3） | 完整阅读     |
 
 **返回值**:
 
@@ -523,36 +538,40 @@ load_context_budget({
 
 ```javascript
 // 仅获取章节标题（大纲模式）
-load_context_level({ entry_id: "01HQ...", max_level: 1 })
+load_context_level({ entry_id: "01HQ...", max_level: 1 });
 
 // 获取章节+小节（标准模式，含面包屑）
-load_context_level({ entry_id: "01HQ...", max_level: 2, include_breadcrumbs: true })
+load_context_level({
+  entry_id: "01HQ...",
+  max_level: 2,
+  include_breadcrumbs: true,
+});
 
 // 获取全部细节
-load_context_level({ entry_id: "01HQ...", max_level: 3 })
+load_context_level({ entry_id: "01HQ...", max_level: 3 });
 ```
 
 ---
 
 ### markDeadLinks (新增)
 
-| 项目     | 值                                                          |
-| -------- | ----------------------------------------------------------- |
-| 文件     | `lib/memory-core.js`                                        |
-| 导出     | `markDeadLinks({entry_id})`                                 |
-| 功能     | 检测并标记悬挂 wiki 链接                                    |
-| 状态     | ✅ v3.3 新增                                                |
+| 项目 | 值                          |
+| ---- | --------------------------- |
+| 文件 | `lib/memory-core.js`        |
+| 导出 | `markDeadLinks({entry_id})` |
+| 功能 | 检测并标记悬挂 wiki 链接    |
+| 状态 | ✅ v3.3 新增                |
 
 ---
 
 ### extractWikiLinks / findIncomingLinks
 
-| 项目     | 值                                                          |
-| -------- | ----------------------------------------------------------- |
-| 文件     | `lib/memory-core.js`                                        |
-| 导出     | `extractWikiLinks(content)`, `findIncomingLinks(atoms, targetId)` |
-| 语法     | `[[target]]`, `[[target|label]]`, `![[embed]]`             |
-| 状态     | ✅ v3.3 新增                                                |
+| 项目 | 值                                                                |
+| ---- | ----------------------------------------------------------------- | ---------------------- |
+| 文件 | `lib/memory-core.js`                                              |
+| 导出 | `extractWikiLinks(content)`, `findIncomingLinks(atoms, targetId)` |
+| 语法 | `[[target]]`, `[[target                                           | label]]`, `![[embed]]` |
+| 状态 | ✅ v3.3 新增                                                      |
 
 ---
 
@@ -716,3 +735,61 @@ src/auth.ts → 01H2DEF...
 4. 提取调用关系（包含 file_path）
 5. 查询缓存获取 caller/callee 的 memory_id
 6. 调用 `POST /api/v1/calls/batch` 创建关系
+
+---
+
+## Graphify Bridge API
+
+> graphify-bridge.js 使用以下后端 API 将 graph.json 导入 SurrealDB
+
+### 批量创建 Entities
+
+| 项目        | 值                                                                             |
+| ----------- | ------------------------------------------------------------------------------ |
+| 源文件      | `lib/graphify-bridge.js` → `lib/wrapper-client.js`                             |
+| Client 方法 | `client.batchCreateEntities(entities)`                                         |
+| HTTP        | `POST /api/v1/entities/batch`                                                  |
+| 参数        | `{entities: [{type, abstract, file_path, language, project, tenant_id, ...}]}` |
+| 返回        | `{entities: [{id, ...}], created, skipped, errors}`                            |
+| 批量限制    | 100 条/请求                                                                    |
+
+### 批量创建 Atoms
+
+| 项目        | 值                                                                                           |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| 源文件      | `lib/graphify-bridge.js` → `lib/wrapper-client.js`                                           |
+| Client 方法 | `client.batchCreateAtoms(atoms)`                                                             |
+| HTTP        | `POST /api/v1/atoms/batch`                                                                   |
+| 参数        | `{atoms: [{type, name, entity_id, content, start_line, end_line, project, tenant_id, ...}]}` |
+| 返回        | `{atoms: [{id, status, sync_status}], created, skipped, errors}`                             |
+| 批量限制    | 100 条/请求                                                                                  |
+
+**注意**: `entity_id` 字段关联 atom 到所属 entity，支持 `entity_atoms` 查询。
+
+### 创建单个 Reference
+
+| 项目        | 值                                                                        |
+| ----------- | ------------------------------------------------------------------------- |
+| 源文件      | `lib/graphify-bridge.js` → `lib/wrapper-client.js`                        |
+| Client 方法 | `client.createRelation(payload)`                                          |
+| HTTP        | `POST /api/v1/references`                                                 |
+| 参数        | `{from_id, to_id, type, weight, confidence, description, tenant_id, ...}` |
+| 并发        | 10 并发（`runConcurrent`）                                                |
+
+### 删除项目数据
+
+| 项目        | 值                                            |
+| ----------- | --------------------------------------------- |
+| Client 方法 | `client.deleteByProject(projectId, tenantId)` |
+| HTTP        | `DELETE /api/v1/entities/by-project/:id`      |
+
+### Graphify 关系类型映射
+
+| graphify relation   | Reference type | Weight | 说明               |
+| ------------------- | -------------- | ------ | ------------------ |
+| `contains`          | contains       | 1.0    | 文件包含函数/类    |
+| `method`            | method         | 0.9    | this.method() 调用 |
+| `imports`           | imports        | 0.8    | 模块导入           |
+| `imports_from`      | imports_from   | 0.8    | 具名导入           |
+| `calls` (EXTRACTED) | calls          | 0.7    | 函数调用（精确）   |
+| `calls` (INFERRED)  | calls          | 0.5    | 函数调用（推断）   |

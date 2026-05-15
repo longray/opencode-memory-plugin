@@ -2,7 +2,7 @@
 
 **版本**: v3.3.0  
 **分支**: main  
-**更新时间**: 2026-04-30
+**更新时间**: 2026-05-15
 
 ---
 
@@ -29,9 +29,10 @@ D:/github/opencode-memory-plugin/
 │   │   ├── code-analyzer.js  # 代码 AST 分析（Oxc + Tree-sitter）
 │   │   ├── tree-sitter-parser.js # 多语言 AST 解析（Python/Go/Rust/Java）
 │   │   ├── project-analyzer.js   # 项目级分析（健康度评级）
-│ │ ├── code-analysis-formatter.js # 输出格式化（table/tree/json）
-│ │ ├── code-analysis-service.js # 批量分析队列
-│ │ ├── privacy-filter.js # 敏感内容过滤
+│   │   ├── code-analysis-formatter.js # 输出格式化（table/tree/json）
+│   │   ├── code-analysis-service.js # 批量分析队列
+│   │   ├── graphify-bridge.js  # graphify graph.json → SurrealDB 桥接
+│   │   ├── privacy-filter.js # 敏感内容过滤
 │ │ ├── file-watcher.js # 文件系统监听
 │ │ └── memory-id-cache.js # Memory ID 缓存管理
 │   ├── tools/                # OpenCode 插件工具
@@ -43,7 +44,7 @@ D:/github/opencode-memory-plugin/
 │   │   └── sync.js           # index_status, rebuild_index, incremental_sync, full_sync,
 │   │                          #   sync_checkpoint, conflict_list, conflict_resolve
 │   ├── cli/                  # CLI 工具
-│   │   └── index.cjs         # 命令行界面
+│   │   └── index.mjs         # 命令行界面
 │   ├── bin/                  # 安装脚本
 │   │   └── install.cjs       # NPM 安装钩子
 │   ├── memory/               # 记忆文件模板（安装时复制到 ~/.opencode/memory/）
@@ -51,7 +52,7 @@ D:/github/opencode-memory-plugin/
 │   ├── scripts/              # 实用脚本
 │   ├── docs/                 # 产品文档（面向用户）
 │   ├── tests/                # 测试文件
-│   │   ├── unit/             # 单元测试（core/, search/, sync/, atoms/, analysis/, websocket/）
+│   │   ├── unit/             # 单元测试（core/, search/, sync/, atoms/, analysis/, websocket/, graphify-bridge/）
 │   │   ├── integration/      # 集成测试
 │   │   ├── e2e/              # 端到端测试
 │   │   ├── performance/      # 性能测试
@@ -77,17 +78,18 @@ D:/github/opencode-memory-plugin/
 
 ### lib/ 核心库
 
-| 文件                  | 主要导出                                                                                                                          | 说明                               |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| memory-core.js        | writeMemory, readMemory, writeAndSyncMemory, updateEntity, getEntityAtoms, markDeadLinks, loadContextByBudget, loadContextByLevel | 写入/读取/同步/实体/Atom 核心逻辑  |
-| entry.js              | buildEntryContent, writeEntryToTimeline, parseEntryFromFile                                                                       | 条目格式化和文件操作               |
-| extractor.js          | extractByLevel, getEntryInfo                                                                                                      | 分层提取和 frontmatter 解析        |
-| wrapper-client.js     | WrapperClient                                                                                                                     | 后端 API 客户端（所有 HTTP 调用）  |
-| storage.js            | getConfig, getLinkMap, getEntryById                                                                                               | 配置和 link-map 读取               |
-| trie-index.js         | searchByPrefix, getAutocompleteSuggestions                                                                                        | Trie 索引和自动补全                |
-| code-analyzer.js      | CodeAnalyzer                                                                                                                      | 代码 AST 分析（Oxc + Tree-sitter） |
-| tree-sitter-parser.js | analyzeWithTreeSitter                                                                                                             | 多语言 AST 解析                    |
-| project-analyzer.js   | ProjectAnalyzer                                                                                                                   | 项目级分析（健康度评级）           |
+| 文件                  | 主要导出                                                                                                                          | 说明                                 |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| memory-core.js        | writeMemory, readMemory, writeAndSyncMemory, updateEntity, getEntityAtoms, markDeadLinks, loadContextByBudget, loadContextByLevel | 写入/读取/同步/实体/Atom 核心逻辑    |
+| entry.js              | buildEntryContent, writeEntryToTimeline, parseEntryFromFile                                                                       | 条目格式化和文件操作                 |
+| extractor.js          | extractByLevel, getEntryInfo                                                                                                      | 分层提取和 frontmatter 解析          |
+| wrapper-client.js     | WrapperClient                                                                                                                     | 后端 API 客户端（所有 HTTP 调用）    |
+| graphify-bridge.js    | importGraphJSON, graphifyProject, classifyNodes, buildAtomPayload, buildEntityPayload, buildReferencePayload                      | graphify graph.json → SurrealDB 桥接 |
+| storage.js            | getConfig, getLinkMap, getEntryById                                                                                               | 配置和 link-map 读取                 |
+| trie-index.js         | searchByPrefix, getAutocompleteSuggestions                                                                                        | Trie 索引和自动补全                  |
+| code-analyzer.js      | CodeAnalyzer                                                                                                                      | 代码 AST 分析（Oxc + Tree-sitter）   |
+| tree-sitter-parser.js | analyzeWithTreeSitter                                                                                                             | 多语言 AST 解析                      |
+| project-analyzer.js   | ProjectAnalyzer                                                                                                                   | 项目级分析（健康度评级）             |
 
 ### tools/ 工具
 
