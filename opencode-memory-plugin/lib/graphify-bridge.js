@@ -426,53 +426,72 @@ export async function importGraphJSON(options) {
   );
   logInfo('GRAPHIFY', `ID maps: entityMap=${entityMap.size}, atomMap=${atomMap.size}`);
 
-  // Step 6: Concurrent create References
-  const linkTotal = graph.links.length;
+  // Step 6: Batch create References (with fallback to individual creation)
   const refStart = Date.now();
-  let refDone = 0;
+  let refCreated = 0;
   let refErrors = 0;
   let refSkipped = 0;
-  const linkTasks = graph.links.map(link => {
+
+  // Build reference payloads (skip unresolvable links)
+  const refPayloads = [];
+  for (const link of graph.links) {
     const fromId = resolveId(link.source, entityMap, atomMap);
     const toId = resolveId(link.target, entityMap, atomMap);
-    if (!fromId || !toId)
-      return () => {
-        refSkipped++;
-        refDone++;
-        return { skipped: true, link };
-      };
-    const payload = buildReferencePayload(link, fromId, toId, tenantId);
-    return () =>
-      client
-        .createRelation(payload)
-        .then(r => {
-          refDone++;
-          if (IS_TTY) {
-            writeProgress(
-              progressBar({ current: refDone, total: linkTotal, label: 'Refs    ' }) +
-                ` ${((Date.now() - refStart) / 1000).toFixed(1)}s ${refErrors}err ${refSkipped}skip`
-            );
-          }
-          return r;
-        })
-        .catch(err => {
-          refErrors++;
-          refDone++;
-          if (IS_TTY) {
-            writeProgress(
-              progressBar({ current: refDone, total: linkTotal, label: 'Refs    ' }) +
-                ` ${((Date.now() - refStart) / 1000).toFixed(1)}s ${refErrors}err ${refSkipped}skip`
-            );
-          }
-          return { error: err.message };
-        });
-  });
+    if (!fromId || !toId) {
+      refSkipped++;
+      continue;
+    }
+    refPayloads.push(buildReferencePayload(link, fromId, toId, tenantId));
+  }
 
-  await runConcurrent(linkTasks, { concurrency: 10 });
+  const refBatches = Math.ceil(refPayloads.length / BATCH_SIZE);
+  let useBatch = true;
+
+  for (let i = 0; i < refPayloads.length; i += BATCH_SIZE) {
+    const batch = refPayloads.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+
+    if (useBatch) {
+      try {
+        const result = await client.createReferences(batch);
+        const created = result.references?.filter(r => r.status !== 'error')?.length ?? result.created ?? 0;
+        const errors = result.references?.filter(r => r.status === 'error')?.length ?? result.errors ?? 0;
+        refCreated += created;
+        refErrors += errors;
+      } catch (err) {
+        logInfo('GRAPHIFY', `createReferences batch failed, falling back to individual creation`, {
+          error: err.message,
+        });
+        useBatch = false;
+        // Fallback: create this batch individually
+        const fallbackResults = await runConcurrent(
+          batch.map(payload => () =>
+            client.createReference(payload)
+              .then(() => { refCreated++; })
+              .catch(() => { refErrors++; })
+          ),
+          { concurrency: 10 }
+        );
+      }
+    } else {
+      // Individual creation mode (after fallback)
+      await runConcurrent(
+        batch.map(payload => () =>
+          client.createReference(payload)
+            .then(() => { refCreated++; })
+            .catch(() => { refErrors++; })
+        ),
+        { concurrency: 10 }
+      );
+    }
+
+    logBatchProgress('Refs    ', batchNum, refBatches);
+  }
+
   const refElapsed = ((Date.now() - refStart) / 1000).toFixed(1);
   endProgress(
-    progressBar({ current: linkTotal, total: linkTotal, label: 'Refs    ' }) +
-      ` ${PB_COLORS.green}✓${PB_COLORS.reset} ${linkTotal - refSkipped - refErrors} created in ${refElapsed}s`
+    progressBar({ current: refBatches, total: refBatches, label: 'Refs    ' }) +
+      ` ${PB_COLORS.green}✓${PB_COLORS.reset} ${refCreated} created, ${refErrors}err, ${refSkipped}skip in ${refElapsed}s`
   );
 
   // Step 7: Stats
