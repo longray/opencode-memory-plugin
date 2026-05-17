@@ -73,7 +73,7 @@ describe('buildAtomPayload', () => {
     expect(payload.type).toBe('function');
     expect(payload.start_line).toBe(206);
     expect(payload.metadata.graphify_id).toBe('lib_test_js_foo');
-    expect(payload.entity_id).toBeNull();
+    expect(payload.entity_id).toBeUndefined();
   });
 
   it('should detect class type from PascalCase', () => {

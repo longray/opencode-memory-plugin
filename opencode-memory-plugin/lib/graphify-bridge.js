@@ -103,6 +103,8 @@ const WEIGHT_MAP = {
   calls_INFERRED: 0.5,
 };
 
+const ATOM_CONCURRENCY = 10;
+
 /**
  * Classify nodes into Entity (file-level) and Atom (symbol-level)
  */
@@ -249,11 +251,10 @@ export function buildEntityPayload(node, projectId, tenantId) {
 export function buildAtomPayload(node, projectId, tenantId, entityBackendId) {
   const name = node.label.replace(/\(\)$/, '');
   const location = parseSourceLocation(node.source_location);
-  return {
+  const payload = {
     type: inferAtomType(node.label),
     name,
     content: '',
-    entity_id: entityBackendId || null,
     norm_label: node.norm_label || null,
     start_line: location.start_line,
     end_line: location.end_line || undefined,
@@ -265,6 +266,10 @@ export function buildAtomPayload(node, projectId, tenantId, entityBackendId) {
       graphify_id: node.id,
     },
   };
+  if (entityBackendId) {
+    payload.entity_id = entityBackendId;
+  }
+  return payload;
 }
 
 /**
@@ -388,7 +393,8 @@ export async function importGraphJSON(options) {
       ` ${PB_COLORS.green}✓${PB_COLORS.reset} ${totalEntitiesCreated} created`
   );
 
-  // Step 5: Batch create Atoms (with dynamic concurrency probing)
+  // Step 5: Batch create Atoms (with entity_id auto-fallback)
+  // Try batch with entity_id first; if backend returns 500 (known bug), retry without.
   const atomBatch = atomNodes.map(n =>
     buildAtomPayload(n, projectId, tenantId, fileToEntity.get(n.source_file))
   );
@@ -396,121 +402,60 @@ export async function importGraphJSON(options) {
   let totalAtomsCreated = 0;
   const atomResultList = [];
   const atomStart = Date.now();
+  let entityIdFallback = false;
 
-  // Dynamic concurrency probe: try concurrency=2 for first 3 batches
-  const PROBE_COUNT = 3;
-  const PROBE_CONCURRENCY = 2;
-  const PROBE_TIMEOUT_MS = 120_000;
-  let useConcurrency = false;
-
-  // Build all batch slices upfront
-  const allAtomSlices = [];
-  for (let i = 0; i < atomBatch.length; i += BATCH_SIZE) {
-    allAtomSlices.push(atomBatch.slice(i, i + BATCH_SIZE));
-  }
-
-  // Phase A: Probe — run first 3 batches concurrently
-  const probeSlices = allAtomSlices.slice(0, Math.min(PROBE_COUNT, allAtomSlices.length));
-  const restSlices = allAtomSlices.slice(probeSlices.length);
-
-  if (probeSlices.length >= 1) {
-    if (probeSlices.length >= 2) {
-      const probeStart = Date.now();
-      const probeResults = await runConcurrent(
-        probeSlices.map(slice => () =>
-          Promise.race([
-            client.batchCreateAtoms(slice),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('probe timeout')), PROBE_TIMEOUT_MS)
-            ),
-          ])
-        ),
-        { concurrency: PROBE_CONCURRENCY }
-      );
-
-      const probeSuccess = probeResults.every(r => !r.error);
-      const probeElapsed = Date.now() - probeStart;
-
-      if (probeSuccess) {
-        useConcurrency = true;
-        logInfo('GRAPHIFY', `Concurrency probe passed: ${PROBE_CONCURRENCY} concurrent batches in ${(probeElapsed / 1000).toFixed(1)}s`);
+  // Probe: test if batch API accepts entity_id
+  if (atomBatch.length > 0) {
+    const probePayloads = atomBatch.slice(0, Math.min(BATCH_SIZE, atomBatch.length));
+    try {
+      const probeResult = await client.batchCreateAtoms(probePayloads);
+      totalAtomsCreated += probeResult.created ?? 0;
+      atomResultList.push(...(probeResult.atoms || probeResult.data || []));
+      logBatchProgress('Atoms   ', 1, atomBatches, ` ${Date.now() - atomStart}ms probe OK`);
+    } catch (err) {
+      if (err.statusCode === 500 && err.message?.includes('Entity existence')) {
+        logInfo('GRAPHIFY', 'Batch API entity_id bug detected, retrying without entity_id');
+        entityIdFallback = true;
+        const strippedPayloads = probePayloads.map(({ entity_id: _eid, ...rest }) => rest);
+        const retryResult = await client.batchCreateAtoms(strippedPayloads);
+        totalAtomsCreated += retryResult.created ?? 0;
+        atomResultList.push(...(retryResult.atoms || retryResult.data || []));
+        logBatchProgress('Atoms   ', 1, atomBatches, ` ${Date.now() - atomStart}ms probe fallback`);
       } else {
-        logInfo('GRAPHIFY', 'Concurrency probe failed, falling back to serial', {
-          errors: probeResults.filter(r => r.error).map(r => r.error),
-        });
-        for (let i = 0; i < probeResults.length; i++) {
-          if (probeResults[i].error) {
-            const result = await client.batchCreateAtoms(probeSlices[i]);
-            probeResults[i] = result;
-          }
-        }
+        throw err;
       }
-
-      for (const r of probeResults) {
-        if (r && !r.error) {
-          totalAtomsCreated += r.created ?? 0;
-          atomResultList.push(...(r.atoms || r.data || []));
-        }
-      }
-
-      for (let i = 0; i < probeSlices.length; i++) {
-        logBatchProgress('Atoms   ', i + 1, atomBatches, ` ${((Date.now() - atomStart) / 1000).toFixed(1)}s probe`);
-      }
-    } else {
-      // Single batch — run directly (no probe needed)
-      const batchStart = Date.now();
-      const result = await client.batchCreateAtoms(probeSlices[0]);
-      totalAtomsCreated += result.created ?? 0;
-      atomResultList.push(...(result.atoms || result.data || []));
-      const batchMs = Date.now() - batchStart;
-      const batchRate = batchMs > 0 ? (batchMs / probeSlices[0].length).toFixed(0) : '—';
-      logBatchProgress('Atoms   ', 1, atomBatches, ` ${((Date.now() - atomStart) / 1000).toFixed(1)}s ~${batchRate}ms/atom`);
     }
   }
 
-  // Phase B: Remaining batches (concurrent or serial based on probe)
-  if (restSlices.length > 0) {
-    if (useConcurrency) {
-      // Concurrent: process remaining in groups of PROBE_CONCURRENCY
-      for (let g = 0; g < restSlices.length; g += PROBE_CONCURRENCY) {
-        const group = restSlices.slice(g, g + PROBE_CONCURRENCY);
-        const results = await runConcurrent(
-          group.map(slice => () => client.batchCreateAtoms(slice)),
-          { concurrency: PROBE_CONCURRENCY }
-        );
-        for (const r of results) {
-          if (r && !r.error) {
-            totalAtomsCreated += r.created ?? 0;
-            atomResultList.push(...(r.atoms || r.data || []));
-          } else if (r && r.error) {
-            logError('GRAPHIFY', 'Atom batch failed', { error: r.error });
-          }
-        }
-        const batchNum = probeSlices.length + g + group.length;
-        logBatchProgress('Atoms   ', batchNum, atomBatches, ` ${((Date.now() - atomStart) / 1000).toFixed(1)}s c=${PROBE_CONCURRENCY}`);
-      }
-    } else {
-      // Serial fallback
-      for (let i = 0; i < restSlices.length; i++) {
-        const batchStart = Date.now();
-        const result = await client.batchCreateAtoms(restSlices[i]);
-        totalAtomsCreated += result.created ?? 0;
-        atomResultList.push(...(result.atoms || result.data || []));
-        const batchNum = probeSlices.length + i + 1;
-        const batchMs = Date.now() - batchStart;
-        const batchRate = batchMs > 0 ? (batchMs / restSlices[i].length).toFixed(0) : '—';
-        logBatchProgress('Atoms   ', batchNum, atomBatches, ` ${((Date.now() - atomStart) / 1000).toFixed(1)}s ~${batchRate}ms/atom`);
-      }
-    }
+  // Remaining batches
+  const startIdx = Math.min(BATCH_SIZE, atomBatch.length);
+  for (let i = startIdx; i < atomBatch.length; i += BATCH_SIZE) {
+    const batchSlice = atomBatch.slice(i, i + BATCH_SIZE);
+    const payloads = entityIdFallback
+      ? batchSlice.map(({ entity_id: _eid, ...rest }) => rest)
+      : batchSlice;
+    const batchStart = Date.now();
+    const result = await client.batchCreateAtoms(payloads);
+    totalAtomsCreated += result.created ?? 0;
+    atomResultList.push(...(result.atoms || result.data || []));
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+    const batchMs = Date.now() - batchStart;
+    const batchRate = batchMs > 0 ? (batchMs / batchSlice.length).toFixed(0) : '—';
+    logBatchProgress(
+      'Atoms   ',
+      batchNum,
+      atomBatches,
+      ` ${((Date.now() - atomStart) / 1000).toFixed(1)}s ~${batchRate}ms/a`
+    );
   }
 
   const atomElapsed = ((Date.now() - atomStart) / 1000).toFixed(1);
   endProgress(
     progressBar({ current: atomBatches, total: atomBatches, label: 'Atoms   ' }) +
-      ` ${PB_COLORS.green}✓${PB_COLORS.reset} ${totalAtomsCreated} created in ${atomElapsed}s${useConcurrency ? ` (concurrency=${PROBE_CONCURRENCY})` : ''}`
+      ` ${PB_COLORS.green}✓${PB_COLORS.reset} ${totalAtomsCreated} created in ${atomElapsed}s${entityIdFallback ? ' (no entity_id)' : ''}`
   );
 
-  // Map atom results by index (backend returns same-count array)
+  // Build ID maps (index-based: batch API returns same-order results)
   if (atomResultList.length !== atomNodes.length) {
     logError('GRAPHIFY', 'Atom result count mismatch', {
       expected: atomNodes.length,
@@ -558,8 +503,10 @@ export async function importGraphJSON(options) {
     if (useBatch) {
       try {
         const result = await client.createReferences(batch);
-        const created = result.references?.filter(r => r.status !== 'error')?.length ?? result.created ?? 0;
-        const errors = result.references?.filter(r => r.status === 'error')?.length ?? result.errors ?? 0;
+        const created =
+          result.references?.filter(r => r.status !== 'error')?.length ?? result.created ?? 0;
+        const errors =
+          result.references?.filter(r => r.status === 'error')?.length ?? result.errors ?? 0;
         refCreated += created;
         refErrors += errors;
       } catch (err) {
@@ -568,10 +515,16 @@ export async function importGraphJSON(options) {
         });
         useBatch = false;
         await runConcurrent(
-          batch.map(payload => () =>
-            client.createReference(payload)
-              .then(() => { refCreated++; })
-              .catch(() => { refErrors++; })
+          batch.map(
+            payload => () =>
+              client
+                .createReference(payload)
+                .then(() => {
+                  refCreated++;
+                })
+                .catch(() => {
+                  refErrors++;
+                })
           ),
           { concurrency: 10 }
         );
@@ -579,10 +532,16 @@ export async function importGraphJSON(options) {
     } else {
       // Individual creation mode (after fallback)
       await runConcurrent(
-        batch.map(payload => () =>
-          client.createReference(payload)
-            .then(() => { refCreated++; })
-            .catch(() => { refErrors++; })
+        batch.map(
+          payload => () =>
+            client
+              .createReference(payload)
+              .then(() => {
+                refCreated++;
+              })
+              .catch(() => {
+                refErrors++;
+              })
         ),
         { concurrency: 10 }
       );
@@ -653,15 +612,27 @@ export function diffGraphs(oldGraph, newGraph) {
   const oldLinkSet = new Set(oldGraph.links.map(l => `${l.source}|${l.target}|${l.relation}`));
   const newLinkSet = new Set(newGraph.links.map(l => `${l.source}|${l.target}|${l.relation}`));
 
-  const addedLinks = newGraph.links.filter(l => !oldLinkSet.has(`${l.source}|${l.target}|${l.relation}`));
-  const removedLinks = oldGraph.links.filter(l => !newLinkSet.has(`${l.source}|${l.target}|${l.relation}`));
+  const addedLinks = newGraph.links.filter(
+    l => !oldLinkSet.has(`${l.source}|${l.target}|${l.relation}`)
+  );
+  const removedLinks = oldGraph.links.filter(
+    l => !newLinkSet.has(`${l.source}|${l.target}|${l.relation}`)
+  );
 
   // Links referencing changed nodes need remapping
   const remappableLinks = newGraph.links.filter(
     l => changedNodeIds.has(l.source) || changedNodeIds.has(l.target)
   );
 
-  return { addedNodes, removedNodes, changedNodes, changedNodeIds, addedLinks, removedLinks, remappableLinks };
+  return {
+    addedNodes,
+    removedNodes,
+    changedNodes,
+    changedNodeIds,
+    addedLinks,
+    removedLinks,
+    remappableLinks,
+  };
 }
 
 export async function loadCache(cachePath) {
@@ -692,7 +663,10 @@ async function deleteEntityCascade(client, entityId, _tenantId) {
     await client.http.delete(`/api/v1/entities/${entityId}`);
     return { deleted: true, method: 'cascade' };
   } catch (err) {
-    logError('GRAPHIFY', 'Cascade delete failed, falling back to manual', { entityId, error: err.message });
+    logError('GRAPHIFY', 'Cascade delete failed, falling back to manual', {
+      entityId,
+      error: err.message,
+    });
     let atomsDeleted = 0;
     let refsDeleted = 0;
     try {
@@ -702,16 +676,24 @@ async function deleteEntityCascade(client, entityId, _tenantId) {
         try {
           await client.http.delete(`/api/v1/references?atom_id=${atom.id}`);
           refsDeleted++;
-        } catch (refErr) { logError('GRAPHIFY', 'Ref delete failed', { atomId: atom.id, error: refErr.message }); }
+        } catch (refErr) {
+          logError('GRAPHIFY', 'Ref delete failed', { atomId: atom.id, error: refErr.message });
+        }
         try {
           await client.http.delete(`/api/v1/atoms/${atom.id}`);
           atomsDeleted++;
-        } catch (atomErr) { logError('GRAPHIFY', 'Atom delete failed', { atomId: atom.id, error: atomErr.message }); }
+        } catch (atomErr) {
+          logError('GRAPHIFY', 'Atom delete failed', { atomId: atom.id, error: atomErr.message });
+        }
       }
-    } catch (queryErr) { logError('GRAPHIFY', 'Atom query failed', { entityId, error: queryErr.message }); }
+    } catch (queryErr) {
+      logError('GRAPHIFY', 'Atom query failed', { entityId, error: queryErr.message });
+    }
     try {
       await client.http.delete(`/api/v1/entities/${entityId}`);
-    } catch (entityErr) { logError('GRAPHIFY', 'Entity delete failed', { entityId, error: entityErr.message }); }
+    } catch (entityErr) {
+      logError('GRAPHIFY', 'Entity delete failed', { entityId, error: entityErr.message });
+    }
     return { deleted: true, method: 'manual', atomsDeleted, refsDeleted };
   }
 }
@@ -742,20 +724,35 @@ export async function importGraphJSONIncremental(options) {
   const totalChanges = diff.addedNodes.length + diff.removedNodes.length + diff.changedNodes.length;
   if (totalChanges === 0 && diff.addedLinks.length === 0 && diff.removedLinks.length === 0) {
     logInfo('GRAPHIFY', 'No changes detected, skipping import');
-    return { mode: 'incremental', entities: 0, atoms: 0, references: 0, errors: 0, skipped: 0, byRelation: {} };
+    return {
+      mode: 'incremental',
+      entities: 0,
+      atoms: 0,
+      references: 0,
+      errors: 0,
+      skipped: 0,
+      byRelation: {},
+    };
   }
 
-  logInfo('GRAPHIFY', `Incremental diff: +${diff.addedNodes.length} -${diff.removedNodes.length} ~${diff.changedNodes.length} nodes, +${diff.addedLinks.length} -${diff.removedLinks.length} links`);
+  logInfo(
+    'GRAPHIFY',
+    `Incremental diff: +${diff.addedNodes.length} -${diff.removedNodes.length} ~${diff.changedNodes.length} nodes, +${diff.addedLinks.length} -${diff.removedLinks.length} links`
+  );
 
   // Restore backend maps from cache
   const entityMap = new Map(Object.entries(cached.backendMaps?.entityMap || {}));
   const atomMap = new Map(Object.entries(cached.backendMaps?.atomMap || {}));
 
   // Step 1: Delete removed nodes (cascade)
-  const { entityNodes: removedEntities, atomNodes: removedAtoms } = classifyNodes(diff.removedNodes);
+  const { entityNodes: removedEntities, atomNodes: removedAtoms } = classifyNodes(
+    diff.removedNodes
+  );
   let deletedCount = 0;
 
-  endProgress(`Removals: ${PB_COLORS.red}${removedEntities.length} entities, ${removedAtoms.length} atoms${PB_COLORS.reset}`);
+  endProgress(
+    `Removals: ${PB_COLORS.red}${removedEntities.length} entities, ${removedAtoms.length} atoms${PB_COLORS.reset}`
+  );
 
   for (const entity of removedEntities) {
     const backendId = entityMap.get(entity.id);
@@ -771,7 +768,9 @@ export async function importGraphJSONIncremental(options) {
     if (backendId) {
       try {
         await client.http.delete(`/api/v1/atoms/${backendId}`);
-      } catch { /* already deleted via entity cascade */ }
+      } catch {
+        /* already deleted via entity cascade */
+      }
       atomMap.delete(atom.id);
       deletedCount++;
     }
@@ -781,7 +780,8 @@ export async function importGraphJSONIncremental(options) {
   const changedOldNodes = diff.changedNodes.map(c => c.old);
   const changedNewNodes = diff.changedNodes.map(c => c.new);
   const { entityNodes: changedEntities, atomNodes: changedAtoms } = classifyNodes(changedOldNodes);
-  const { entityNodes: changedNewEntities, atomNodes: changedNewAtoms } = classifyNodes(changedNewNodes);
+  const { entityNodes: changedNewEntities, atomNodes: changedNewAtoms } =
+    classifyNodes(changedNewNodes);
 
   // Delete old changed entities/atoms
   for (const entity of changedEntities) {
@@ -794,14 +794,28 @@ export async function importGraphJSONIncremental(options) {
   for (const atom of changedAtoms) {
     const backendId = atomMap.get(atom.id);
     if (backendId) {
-      try { await client.http.delete(`/api/v1/atoms/${backendId}`); } catch { /* cascade */ }
+      try {
+        await client.http.delete(`/api/v1/atoms/${backendId}`);
+      } catch {
+        /* cascade */
+      }
       atomMap.delete(atom.id);
     }
   }
 
   // Step 3: Create added + changed nodes
-  const allNewEntityNodes = [...diff.addedNodes.filter(n => hasFileExtension(n.label) || !n.source_location || n.source_location === ''), ...changedNewEntities];
-  const allNewAtomNodes = [...diff.addedNodes.filter(n => n.source_location && n.source_location !== '' && !hasFileExtension(n.label)), ...changedNewAtoms];
+  const allNewEntityNodes = [
+    ...diff.addedNodes.filter(
+      n => hasFileExtension(n.label) || !n.source_location || n.source_location === ''
+    ),
+    ...changedNewEntities,
+  ];
+  const allNewAtomNodes = [
+    ...diff.addedNodes.filter(
+      n => n.source_location && n.source_location !== '' && !hasFileExtension(n.label)
+    ),
+    ...changedNewAtoms,
+  ];
 
   // Create added+changed entities
   let newEntitiesCreated = 0;
@@ -828,29 +842,43 @@ export async function importGraphJSONIncremental(options) {
     }
   }
 
-  // Create added+changed atoms
+  // Create added+changed atoms (single creation with entity_id)
   let newAtomsCreated = 0;
   const atomPayloads = allNewAtomNodes.map(n =>
     buildAtomPayload(n, projectId, tenantId, fileToEntity.get(n.source_file))
   );
-  const atomBatches = Math.ceil(atomPayloads.length / BATCH_SIZE);
   const newAtomResults = [];
 
-  for (let i = 0; i < atomPayloads.length; i += BATCH_SIZE) {
-    const batch = atomPayloads.slice(i, i + BATCH_SIZE);
-    const result = await client.batchCreateAtoms(batch);
-    newAtomsCreated += result.created ?? 0;
-    newAtomResults.push(...(result.atoms || result.data || []));
-    logBatchProgress('Inc Atoms', Math.floor(i / BATCH_SIZE) + 1, atomBatches);
-  }
-  if (atomBatches > 0) {
+  if (atomPayloads.length > 0) {
+    const incAtomTasks = atomPayloads.map(
+      (payload, idx) => () =>
+        client
+          .createAtom(payload)
+          .then(result => {
+            newAtomsCreated++;
+            result._graphify_id = allNewAtomNodes[idx].id;
+            return result;
+          })
+          .catch(err => {
+            logError('GRAPHIFY', 'Inc atom creation failed', {
+              name: payload.name,
+              error: err.message,
+            });
+            return { error: err.message, _graphify_id: allNewAtomNodes[idx].id };
+          })
+    );
+
+    const incAtomResults = await runConcurrent(incAtomTasks, { concurrency: ATOM_CONCURRENCY });
+    for (const r of incAtomResults) {
+      if (r && !r.error) newAtomResults.push(r);
+    }
     endProgress(`Inc Atoms ${PB_COLORS.green}✓${PB_COLORS.reset} ${newAtomsCreated} created`);
   }
 
   // Update atomMap with new atom IDs
-  for (let i = 0; i < allNewAtomNodes.length; i++) {
-    if (newAtomResults[i]?.id) {
-      atomMap.set(allNewAtomNodes[i].id, newAtomResults[i].id);
+  for (const r of newAtomResults) {
+    if (r._graphify_id && r.id) {
+      atomMap.set(r._graphify_id, r.id);
     }
   }
 
@@ -863,8 +891,12 @@ export async function importGraphJSONIncremental(options) {
     const toId = resolveId(link.target, entityMap, atomMap);
     if (fromId && toId) {
       try {
-        await client.http.delete(`/api/v1/references?from_id=${fromId}&to_id=${toId}&type=${link.relation}`);
-      } catch { /* reference may not exist */ }
+        await client.http.delete(
+          `/api/v1/references?from_id=${fromId}&to_id=${toId}&type=${link.relation}`
+        );
+      } catch {
+        /* reference may not exist */
+      }
     }
   }
 
@@ -889,25 +921,49 @@ export async function importGraphJSONIncremental(options) {
     if (useBatch) {
       try {
         const result = await client.createReferences(batch);
-        refCreated += result.references?.filter(r => r.status !== 'error')?.length ?? result.created ?? 0;
-        refErrors += result.references?.filter(r => r.status === 'error')?.length ?? result.errors ?? 0;
+        refCreated +=
+          result.references?.filter(r => r.status !== 'error')?.length ?? result.created ?? 0;
+        refErrors +=
+          result.references?.filter(r => r.status === 'error')?.length ?? result.errors ?? 0;
       } catch {
         useBatch = false;
         await runConcurrent(
-          batch.map(p => () => client.createReference(p).then(() => { refCreated++; }).catch(() => { refErrors++; })),
+          batch.map(
+            p => () =>
+              client
+                .createReference(p)
+                .then(() => {
+                  refCreated++;
+                })
+                .catch(() => {
+                  refErrors++;
+                })
+          ),
           { concurrency: 10 }
         );
       }
     } else {
       await runConcurrent(
-        batch.map(p => () => client.createReference(p).then(() => { refCreated++; }).catch(() => { refErrors++; })),
+        batch.map(
+          p => () =>
+            client
+              .createReference(p)
+              .then(() => {
+                refCreated++;
+              })
+              .catch(() => {
+                refErrors++;
+              })
+        ),
         { concurrency: 10 }
       );
     }
     logBatchProgress('Inc Refs', batchNum, refBatches);
   }
   if (refBatches > 0) {
-    endProgress(`Inc Refs ${PB_COLORS.green}✓${PB_COLORS.reset} ${refCreated} created, ${refErrors}err`);
+    endProgress(
+      `Inc Refs ${PB_COLORS.green}✓${PB_COLORS.reset} ${refCreated} created, ${refErrors}err`
+    );
   }
 
   // Save updated cache

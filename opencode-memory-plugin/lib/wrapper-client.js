@@ -130,7 +130,9 @@ class HTTPClient {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      const response = await fetch(url, { ...options, signal: controller.signal, dispatcher: _undiciAgent });
+      const fetchOpts = { ...options, signal: controller.signal };
+      if (_undiciAgent) fetchOpts.dispatcher = _undiciAgent;
+      const response = await fetch(url, fetchOpts);
       clearTimeout(timeoutId);
 
       logInfo('HTTP', `<<< ${response.status} ${endpoint}`);
@@ -753,6 +755,7 @@ export class WrapperClient {
     if (atomData.metadata) requestBody.metadata = atomData.metadata;
     if (atomData.project) requestBody.project = atomData.project;
     if (atomData.norm_label) requestBody.norm_label = atomData.norm_label;
+    if (atomData.entity_id) requestBody.entity_id = atomData.entity_id;
 
     const result = await withRetry(
       () => this.http.post('/api/v1/atoms', requestBody),

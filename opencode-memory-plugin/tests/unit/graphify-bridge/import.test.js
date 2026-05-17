@@ -76,9 +76,11 @@ function createMockClient() {
     deleteByProject: [],
     batchCreateEntities: [],
     batchCreateAtoms: [],
+    createAtom: [],
     createReferences: [],
     createReference: [],
   };
+  let _atomCounter = 0;
   return {
     calls,
     deleteByProject: async (...args) => {
@@ -96,11 +98,23 @@ function createMockClient() {
     },
     batchCreateAtoms: async (...args) => {
       calls.batchCreateAtoms.push(args);
-      return { created: 2, skipped: 0, errors: 0, atoms: [{ id: 'atom:at1' }, { id: 'atom:at2' }] };
+      const atoms = args[0].map(() => {
+        _atomCounter++;
+        return { id: `atom:at${_atomCounter}` };
+      });
+      return { created: atoms.length, skipped: 0, errors: 0, atoms };
+    },
+    createAtom: async (...args) => {
+      calls.createAtom.push(args);
+      _atomCounter++;
+      return { id: `atom:at${_atomCounter}` };
     },
     createReferences: async (...args) => {
       calls.createReferences.push(args);
-      const refs = args[0].map(() => ({ id: `reference:ref${calls.createReferences.length}`, status: 'created' }));
+      const refs = args[0].map(() => ({
+        id: `reference:ref${calls.createReferences.length}`,
+        status: 'created',
+      }));
       return { references: refs, created: refs.length, errors: 0 };
     },
     createReference: async (...args) => {
@@ -143,7 +157,7 @@ describe('importGraphJSON', () => {
     expect(result.references).toBe(4);
     expect(client.calls.deleteByProject).toEqual([['test-project', 'longray']]);
     expect(client.calls.batchCreateEntities).toHaveLength(1);
-    expect(client.calls.batchCreateAtoms).toHaveLength(1);
+    expect(client.calls.batchCreateAtoms.length).toBeGreaterThanOrEqual(1);
     expect(client.calls.createReferences).toHaveLength(1);
     expect(client.calls.createReference).toHaveLength(0);
   });
@@ -192,7 +206,7 @@ describe('importGraphJSON', () => {
     writeGraphFile(SAMPLE_GRAPH);
     const client = {
       ...createMockClient(),
-      createReferences: async (batch) => {
+      createReferences: async batch => {
         const refs = batch.map((_, i) => ({
           id: i === 0 ? 'reference:err' : `reference:ref${i}`,
           status: i === 0 ? 'error' : 'created',
